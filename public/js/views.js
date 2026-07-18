@@ -9,7 +9,14 @@
     pending: ['قيد المراجعة', 'p-warn'],
     approved: ['معتمد', 'p-ok'],
     approved_notes: ['معتمد مع ملاحظات', 'p-info'],
-    rejected: ['مرفوض', 'p-danger']
+    rejected: ['مرفوض', 'p-danger'],
+    open: ['مفتوح', 'p-warn'],
+    answered: ['تم الرد', 'p-ok'],
+    issued: ['صادرة', 'p-info'],
+    done: ['نُفذت', 'p-ok'],
+    closed: ['مغلق', 'p-ok'],
+    pass: ['ناجح ✓', 'p-ok'],
+    fail: ['راسب ✗', 'p-danger']
   };
 
   function pill(status) {

@@ -577,6 +577,136 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
     ];
 
+    // ============ موديول المكتب الفني ============
+
+    // الاستفسارات الفنية RFI
+    db.rfis = [
+      { id: 'RFI1', projectId: 'P1', contractorId: 'C2', ref: 'RFI-ARC-021', title: 'منسوب رخام البهو عند المدخل الرئيسي',
+        question: 'المخطط المعماري A-102 يظهر منسوب تشطيب +0.15 بينما المقطع A-305 يظهر +0.10. أيهما المعتمد؟',
+        date: '2026-07-12', status: 'open', answer: '', discipline: 'architectural' },
+      { id: 'RFI2', projectId: 'P1', contractorId: 'C3', ref: 'RFI-ELE-014', title: 'مسار الكابل الرئيسي أسفل الرامب',
+        question: 'يوجد تعارض بين مسار الكابل الرئيسي وخط الصرف في القبو محور 3-B. نرجو تحديد المسار البديل.',
+        date: '2026-07-08', status: 'answered', answer: 'يُحوَّل المسار إلى حامل كابلات معلق أسفل السقف مع الحفاظ على بعد 30سم عن خط الصرف. مرفق سكتش SK-E-09.',
+        signature: 'م. خالد العمران', signDate: '2026-07-10', discipline: 'electrical' },
+      { id: 'RFI3', projectId: 'P1', contractorId: 'C1', ref: 'RFI-STR-033', title: 'تفصيلة تسليح فتحة المنور بسقف الرابع',
+        question: 'نرجو تزويدنا بتفصيلة التسليح الإضافي حول فتحة المنور المستحدثة بأمر التغيير CO-ARC-05.',
+        date: '2026-07-05', status: 'answered', answer: 'اعتمدوا تفصيلة التقوية النمطية TD-12 مع أسياخ إضافية 4T16 على كل جانب.',
+        signature: 'م. خالد العمران', signDate: '2026-07-07', discipline: 'structural' }
+    ];
+
+    // تقارير عدم المطابقة NCR
+    db.ncrs = [
+      { id: 'NCR1', projectId: 'P1', contractorId: 'C2', ref: 'NCR-ARC-009', title: 'لياسة غير مستوية بالجناح الغربي - الدور الثاني',
+        description: 'تجاوز التفاوت المسموح (3مم/2م) في جدران المحور 2-B، قياسات وصلت إلى 8مم.',
+        date: '2026-07-09', status: 'open', severity: 'major', correctiveAction: '' },
+      { id: 'NCR2', projectId: 'P1', contractorId: 'C4', ref: 'NCR-HVC-004', title: 'تعليق دكتات بدون عزل اهتزاز',
+        description: 'تم تعليق دكتات الميزانين مباشرة بدون رابر اهتزاز مخالفة للمواصفة 23-31-13.',
+        date: '2026-07-03', status: 'open', severity: 'major', correctiveAction: '' },
+      { id: 'NCR3', projectId: 'P1', contractorId: 'C1', ref: 'NCR-STR-011', title: 'تعشيش خرسانة بعمود الدور الثالث محور 4-C',
+        description: 'ظهور تعشيش سطحي بعد فك الشدة.',
+        date: '2026-06-18', status: 'closed', severity: 'minor',
+        correctiveAction: 'تمت المعالجة بمونة إصلاح إسمنتية عالية المقاومة وفق إجراء المعالجة المعتمد، وفُحصت بالمطرقة الارتدادية.',
+        signature: 'م. خالد العمران', signDate: '2026-06-25' }
+    ];
+
+    // التعليمات الموقعية Site Instructions
+    db.siteInstructions = [
+      { id: 'SI1', projectId: 'P1', contractorId: 'C2', ref: 'SI-047', title: 'إيقاف أعمال الدهانات بالواجهة الشمالية',
+        details: 'تُوقف الدهانات الخارجية لحين اعتماد عينة اللون النهائية من المالك.', date: '2026-07-14', status: 'issued' },
+      { id: 'SI2', projectId: 'P1', contractorId: 'C5', ref: 'SI-045', title: 'تعديل ميول صرف سطح الميزانين',
+        details: 'ضبط الميول إلى 1.5% باتجاه المصافي وفق المخطط P-204 قبل صب المدة.', date: '2026-07-10', status: 'done',
+        signature: 'م. خالد العمران', signDate: '2026-07-13' },
+      { id: 'SI3', projectId: 'P1', contractorId: 'C1', ref: 'SI-044', title: 'تأمين فتحات الأسقف المكشوفة',
+        details: 'تركيب حواجز وتغطيات آمنة لجميع الفتحات في الأدوار 3 و4 خلال 24 ساعة.', date: '2026-07-08', status: 'done',
+        signature: 'م. خالد العمران', signDate: '2026-07-09' }
+    ];
+
+    // اعتماد أساليب التنفيذ وخطط الفحص Method Statements / ITP
+    db.methodStatements = [
+      { id: 'MS1', projectId: 'P1', contractorId: 'C1', ref: 'MS-STR-018', kind: 'ms', title: 'أسلوب تنفيذ خرسانة السطح بالمضخة البرجية',
+        date: '2026-07-11', status: 'pending', notes: '', file: 'MS-STR-018.pdf' },
+      { id: 'MS2', projectId: 'P1', contractorId: 'C6', ref: 'ITP-FIR-003', kind: 'itp', title: 'خطة فحص واختبار شبكة الرشاشات',
+        date: '2026-07-06', status: 'pending', notes: '', file: 'ITP-FIR-003.pdf' },
+      { id: 'MS3', projectId: 'P1', contractorId: 'C2', ref: 'MS-ARC-012', kind: 'ms', title: 'أسلوب تركيب رخام الواجهات بنظام التثبيت الميكانيكي',
+        date: '2026-06-28', status: 'approved', notes: 'مع الالتزام باختبار شد المثبتات', signature: 'م. خالد العمران', signDate: '2026-07-01', file: 'MS-ARC-012.pdf' }
+    ];
+
+    // اختبارات المواد المعملية
+    db.materialTests = [
+      { id: 'TST1', projectId: 'P1', contractorId: 'C1', ref: 'CT-238', title: 'كسر مكعبات خرسانة سقف الرابع - 28 يوم',
+        lab: 'مختبر الفحوصات الإنشائية المعتمد', target: '30 نيوتن/مم²', value: '34.2 نيوتن/مم²', result: 'pass', date: '2026-07-15' },
+      { id: 'TST2', projectId: 'P1', contractorId: 'C1', ref: 'CT-235', title: 'كسر مكعبات خرسانة أعمدة السطح - 7 أيام',
+        lab: 'مختبر الفحوصات الإنشائية المعتمد', target: '21 نيوتن/مم²', value: '24.8 نيوتن/مم²', result: 'pass', date: '2026-07-12' },
+      { id: 'TST3', projectId: 'P1', contractorId: 'C5', ref: 'PT-041', title: 'اختبار ضغط شبكة التغذية - الدور الثاني',
+        lab: 'فحص موقعي', target: '10 بار / ساعتين', value: 'هبوط 0.4 بار', result: 'fail', date: '2026-07-10',
+        notes: 'رُصد تسريب عند وصلة محور 2-A، يعاد الاختبار بعد المعالجة' },
+      { id: 'TST4', projectId: 'P1', contractorId: 'C2', ref: 'TL-019', title: 'اختبار شد مثبتات رخام الواجهة',
+        lab: 'المختبر السعودي للجودة', target: '5 كيلو نيوتن', value: '7.1 كيلو نيوتن', result: 'pass', date: '2026-07-05' }
+    ];
+
+    // محاضر الاجتماعات
+    db.meetings = [
+      { id: 'MTG1', projectId: 'P1', ref: 'MOM-29', title: 'اجتماع تنسيق الموقع الأسبوعي رقم 29', date: '2026-07-13',
+        attendees: 'الاستشاري، الإعمار الحديثة، البناء المعماري، الطاقة المتحدة، تكييف الخليج',
+        items: ['متابعة تأخر توريد وحدات VRF - تعهد المقاول بالوصول 25 يوليو', 'حسم تعارض دكتات الميزانين مع الكمرات خلال أسبوع', 'التشديد على إغلاق ملاحظات السلامة قبل نهاية الأسبوع', 'رفع مخطط الواجهة المعدل للاعتماد'], by: 'م. خالد العمران' },
+      { id: 'MTG2', projectId: 'P1', ref: 'MOM-28', title: 'اجتماع تنسيق الموقع الأسبوعي رقم 28', date: '2026-07-06',
+        attendees: 'الاستشاري، ممثل المالك، جميع المقاولين',
+        items: ['استعراض نسب الإنجاز مقابل المخطط', 'مناقشة المستخلص 11 لمقاول الهيكل', 'جدولة اختبارات مضخات الحريق'], by: 'م. خالد العمران' }
+    ];
+
+    // قوائم ملاحظات التسليم Snag List
+    db.snags = [
+      { id: 'SNG1', projectId: 'P1', contractorId: 'C2', ref: 'SNG-114', title: 'خدوش بواجهة رخام المصعد الرئيسي', location: 'GF', date: '2026-07-11', status: 'open' },
+      { id: 'SNG2', projectId: 'P1', contractorId: 'C3', ref: 'SNG-112', title: 'لوحة مفاتيح غير مثبتة بإحكام - ممر الدور الأول', location: 'F1', date: '2026-07-09', status: 'open' },
+      { id: 'SNG3', projectId: 'P1', contractorId: 'C2', ref: 'SNG-108', title: 'فواصل سيراميك غير منتظمة بدورة مياه الميزانين', location: 'MZ', date: '2026-07-02', status: 'closed', signature: 'م. خالد العمران', signDate: '2026-07-08' },
+      { id: 'SNG4', projectId: 'P1', contractorId: 'C5', ref: 'SNG-105', title: 'تسريب بسيط أسفل مغسلة القبو', location: 'B1', date: '2026-06-28', status: 'closed', signature: 'م. خالد العمران', signDate: '2026-07-03' }
+    ];
+
+    // تقارير السلامة HSE
+    db.hseReports = [
+      { id: 'HSE1', projectId: 'P1', contractorId: 'C1', ref: 'HSE-067', kind: 'violation', title: 'عمالة بدون أحزمة أمان على حافة الدور الثالث',
+        details: 'رصد بكاميرا المراقبة رقم 2 — أُوقف العمل فوراً وأُلزم المقاول بإعادة التدريب.', severity: 'high', date: '2026-07-10', status: 'open' },
+      { id: 'HSE2', projectId: 'P1', contractorId: 'C4', ref: 'HSE-065', kind: 'observation', title: 'تخزين أسطوانات أكسجين قرب مواد قابلة للاشتعال',
+        details: 'نُقلت الأسطوانات إلى منطقة التخزين الآمنة وثُبتت لافتات تحذيرية.', severity: 'medium', date: '2026-07-06', status: 'closed', signature: 'م. خالد العمران', signDate: '2026-07-07' },
+      { id: 'HSE3', projectId: 'P1', contractorId: 'C2', ref: 'HSE-061', kind: 'incident', title: 'إصابة طفيفة - جرح يد أثناء تركيب الأسقف المستعارة',
+        details: 'إسعاف أولي بالموقع، لا أيام عمل مفقودة. تم التوعية بلبس القفازات المقاومة للقطع.', severity: 'low', date: '2026-06-30', status: 'closed', signature: 'م. خالد العمران', signDate: '2026-07-01' }
+    ];
+
+    // المطالبات وتمديد المدة Claims / EOT
+    db.claims = [
+      { id: 'CLM1', projectId: 'P1', contractorId: 'C4', ref: 'EOT-HVC-02', kind: 'eot', title: 'طلب تمديد مدة 21 يوماً - تأخر جمركي لوحدات VRF',
+        days: 21, amount: 0, date: '2026-07-09', status: 'pending', notes: '' },
+      { id: 'CLM2', projectId: 'P1', contractorId: 'C1', ref: 'CLM-STR-01', kind: 'cost', title: 'مطالبة مالية - أعمال إضافية لتثبيت التربة',
+        days: 0, amount: 260000, date: '2026-06-20', status: 'rejected',
+        notes: 'الأعمال ضمن نطاق العقد وفق البند 4-12 من المواصفات', signature: 'م. خالد العمران', signDate: '2026-06-26' }
+    ];
+
+    // الهندسة القيمية Value Engineering
+    db.valueEngineering = [
+      { id: 'VE1', projectId: 'P1', contractorId: 'C3', ref: 'VE-ELE-03', title: 'استبدال إنارة الممرات بنظام LED بمستشعرات حركة',
+        saving: 185000, date: '2026-07-04', status: 'pending', notes: '', details: 'توفير 35% من استهلاك الإنارة مع عمر تشغيلي أطول.' },
+      { id: 'VE2', projectId: 'P1', contractorId: 'C2', ref: 'VE-ARC-01', title: 'بديل محلي معتمد لرخام السلالم الخدمية',
+        saving: 120000, date: '2026-06-15', status: 'approved', notes: 'اعتمد للسلالم الخدمية فقط دون البهو الرئيسي',
+        signature: 'م. خالد العمران', signDate: '2026-06-22', details: 'نفس السماكة والمقاومة بمصدر توريد أسرع.' }
+    ];
+
+    // مستندات التسليم والإغلاق Handover
+    db.handoverDocs = [
+      { id: 'HND1', projectId: 'P1', contractorId: 'C1', ref: 'ABD-STR-01', kind: 'asbuilt', title: 'مخططات كما نُفذ - الهيكل الإنشائي (حتى الدور الرابع)',
+        date: '2026-07-13', status: 'pending', notes: '', file: 'AsBuilt-STR-R1.pdf' },
+      { id: 'HND2', projectId: 'P1', contractorId: 'C4', ref: 'OMM-HVC-01', kind: 'om', title: 'كتيبات التشغيل والصيانة - وحدات التكييف المركبة',
+        date: '2026-07-08', status: 'pending', notes: '', file: 'OM-HVAC-V1.pdf' },
+      { id: 'HND3', projectId: 'P1', contractorId: 'C5', ref: 'WRT-PLB-01', kind: 'warranty', title: 'شهادات ضمان السخانات المركزية (5 سنوات)',
+        date: '2026-06-25', status: 'approved', notes: 'سارية حتى 2031', signature: 'م. خالد العمران', signDate: '2026-06-28', file: 'Warranty-Heaters.pdf' }
+    ];
+
+    // سجل المراسلات
+    db.correspondence = [
+      { id: 'COR1', projectId: 'P1', ref: 'OUT-2026-088', direction: 'out', to: 'مؤسسة البناء المعماري', title: 'إنذار بشأن تأخر معدل إنجاز التشطيبات', date: '2026-07-12', by: 'م. خالد العمران' },
+      { id: 'COR2', projectId: 'P1', ref: 'IN-2026-134', direction: 'in', to: 'المكتب الاستشاري', from: 'تكييف الخليج المتقدم', title: 'إشعار وصول شحنة وحدات VRF للميناء', date: '2026-07-11' },
+      { id: 'COR3', projectId: 'P1', ref: 'OUT-2026-085', direction: 'out', to: 'ممثل المالك', title: 'رفع التقرير الشهري يونيو مع توصيات تسريع الأعمال', date: '2026-07-02', by: 'م. خالد العمران' }
+    ];
+
     // ============ سجل الرسائل (واتساب / إيميل) ============
     db.messages = [
       { id: 'MSG1', channel: 'whatsapp', to: '0501234567', date: '2026-07-15 09:00', title: 'التقرير الأسبوعي', status: 'sent' },
@@ -584,7 +714,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     ];
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18' };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 2 };
 
     return db;
   }
@@ -605,8 +735,22 @@ textarea.inp { resize: vertical; min-height: 80px; }
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const APPROVAL_COLLECTIONS = ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments'];
-  const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS; // المقاول يرى ويُنشئ ضمن هذه المجموعات فقط ما يخصه
+  const APPROVAL_COLLECTIONS = [
+    'shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
+    // موديول المكتب الفني - دورات الاعتماد
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs'
+  ];
+  // مجموعات المكتب الفني المرتبطة بمقاول محدد (يرى المقاول ما يخصه فقط)
+  const TECH_FILTERED = ['rfis', 'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests'];
+  // مجموعات مكتب فني عامة لا تُعرض للمقاول
+  const TECH_INTERNAL = ['meetings', 'correspondence'];
+  const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS.concat(TECH_FILTERED); // المقاول يرى ضمنها ما يخصه فقط
+
+  // الحالة الابتدائية الافتراضية لكل مجموعة
+  const DEFAULT_STATUS = {
+    rfis: 'open', ncrs: 'open', siteInstructions: 'issued',
+    snags: 'open', hseReports: 'open'
+  };
 
   // من يستطيع إنشاء عناصر في كل مجموعة
   const CREATE_RULES = {
@@ -623,7 +767,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
     photos: ['consultant', 'contractor', 'admin'],
     users: ['admin', 'owner_rep'],
     contractors: ['consultant', 'admin'],
-    projects: ['owner_rep', 'admin']
+    projects: ['owner_rep', 'admin'],
+    // موديول المكتب الفني
+    rfis: ['contractor', 'consultant', 'admin'],
+    methodStatements: ['contractor', 'consultant', 'admin'],
+    claims: ['contractor', 'consultant', 'admin'],
+    valueEngineering: ['contractor', 'consultant', 'admin'],
+    handoverDocs: ['contractor', 'consultant', 'admin'],
+    ncrs: ['consultant', 'admin'],
+    siteInstructions: ['consultant', 'admin'],
+    snags: ['consultant', 'admin'],
+    hseReports: ['consultant', 'admin'],
+    materialTests: ['consultant', 'admin'],
+    meetings: ['consultant', 'admin'],
+    correspondence: ['consultant', 'admin']
   };
 
   function createCore(db, persist) {
@@ -667,13 +824,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
-      APPROVAL_COLLECTIONS.forEach(function (c) { s[c] = db[c]; });
+      APPROVAL_COLLECTIONS.concat(TECH_FILTERED, TECH_INTERNAL).forEach(function (c) { s[c] = db[c] || []; });
 
       if (role === 'contractor') {
         const cid = user.contractorId;
         CONTRACTOR_OWNED.forEach(function (c) {
-          s[c] = db[c].filter(function (x) { return x.contractorId === cid; });
+          s[c] = (db[c] || []).filter(function (x) { return x.contractorId === cid; });
         });
+        TECH_INTERNAL.forEach(function (c) { s[c] = []; });
         s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
         s.messages = [];
@@ -702,7 +860,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
         if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
       }
       if (!item.date) item.date = todayStr();
-      if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1 && !item.status) item.status = 'pending';
+      if (!item.status) {
+        if (DEFAULT_STATUS[collection]) item.status = DEFAULT_STATUS[collection];
+        else if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
+      }
       db[collection].push(item);
       persist();
       return item;
@@ -935,7 +1096,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const saved = localStorage.getItem('bassir-demo-db');
       if (saved) db = JSON.parse(saved);
     } catch (e) { /* تجاهل */ }
-    if (!db || !db.meta) db = window.BassirSeed.buildSeed();
+    const fresh = window.BassirSeed.buildSeed();
+    if (!db || !db.meta || db.meta.version !== fresh.meta.version) db = fresh;
     demoCore = window.BassirCore.createCore(db, function persist() {
       try { localStorage.setItem('bassir-demo-db', JSON.stringify(db)); } catch (e) { /* تجاهل */ }
     });
@@ -1138,7 +1300,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
     pending: ['قيد المراجعة', 'p-warn'],
     approved: ['معتمد', 'p-ok'],
     approved_notes: ['معتمد مع ملاحظات', 'p-info'],
-    rejected: ['مرفوض', 'p-danger']
+    rejected: ['مرفوض', 'p-danger'],
+    open: ['مفتوح', 'p-warn'],
+    answered: ['تم الرد', 'p-ok'],
+    issued: ['صادرة', 'p-info'],
+    done: ['نُفذت', 'p-ok'],
+    closed: ['مغلق', 'p-ok'],
+    pass: ['ناجح ✓', 'p-ok'],
+    fail: ['راسب ✗', 'p-danger']
   };
 
   function pill(status) {
@@ -2007,6 +2176,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   // ============ صفحات المقاول ============
+  const CONT_TABS = APPROVAL_TABS.concat([
+    { col: 'rfis', name: 'استفسارات RFI', icon: '❓' },
+    { col: 'methodStatements', name: 'أساليب التنفيذ وITP', icon: '🧾' },
+    { col: 'claims', name: 'المطالبات وEOT', icon: '⚖️' }
+  ]);
   const contState = { tab: 'shopDrawings' };
 
   function renderContractorHome(el, ctx) {
@@ -2014,8 +2188,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
     if (!c) { el.innerHTML = '<div class="empty">لا يوجد عقد مرتبط بحسابك</div>'; return; }
     const sums = VS.summarize(ctx)[0];
     const d = discOf(ctx, c.type);
-    const pendingAll = APPROVAL_TABS.reduce(function (a, t) {
-      return a + (ctx.S[t.col] || []).filter(function (x) { return x.status === 'pending'; }).length;
+    const pendingAll = CONT_TABS.reduce(function (a, t) {
+      return a + (ctx.S[t.col] || []).filter(function (x) { return x.status === 'pending' || x.status === 'open'; }).length;
     }, 0);
 
     el.innerHTML =
@@ -2029,16 +2203,18 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="card kpi k-warn"><div class="lbl">طلبات قيد المراجعة</div><div class="val num">' + pendingAll + '</div><div class="sub">لدى الاستشاري</div></div>' +
       '</div>' +
 
-      '<div class="tabs">' + APPROVAL_TABS.map(function (t) {
-        const pending = (ctx.S[t.col] || []).filter(function (x) { return x.status === 'pending'; }).length;
+      '<div class="tabs">' + CONT_TABS.map(function (t) {
+        const pending = (ctx.S[t.col] || []).filter(function (x) { return x.status === 'pending' || x.status === 'open'; }).length;
         return '<div class="tab ' + (contState.tab === t.col ? 'active' : '') + '" data-ctab="' + t.col + '">' + t.icon + ' ' + t.name +
           (pending ? '<span class="n">' + pending + '</span>' : '') + '</div>';
       }).join('') + '</div>' +
 
-      '<div class="card"><div class="flex" style="justify-content:space-between;margin-bottom:12px">' +
-      '<h3 style="margin:0">' + (APPROVAL_TABS.find(function (t) { return t.col === contState.tab; }) || {}).name + '</h3>' +
+      '<div class="card mb"><div class="flex" style="justify-content:space-between;margin-bottom:12px">' +
+      '<h3 style="margin:0">' + (CONT_TABS.find(function (t) { return t.col === contState.tab; }) || {}).name + '</h3>' +
       '<button class="btn sm" id="ct-new">➕ رفع طلب جديد</button></div>' +
-      renderContractorList(ctx) + '</div>';
+      renderContractorList(ctx) + '</div>' +
+
+      renderTechInbox(ctx);
 
     el.querySelectorAll('[data-ctab]').forEach(function (t) {
       t.addEventListener('click', function () { contState.tab = t.getAttribute('data-ctab'); renderContractorHome(el, ctx); });
@@ -2047,24 +2223,53 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   function renderContractorList(ctx) {
-    const items = (ctx.S[contState.tab] || []).slice().reverse();
+    const tab = contState.tab;
+    const items = (ctx.S[tab] || []).slice().reverse();
     if (!items.length) return '<div class="empty"><div class="e-ico">📭</div>لا طلبات بعد — ارفع أول طلب</div>';
+    const hasAmount = tab === 'changeOrders' || tab === 'payments' || tab === 'claims';
     return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المرجع</th><th>العنوان</th>' +
-      (contState.tab === 'changeOrders' || contState.tab === 'payments' ? '<th>القيمة</th>' : '') +
+      (hasAmount ? '<th>القيمة</th>' : '') +
       '<th>التاريخ</th><th>الحالة</th><th>رد الاستشاري</th></tr></thead><tbody>' +
       items.map(function (it) {
-        return '<tr><td class="num small"><b>' + esc(it.ref) + '</b></td><td>' + esc(it.title) + '</td>' +
-          (contState.tab === 'changeOrders' || contState.tab === 'payments' ? '<td>' + money(it.amount) + '</td>' : '') +
+        const reply = tab === 'rfis' ? it.answer : it.notes;
+        return '<tr><td class="num small"><b>' + esc(it.ref) + '</b></td>' +
+          '<td>' + esc(it.title) +
+          (it.question ? '<div class="small muted" style="max-width:300px">' + esc(it.question) + '</div>' : '') +
+          (it.kind === 'eot' ? '<div class="small muted num">تمديد +' + (it.days || 0) + ' يوم</div>' : '') +
+          (it.kind === 'itp' ? '<div class="small muted">خطة فحص ITP</div>' : '') + '</td>' +
+          (hasAmount ? '<td>' + money(it.amount) + '</td>' : '') +
           '<td class="small muted num">' + esc(it.date) + '</td><td>' + pill(it.status) + '</td>' +
-          '<td class="small" style="max-width:240px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
+          '<td class="small" style="max-width:240px">' + (reply ? esc(reply) : '<span class="muted">—</span>') +
           (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
   }
 
+  /** ما يوجهه المكتب الفني للمقاول: NCR، تعليمات، ملاحظات، سلامة، اختبارات */
+  function renderTechInbox(ctx) {
+    const sections = [
+      { col: 'ncrs', name: '🚫 تقارير عدم المطابقة الموجهة لك', line: function (it) { return esc(it.title) + (it.correctiveAction ? ' — <span style="color:var(--ok)">' + esc(it.correctiveAction) + '</span>' : ''); } },
+      { col: 'siteInstructions', name: '📢 تعليمات موقعية', line: function (it) { return esc(it.title) + '<div class="small muted">' + esc(it.details || '') + '</div>'; } },
+      { col: 'snags', name: '📌 ملاحظات التسليم المطلوب إغلاقها', line: function (it) { return esc(it.title) + ' <span class="small muted">(' + esc(VS.floorName(ctx, it.location)) + ')</span>'; } },
+      { col: 'hseReports', name: '🦺 ملاحظات السلامة', line: function (it) { return esc(it.title); } },
+      { col: 'materialTests', name: '🧪 نتائج اختبارات موادك', line: function (it) { return esc(it.title) + ' — <b class="num">' + esc(it.value || '') + '</b>'; }, statusKey: 'result' }
+    ];
+    const cards = sections.map(function (s) {
+      const items = (ctx.S[s.col] || []);
+      if (!items.length) return '';
+      return '<div class="card"><h3>' + s.name + '</h3>' +
+        items.map(function (it) {
+          return '<div class="flex" style="justify-content:space-between;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:8px;background:var(--bg2)">' +
+            '<div class="small" style="flex:1">' + s.line(it) + '</div>' +
+            '<div>' + pill(it[s.statusKey || 'status']) + '</div></div>';
+        }).join('') + '</div>';
+    }).filter(Boolean).join('');
+    return cards ? '<h3 class="mb" style="margin-top:24px">📥 موجه إليك من المكتب الفني</h3><div class="grid g2">' + cards + '</div>' : '';
+  }
+
   function openSubmitModal(ctx) {
     const tab = contState.tab;
-    const meta = APPROVAL_TABS.find(function (t) { return t.col === tab; });
-    const needAmount = tab === 'changeOrders' || tab === 'payments';
+    const meta = CONT_TABS.find(function (t) { return t.col === tab; });
+    const needAmount = tab === 'changeOrders' || tab === 'payments' || tab === 'claims';
     const isPayment = tab === 'payments';
     const isWir = tab === 'wirs';
     const myBoq = ctx.S.boqItems;
@@ -2074,8 +2279,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="m-sub">سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض</div>' +
       '<label class="fl">رقم المرجع</label><input class="inp num" id="sb-ref" placeholder="REF-001">' +
       '<label class="fl">العنوان / الوصف</label><input class="inp" id="sb-title">' +
+      (tab === 'rfis' ? '<label class="fl">نص الاستفسار الفني</label><textarea class="inp" id="sb-question" rows="3" placeholder="اشرح التعارض أو المعلومة المطلوبة مع ذكر رقم المخطط..."></textarea>' : '') +
+      (tab === 'methodStatements' ? '<label class="fl">النوع</label><select class="inp" id="sb-kind"><option value="ms">أسلوب تنفيذ MS</option><option value="itp">خطة فحص ITP</option></select>' : '') +
+      (tab === 'claims' ? '<label class="fl">نوع المطالبة</label><select class="inp" id="sb-kind"><option value="eot">تمديد مدة EOT</option><option value="cost">مطالبة مالية</option></select>' : '') +
       (needAmount ? '<label class="fl">القيمة (ر.س)</label><input class="inp num" id="sb-amount" type="number">' : '') +
-      (tab === 'changeOrders' ? '<label class="fl">الأيام الإضافية المطلوبة</label><input class="inp num" id="sb-days" type="number" value="0">' : '') +
+      (tab === 'changeOrders' || tab === 'claims' ? '<label class="fl">الأيام الإضافية المطلوبة</label><input class="inp num" id="sb-days" type="number" value="0">' : '') +
       (isWir ? '<label class="fl">الموقع / الدور</label><select class="inp" id="sb-loc">' +
         ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>' : '') +
       (isPayment ?
@@ -2107,7 +2315,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
       };
       if (!data.title) { toast('أدخل عنوان الطلب', true); return; }
       if (needAmount) data.amount = Number(m.querySelector('#sb-amount').value) || 0;
-      if (tab === 'changeOrders') data.days = Number(m.querySelector('#sb-days').value) || 0;
+      if (tab === 'changeOrders' || tab === 'claims') data.days = Number(m.querySelector('#sb-days').value) || 0;
+      if (tab === 'rfis') data.question = m.querySelector('#sb-question').value;
+      if (tab === 'methodStatements' || tab === 'claims') data.kind = m.querySelector('#sb-kind').value;
       if (isWir) data.location = m.querySelector('#sb-loc').value;
       const files = m.querySelector('#sb-file').files;
       if (files.length) data.file = files[0].name;
@@ -2128,8 +2338,350 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
   }
 
+  // ============ موديول المكتب الفني (خدمات استشاري المشروع) ============
+  const HSE_KINDS = { violation: 'مخالفة سلامة', incident: 'حادث', observation: 'ملاحظة وقائية' };
+  const SEVERITIES = { low: ['منخفضة', 'p-muted'], medium: ['متوسطة', 'p-warn'], high: ['عالية', 'p-danger'], minor: ['ثانوية', 'p-warn'], major: ['جوهرية', 'p-danger'], critical: ['حرجة', 'p-danger'] };
+  const HND_KINDS = { asbuilt: 'مخططات كما نُفذ', om: 'كتيبات تشغيل وصيانة', warranty: 'شهادات ضمان', dlp: 'فترة الضمان DLP' };
+
+  function sev(s) { const v = SEVERITIES[s] || [s, 'p-muted']; return '<span class="pill ' + v[1] + '">' + esc(v[0]) + '</span>'; }
+  function sigCell(it) { return it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : ''; }
+
+  const TECH_TABS = [
+    { col: 'rfis', name: 'الاستفسارات الفنية RFI', icon: '❓', desc: 'الرد على استفسارات المقاولين وحسم تعارضات المخططات والمواصفات',
+      pendingOf: function (x) { return x.status === 'open'; },
+      cols: [
+        { h: 'الاستفسار', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:340px">' + esc(it.question || '') + '</div>'; } },
+        { h: 'الرد الفني', r: function (it) { return it.answer ? '<div class="small" style="max-width:300px;color:var(--ok)">' + esc(it.answer) + '</div>' + sigCell(it) : '<span class="muted small">بانتظار الرد</span>'; } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
+        { k: 'title', label: 'الموضوع', type: 'text' }, { k: 'question', label: 'نص الاستفسار', type: 'textarea' }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'open') return null;
+        return { label: '↩️ رد فني', run: function () { answerModal(ctx, 'rfis', it, 'الرد الفني على الاستفسار', 'answer', { status: 'answered' }); } };
+      } },
+
+    { col: 'ncrs', name: 'عدم المطابقة NCR', icon: '🚫', desc: 'رصد الأعمال المخالفة للمواصفات ومتابعة الإجراءات التصحيحية حتى الإغلاق',
+      pendingOf: function (x) { return x.status === 'open'; },
+      cols: [
+        { h: 'المخالفة', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:320px">' + esc(it.description || '') + '</div>'; } },
+        { h: 'الخطورة', r: function (it) { return sev(it.severity); } },
+        { h: 'الإجراء التصحيحي', r: function (it) { return it.correctiveAction ? '<div class="small" style="max-width:280px">' + esc(it.correctiveAction) + '</div>' + sigCell(it) : '<span class="muted small">—</span>'; } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
+        { k: 'title', label: 'عنوان المخالفة', type: 'text' }, { k: 'description', label: 'وصف عدم المطابقة', type: 'textarea' },
+        { k: 'severity', label: 'الخطورة', type: 'select', options: [['minor', 'ثانوية'], ['major', 'جوهرية'], ['critical', 'حرجة']] }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'open') return null;
+        return { label: '✅ إغلاق', run: function () { answerModal(ctx, 'ncrs', it, 'الإجراء التصحيحي المنفذ', 'correctiveAction', { status: 'closed' }); } };
+      } },
+
+    { col: 'siteInstructions', name: 'التعليمات الموقعية', icon: '📢', desc: 'إصدار تعليمات ملزمة للمقاولين ومتابعة تنفيذها',
+      pendingOf: function (x) { return x.status === 'issued'; },
+      cols: [
+        { h: 'التعليمات', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:360px">' + esc(it.details || '') + '</div>' + sigCell(it); } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
+        { k: 'title', label: 'عنوان التعليمات', type: 'text' }, { k: 'details', label: 'التفاصيل', type: 'textarea' }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'issued') return null;
+        return { label: '✔ تم التنفيذ', run: function () { quickUpdate(ctx, 'siteInstructions', it, { status: 'done' }); } };
+      } },
+
+    { col: 'methodStatements', name: 'أساليب التنفيذ وITP', icon: '🧾', desc: 'اعتماد بيانات طرق التنفيذ وخطط الفحص والاختبار المقدمة من المقاولين',
+      pendingOf: function (x) { return x.status === 'pending'; },
+      cols: [
+        { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + (it.kind === 'itp' ? 'خطة فحص ITP' : 'أسلوب تنفيذ MS') + '</span>'; } },
+        { h: 'العنوان', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + esc(it.file) + '</div>' : ''); } },
+        { h: 'الملاحظات', r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' },
+        { k: 'kind', label: 'النوع', type: 'select', options: [['ms', 'أسلوب تنفيذ MS'], ['itp', 'خطة فحص ITP']] },
+        { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'العنوان', type: 'text' }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'pending') return null;
+        return { label: '✍️ قرار', run: function () { openReviewModal(ctx, 'methodStatements', it); } };
+      } },
+
+    { col: 'materialTests', name: 'اختبارات المواد', icon: '🧪', desc: 'توثيق نتائج الاختبارات المعملية والحقلية (خرسانة، تربة، ضغط، شد...)',
+      pendingOf: function (x) { return x.result === 'fail'; },
+      cols: [
+        { h: 'الاختبار', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted">🏛️ ' + esc(it.lab || '') + '</div>'; } },
+        { h: 'المطلوب / النتيجة', r: function (it) { return '<div class="small num">المطلوب: ' + esc(it.target || '—') + '</div><div class="small num"><b>النتيجة: ' + esc(it.value || '—') + '</b></div>' + (it.notes ? '<div class="small muted">' + esc(it.notes) + '</div>' : ''); } },
+        { h: 'الحكم', r: function (it) { return pill(it.result); } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
+        { k: 'title', label: 'الاختبار', type: 'text' }, { k: 'lab', label: 'المختبر', type: 'text' },
+        { k: 'target', label: 'القيمة المطلوبة', type: 'text' }, { k: 'value', label: 'النتيجة', type: 'text' },
+        { k: 'result', label: 'الحكم', type: 'select', options: [['pass', 'ناجح'], ['fail', 'راسب']] },
+        { k: 'notes', label: 'ملاحظات', type: 'textarea' }
+      ],
+      statusKey: 'result' },
+
+    { col: 'meetings', name: 'محاضر الاجتماعات', icon: '🤝', desc: 'محاضر اجتماعات التنسيق الأسبوعية وقراراتها',
+      pendingOf: function () { return false; }, noContractor: true, noStatus: true,
+      cols: [
+        { h: 'الاجتماع', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted">الحضور: ' + esc(it.attendees || '') + '</div>'; } },
+        { h: 'أبرز البنود والقرارات', r: function (it) { return '<ul style="margin-right:16px;font-size:12.5px;line-height:1.9;max-width:380px">' + (it.items || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; } }
+      ],
+      fields: [
+        { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'عنوان الاجتماع', type: 'text' },
+        { k: 'date', label: 'التاريخ', type: 'date' }, { k: 'attendees', label: 'الحضور', type: 'text' },
+        { k: 'items', label: 'البنود (سطر لكل بند)', type: 'lines' }
+      ] },
+
+    { col: 'snags', name: 'قوائم الملاحظات', icon: '📌', desc: 'ملاحظات الاستلام الابتدائي (Snag List) ومتابعة إغلاقها قبل التسليم',
+      pendingOf: function (x) { return x.status === 'open'; },
+      cols: [
+        { h: 'الملاحظة', r: function (it) { return '<b>' + esc(it.title) + '</b>' + sigCell(it); } },
+        { h: 'الموقع', r: function (it, ctx) { return '<span class="pill p-muted">' + esc(VS.floorName(ctx, it.location)) + '</span>'; } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
+        { k: 'title', label: 'وصف الملاحظة', type: 'text' }, { k: 'location', label: 'الموقع', type: 'floor' }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'open') return null;
+        return { label: '✅ إغلاق', run: function () { quickUpdate(ctx, 'snags', it, { status: 'closed' }); } };
+      } },
+
+    { col: 'hseReports', name: 'السلامة HSE', icon: '🦺', desc: 'مخالفات وحوادث وملاحظات السلامة والصحة المهنية بالموقع',
+      pendingOf: function (x) { return x.status === 'open'; },
+      cols: [
+        { h: 'النوع', r: function (it) { return '<span class="pill ' + (it.kind === 'incident' ? 'p-danger' : it.kind === 'violation' ? 'p-warn' : 'p-info') + '">' + esc(HSE_KINDS[it.kind] || it.kind) + '</span>'; } },
+        { h: 'التقرير', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:330px">' + esc(it.details || '') + '</div>' + sigCell(it); } },
+        { h: 'الخطورة', r: function (it) { return sev(it.severity); } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
+        { k: 'kind', label: 'النوع', type: 'select', options: [['violation', 'مخالفة'], ['incident', 'حادث'], ['observation', 'ملاحظة وقائية']] },
+        { k: 'title', label: 'العنوان', type: 'text' }, { k: 'details', label: 'التفاصيل', type: 'textarea' },
+        { k: 'severity', label: 'الخطورة', type: 'select', options: [['low', 'منخفضة'], ['medium', 'متوسطة'], ['high', 'عالية']] }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'open') return null;
+        return { label: '✅ إغلاق', run: function () { quickUpdate(ctx, 'hseReports', it, { status: 'closed' }); } };
+      } },
+
+    { col: 'claims', name: 'المطالبات وEOT', icon: '⚖️', desc: 'دراسة مطالبات المقاولين المالية وطلبات تمديد المدة والتوصية بشأنها',
+      pendingOf: function (x) { return x.status === 'pending'; },
+      cols: [
+        { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + (it.kind === 'eot' ? 'تمديد مدة EOT' : 'مطالبة مالية') + '</span>'; } },
+        { h: 'المطالبة', r: function (it) { return '<b>' + esc(it.title) + '</b>'; } },
+        { h: 'القيمة / المدة', r: function (it) { return (it.amount ? '<div class="num small">' + money(it.amount) + '</div>' : '') + (it.days ? '<div class="num small">+' + it.days + ' يوم</div>' : ''); } },
+        { h: 'القرار', r: function (it) { return (it.notes ? '<div class="small" style="max-width:240px">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' },
+        { k: 'kind', label: 'النوع', type: 'select', options: [['eot', 'تمديد مدة EOT'], ['cost', 'مطالبة مالية']] },
+        { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'العنوان', type: 'text' },
+        { k: 'days', label: 'الأيام المطلوبة', type: 'number' }, { k: 'amount', label: 'القيمة (ر.س)', type: 'number' }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'pending') return null;
+        return { label: '✍️ قرار', run: function () { openReviewModal(ctx, 'claims', it); } };
+      } },
+
+    { col: 'valueEngineering', name: 'الهندسة القيمية', icon: '💡', desc: 'دراسة مقترحات خفض التكلفة مع الحفاظ على الجودة والوظيفة',
+      pendingOf: function (x) { return x.status === 'pending'; },
+      cols: [
+        { h: 'المقترح', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:320px">' + esc(it.details || '') + '</div>'; } },
+        { h: 'الوفر المتوقع', r: function (it) { return '<b class="num" style="color:var(--ok)">' + money(it.saving) + '</b>'; } },
+        { h: 'القرار', r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
+        { k: 'title', label: 'المقترح', type: 'text' }, { k: 'saving', label: 'الوفر المتوقع (ر.س)', type: 'number' },
+        { k: 'details', label: 'التفاصيل', type: 'textarea' }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'pending') return null;
+        return { label: '✍️ قرار', run: function () { openReviewModal(ctx, 'valueEngineering', it); } };
+      } },
+
+    { col: 'handoverDocs', name: 'التسليم والإغلاق', icon: '📦', desc: 'مخططات كما نُفذ، كتيبات التشغيل والصيانة، الضمانات، ومتابعة فترة الضمان',
+      pendingOf: function (x) { return x.status === 'pending'; },
+      cols: [
+        { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + esc(HND_KINDS[it.kind] || it.kind) + '</span>'; } },
+        { h: 'المستند', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + esc(it.file) + '</div>' : ''); } },
+        { h: 'الملاحظات', r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
+      ],
+      fields: [
+        { k: 'contractorId', label: 'المقاول', type: 'contractor' },
+        { k: 'kind', label: 'النوع', type: 'select', options: [['asbuilt', 'مخططات كما نُفذ'], ['om', 'كتيبات O&M'], ['warranty', 'شهادات ضمان'], ['dlp', 'ملاحظة فترة ضمان DLP']] },
+        { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'العنوان', type: 'text' }
+      ],
+      action: function (ctx, it) {
+        if (it.status !== 'pending') return null;
+        return { label: '✍️ قرار', run: function () { openReviewModal(ctx, 'handoverDocs', it); } };
+      } },
+
+    { col: 'correspondence', name: 'المراسلات', icon: '📮', desc: 'سجل الخطابات الصادرة والواردة الرسمية للمشروع',
+      pendingOf: function () { return false; }, noContractor: true, noStatus: true,
+      cols: [
+        { h: 'الاتجاه', r: function (it) { return it.direction === 'out' ? '<span class="pill p-info">صادر ↗</span>' : '<span class="pill p-warn">وارد ↙</span>'; } },
+        { h: 'الخطاب', r: function (it) { return '<b>' + esc(it.title) + '</b>'; } },
+        { h: 'الجهة', r: function (it) { return '<div class="small">' + (it.from ? 'من: ' + esc(it.from) + '<br>' : '') + 'إلى: ' + esc(it.to || '—') + '</div>'; } }
+      ],
+      fields: [
+        { k: 'ref', label: 'المرجع', type: 'text' },
+        { k: 'direction', label: 'الاتجاه', type: 'select', options: [['out', 'صادر'], ['in', 'وارد']] },
+        { k: 'to', label: 'الجهة', type: 'text' }, { k: 'title', label: 'الموضوع', type: 'text' }
+      ] }
+  ];
+
+  const techState = { tab: 'rfis' };
+
+  function quickUpdate(ctx, col, it, patch) {
+    patch.signature = ctx.U.name;
+    patch.signDate = new Date().toISOString().slice(0, 10);
+    Api.update(col, it.id, patch)
+      .then(function () { toast('✅ تم تحديث الحالة وتوقيعها'); ctx.refresh(); })
+      .catch(function (e) { toast(e.message, true); });
+  }
+
+  function answerModal(ctx, col, it, label, key, extraPatch) {
+    const m = modal(
+      '<h3>' + esc(it.title) + '</h3>' +
+      '<div class="m-sub">' + esc(it.ref) + ' · ' + esc(contractorName(ctx, it.contractorId)) + '</div>' +
+      (it.question ? '<div class="card" style="padding:12px;margin-bottom:6px"><div class="small">' + esc(it.question) + '</div></div>' : '') +
+      (it.description ? '<div class="card" style="padding:12px;margin-bottom:6px"><div class="small">' + esc(it.description) + '</div></div>' : '') +
+      '<label class="fl">' + esc(label) + '</label><textarea class="inp" id="am-text" rows="4"></textarea>' +
+      '<div class="m-actions"><button class="btn" id="am-ok">اعتماد وتوقيع</button><button class="btn mutedb" id="am-cancel">إلغاء</button></div>'
+    );
+    m.querySelector('#am-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#am-ok').addEventListener('click', function () {
+      const txt = m.querySelector('#am-text').value.trim();
+      if (!txt) { toast('اكتب النص أولاً', true); return; }
+      const patch = Object.assign({}, extraPatch);
+      patch[key] = txt;
+      patch.signature = ctx.U.name;
+      patch.signDate = new Date().toISOString().slice(0, 10);
+      Api.update(col, it.id, patch)
+        .then(function () { m.remove(); toast('✅ تم الاعتماد والتوقيع'); ctx.refresh(); })
+        .catch(function (e) { toast(e.message, true); });
+    });
+  }
+
+  function techAddModal(ctx, tabDef) {
+    const m = modal(
+      '<h3>➕ إضافة: ' + esc(tabDef.name) + '</h3>' +
+      tabDef.fields.map(function (f) {
+        const id = 'tf-' + f.k;
+        if (f.type === 'contractor') return '<label class="fl">' + esc(f.label) + '</label><select class="inp" id="' + id + '">' +
+          ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
+        if (f.type === 'floor') return '<label class="fl">' + esc(f.label) + '</label><select class="inp" id="' + id + '">' +
+          ctx.S.projects[0].floors.map(function (fl) { return '<option value="' + fl.id + '">' + esc(fl.name) + '</option>'; }).join('') + '</select>';
+        if (f.type === 'select') return '<label class="fl">' + esc(f.label) + '</label><select class="inp" id="' + id + '">' +
+          f.options.map(function (o) { return '<option value="' + o[0] + '">' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+        if (f.type === 'textarea' || f.type === 'lines') return '<label class="fl">' + esc(f.label) + '</label><textarea class="inp" id="' + id + '" rows="3"></textarea>';
+        if (f.type === 'number') return '<label class="fl">' + esc(f.label) + '</label><input class="inp num" id="' + id + '" type="number">';
+        if (f.type === 'date') return '<label class="fl">' + esc(f.label) + '</label><input class="inp" id="' + id + '" type="date" value="' + new Date().toISOString().slice(0, 10) + '">';
+        return '<label class="fl">' + esc(f.label) + '</label><input class="inp" id="' + id + '">';
+      }).join('') +
+      '<div class="m-actions"><button class="btn" id="tf-ok">حفظ</button><button class="btn mutedb" id="tf-cancel">إلغاء</button></div>'
+    );
+    m.querySelector('#tf-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#tf-ok').addEventListener('click', function () {
+      const data = {};
+      tabDef.fields.forEach(function (f) {
+        const v = m.querySelector('#tf-' + f.k).value;
+        if (f.type === 'lines') data[f.k] = v.split('\n').filter(Boolean);
+        else if (f.type === 'number') data[f.k] = Number(v) || 0;
+        else data[f.k] = v;
+      });
+      if (!data.title) { toast('أدخل العنوان', true); return; }
+      if (tabDef.col === 'meetings') data.by = ctx.U.name;
+      if (tabDef.col === 'correspondence' && data.direction === 'out') data.by = ctx.U.name;
+      Api.create(tabDef.col, data)
+        .then(function () { m.remove(); toast('✅ تمت الإضافة'); ctx.refresh(); })
+        .catch(function (e) { toast(e.message, true); });
+    });
+  }
+
+  function renderTechOffice(el, ctx) {
+    const t = TECH_TABS.find(function (x) { return x.col === techState.tab; }) || TECH_TABS[0];
+    const items = (ctx.S[t.col] || []).slice().sort(function (a, b) {
+      return (t.pendingOf(a) ? 0 : 1) - (t.pendingOf(b) ? 0 : 1);
+    });
+
+    // مؤشرات علوية سريعة
+    const openRfis = (ctx.S.rfis || []).filter(function (x) { return x.status === 'open'; }).length;
+    const openNcrs = (ctx.S.ncrs || []).filter(function (x) { return x.status === 'open'; }).length;
+    const pendingDecisions = ['methodStatements', 'claims', 'valueEngineering', 'handoverDocs']
+      .reduce(function (a, c) { return a + (ctx.S[c] || []).filter(function (x) { return x.status === 'pending'; }).length; }, 0);
+    const openSnags = (ctx.S.snags || []).filter(function (x) { return x.status === 'open'; }).length;
+    const failedTests = (ctx.S.materialTests || []).filter(function (x) { return x.result === 'fail'; }).length;
+    const openHse = (ctx.S.hseReports || []).filter(function (x) { return x.status === 'open'; }).length;
+
+    el.innerHTML =
+      '<div class="grid g4 mb" style="grid-template-columns:repeat(6,1fr)">' +
+      kpiMini('❓ استفسارات مفتوحة', openRfis, openRfis ? 'k-warn' : 'k-ok') +
+      kpiMini('🚫 NCR مفتوحة', openNcrs, openNcrs ? 'k-danger' : 'k-ok') +
+      kpiMini('✍️ قرارات معلقة', pendingDecisions, pendingDecisions ? 'k-warn' : 'k-ok') +
+      kpiMini('📌 ملاحظات مفتوحة', openSnags, openSnags ? 'k-warn' : 'k-ok') +
+      kpiMini('🧪 اختبارات راسبة', failedTests, failedTests ? 'k-danger' : 'k-ok') +
+      kpiMini('🦺 سلامة مفتوحة', openHse, openHse ? 'k-danger' : 'k-ok') +
+      '</div>' +
+
+      '<div class="tabs">' + TECH_TABS.map(function (x) {
+        const n = (ctx.S[x.col] || []).filter(x.pendingOf).length;
+        return '<div class="tab ' + (techState.tab === x.col ? 'active' : '') + '" data-ttab="' + x.col + '">' + x.icon + ' ' + x.name +
+          (n ? '<span class="n">' + n + '</span>' : '') + '</div>';
+      }).join('') + '</div>' +
+
+      '<div class="card"><div class="flex" style="justify-content:space-between;margin-bottom:4px">' +
+      '<h3 style="margin:0">' + t.icon + ' ' + esc(t.name) + '</h3>' +
+      '<button class="btn sm" id="tt-add">➕ إضافة</button></div>' +
+      '<div class="small muted mb">' + esc(t.desc) + '</div>' +
+      (items.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+        '<th>المرجع</th>' +
+        (t.noContractor ? '' : '<th>المقاول</th>') +
+        t.cols.map(function (c) { return '<th>' + esc(c.h) + '</th>'; }).join('') +
+        '<th>التاريخ</th>' + (t.noStatus ? '' : '<th>الحالة</th>') + '<th></th></tr></thead><tbody>' +
+        items.map(function (it, idx) {
+          const act = t.action ? t.action(ctx, it) : null;
+          return '<tr>' +
+            '<td class="num small"><b>' + esc(it.ref || '') + '</b></td>' +
+            (t.noContractor ? '' : '<td class="small">' + esc(contractorName(ctx, it.contractorId)) + '</td>') +
+            t.cols.map(function (c) { return '<td>' + c.r(it, ctx) + '</td>'; }).join('') +
+            '<td class="small muted num">' + esc(it.date || '') + '</td>' +
+            (t.noStatus ? '' : '<td>' + pill(it[t.statusKey || 'status']) + '</td>') +
+            '<td>' + (act ? '<button class="btn sm" data-tact="' + idx + '">' + act.label + '</button>' : '') + '</td>' +
+            '</tr>';
+        }).join('') + '</tbody></table></div>'
+        : '<div class="empty"><div class="e-ico">📭</div>لا سجلات بعد</div>') +
+      '</div>';
+
+    el.querySelectorAll('[data-ttab]').forEach(function (x) {
+      x.addEventListener('click', function () { techState.tab = x.getAttribute('data-ttab'); renderTechOffice(el, ctx); });
+    });
+    el.querySelector('#tt-add').addEventListener('click', function () { techAddModal(ctx, t); });
+    el.querySelectorAll('[data-tact]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items[Number(b.getAttribute('data-tact'))];
+        const act = t.action(ctx, it);
+        if (act) act.run();
+      });
+    });
+  }
+
+  function kpiMini(lbl, val, cls) {
+    return '<div class="card kpi ' + cls + '" style="padding:14px"><div class="lbl" style="font-size:11.5px">' + lbl + '</div>' +
+      '<div class="val num" style="font-size:22px;margin:4px 0 0">' + val + '</div></div>';
+  }
+
   window.ViewsRoles = {
     renderApprovals: renderApprovals,
+    renderTechOffice: renderTechOffice,
     renderManageContractors: renderManageContractors,
     renderBoq: renderBoq,
     renderDailyReport: renderDailyReport,
@@ -2159,6 +2711,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     { id: 'home', title: 'لوحة المقاول', icon: '🏗️', sec: 'أعمالي', roles: ['contractor'], render: VR.renderContractorHome },
 
     { id: 'approvals', title: 'الاعتمادات', icon: '✍️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderApprovals, badge: badgePending },
+    { id: 'tech-office', title: 'خدمات المكتب الفني', icon: '🏛️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderTechOffice, badge: badgeTech },
     { id: 'boq', title: 'جداول الكميات', icon: '📊', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBoq },
     { id: 'manage-contractors', title: 'إدارة المقاولين', icon: '🧰', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderManageContractors },
     { id: 'daily', title: 'التقارير اليومية', icon: '📝', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderDailyReport },
@@ -2176,6 +2729,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function badgePending(S) {
     return ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments']
       .reduce(function (a, c) { return a + (S[c] || []).filter(function (x) { return x.status === 'pending'; }).length; }, 0);
+  }
+
+  function badgeTech(S) {
+    const pending = ['methodStatements', 'claims', 'valueEngineering', 'handoverDocs']
+      .reduce(function (a, c) { return a + (S[c] || []).filter(function (x) { return x.status === 'pending'; }).length; }, 0);
+    const open = ['rfis', 'ncrs', 'snags', 'hseReports']
+      .reduce(function (a, c) { return a + (S[c] || []).filter(function (x) { return x.status === 'open'; }).length; }, 0);
+    return pending + open;
   }
 
   const app = document.getElementById('app');

@@ -18,9 +18,15 @@ const DATA_DIR = path.join(ROOT, 'data');
 const DB_FILE = path.join(DATA_DIR, 'db.json');
 
 // ============ قاعدة البيانات (ملف JSON) ============
+const SEED_VERSION = seedModule.buildSeed().meta.version;
+
 function loadDb() {
   if (process.argv.indexOf('--reset') === -1 && fs.existsSync(DB_FILE)) {
-    try { return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')); }
+    try {
+      const saved = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+      if (saved.meta && saved.meta.version === SEED_VERSION) return saved;
+      console.log('نسخة البيانات قديمة — سيعاد التهيئة بالبيانات المحدثة');
+    }
     catch (e) { console.error('تعذر قراءة قاعدة البيانات، سيعاد التهيئة:', e.message); }
   }
   return seedModule.buildSeed();

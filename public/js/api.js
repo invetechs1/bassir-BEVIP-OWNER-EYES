@@ -19,7 +19,8 @@
       const saved = localStorage.getItem('bassir-demo-db');
       if (saved) db = JSON.parse(saved);
     } catch (e) { /* تجاهل */ }
-    if (!db || !db.meta) db = window.BassirSeed.buildSeed();
+    const fresh = window.BassirSeed.buildSeed();
+    if (!db || !db.meta || db.meta.version !== fresh.meta.version) db = fresh;
     demoCore = window.BassirCore.createCore(db, function persist() {
       try { localStorage.setItem('bassir-demo-db', JSON.stringify(db)); } catch (e) { /* تجاهل */ }
     });

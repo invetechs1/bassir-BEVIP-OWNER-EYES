@@ -296,6 +296,136 @@
       { id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
     ];
 
+    // ============ موديول المكتب الفني ============
+
+    // الاستفسارات الفنية RFI
+    db.rfis = [
+      { id: 'RFI1', projectId: 'P1', contractorId: 'C2', ref: 'RFI-ARC-021', title: 'منسوب رخام البهو عند المدخل الرئيسي',
+        question: 'المخطط المعماري A-102 يظهر منسوب تشطيب +0.15 بينما المقطع A-305 يظهر +0.10. أيهما المعتمد؟',
+        date: '2026-07-12', status: 'open', answer: '', discipline: 'architectural' },
+      { id: 'RFI2', projectId: 'P1', contractorId: 'C3', ref: 'RFI-ELE-014', title: 'مسار الكابل الرئيسي أسفل الرامب',
+        question: 'يوجد تعارض بين مسار الكابل الرئيسي وخط الصرف في القبو محور 3-B. نرجو تحديد المسار البديل.',
+        date: '2026-07-08', status: 'answered', answer: 'يُحوَّل المسار إلى حامل كابلات معلق أسفل السقف مع الحفاظ على بعد 30سم عن خط الصرف. مرفق سكتش SK-E-09.',
+        signature: 'م. خالد العمران', signDate: '2026-07-10', discipline: 'electrical' },
+      { id: 'RFI3', projectId: 'P1', contractorId: 'C1', ref: 'RFI-STR-033', title: 'تفصيلة تسليح فتحة المنور بسقف الرابع',
+        question: 'نرجو تزويدنا بتفصيلة التسليح الإضافي حول فتحة المنور المستحدثة بأمر التغيير CO-ARC-05.',
+        date: '2026-07-05', status: 'answered', answer: 'اعتمدوا تفصيلة التقوية النمطية TD-12 مع أسياخ إضافية 4T16 على كل جانب.',
+        signature: 'م. خالد العمران', signDate: '2026-07-07', discipline: 'structural' }
+    ];
+
+    // تقارير عدم المطابقة NCR
+    db.ncrs = [
+      { id: 'NCR1', projectId: 'P1', contractorId: 'C2', ref: 'NCR-ARC-009', title: 'لياسة غير مستوية بالجناح الغربي - الدور الثاني',
+        description: 'تجاوز التفاوت المسموح (3مم/2م) في جدران المحور 2-B، قياسات وصلت إلى 8مم.',
+        date: '2026-07-09', status: 'open', severity: 'major', correctiveAction: '' },
+      { id: 'NCR2', projectId: 'P1', contractorId: 'C4', ref: 'NCR-HVC-004', title: 'تعليق دكتات بدون عزل اهتزاز',
+        description: 'تم تعليق دكتات الميزانين مباشرة بدون رابر اهتزاز مخالفة للمواصفة 23-31-13.',
+        date: '2026-07-03', status: 'open', severity: 'major', correctiveAction: '' },
+      { id: 'NCR3', projectId: 'P1', contractorId: 'C1', ref: 'NCR-STR-011', title: 'تعشيش خرسانة بعمود الدور الثالث محور 4-C',
+        description: 'ظهور تعشيش سطحي بعد فك الشدة.',
+        date: '2026-06-18', status: 'closed', severity: 'minor',
+        correctiveAction: 'تمت المعالجة بمونة إصلاح إسمنتية عالية المقاومة وفق إجراء المعالجة المعتمد، وفُحصت بالمطرقة الارتدادية.',
+        signature: 'م. خالد العمران', signDate: '2026-06-25' }
+    ];
+
+    // التعليمات الموقعية Site Instructions
+    db.siteInstructions = [
+      { id: 'SI1', projectId: 'P1', contractorId: 'C2', ref: 'SI-047', title: 'إيقاف أعمال الدهانات بالواجهة الشمالية',
+        details: 'تُوقف الدهانات الخارجية لحين اعتماد عينة اللون النهائية من المالك.', date: '2026-07-14', status: 'issued' },
+      { id: 'SI2', projectId: 'P1', contractorId: 'C5', ref: 'SI-045', title: 'تعديل ميول صرف سطح الميزانين',
+        details: 'ضبط الميول إلى 1.5% باتجاه المصافي وفق المخطط P-204 قبل صب المدة.', date: '2026-07-10', status: 'done',
+        signature: 'م. خالد العمران', signDate: '2026-07-13' },
+      { id: 'SI3', projectId: 'P1', contractorId: 'C1', ref: 'SI-044', title: 'تأمين فتحات الأسقف المكشوفة',
+        details: 'تركيب حواجز وتغطيات آمنة لجميع الفتحات في الأدوار 3 و4 خلال 24 ساعة.', date: '2026-07-08', status: 'done',
+        signature: 'م. خالد العمران', signDate: '2026-07-09' }
+    ];
+
+    // اعتماد أساليب التنفيذ وخطط الفحص Method Statements / ITP
+    db.methodStatements = [
+      { id: 'MS1', projectId: 'P1', contractorId: 'C1', ref: 'MS-STR-018', kind: 'ms', title: 'أسلوب تنفيذ خرسانة السطح بالمضخة البرجية',
+        date: '2026-07-11', status: 'pending', notes: '', file: 'MS-STR-018.pdf' },
+      { id: 'MS2', projectId: 'P1', contractorId: 'C6', ref: 'ITP-FIR-003', kind: 'itp', title: 'خطة فحص واختبار شبكة الرشاشات',
+        date: '2026-07-06', status: 'pending', notes: '', file: 'ITP-FIR-003.pdf' },
+      { id: 'MS3', projectId: 'P1', contractorId: 'C2', ref: 'MS-ARC-012', kind: 'ms', title: 'أسلوب تركيب رخام الواجهات بنظام التثبيت الميكانيكي',
+        date: '2026-06-28', status: 'approved', notes: 'مع الالتزام باختبار شد المثبتات', signature: 'م. خالد العمران', signDate: '2026-07-01', file: 'MS-ARC-012.pdf' }
+    ];
+
+    // اختبارات المواد المعملية
+    db.materialTests = [
+      { id: 'TST1', projectId: 'P1', contractorId: 'C1', ref: 'CT-238', title: 'كسر مكعبات خرسانة سقف الرابع - 28 يوم',
+        lab: 'مختبر الفحوصات الإنشائية المعتمد', target: '30 نيوتن/مم²', value: '34.2 نيوتن/مم²', result: 'pass', date: '2026-07-15' },
+      { id: 'TST2', projectId: 'P1', contractorId: 'C1', ref: 'CT-235', title: 'كسر مكعبات خرسانة أعمدة السطح - 7 أيام',
+        lab: 'مختبر الفحوصات الإنشائية المعتمد', target: '21 نيوتن/مم²', value: '24.8 نيوتن/مم²', result: 'pass', date: '2026-07-12' },
+      { id: 'TST3', projectId: 'P1', contractorId: 'C5', ref: 'PT-041', title: 'اختبار ضغط شبكة التغذية - الدور الثاني',
+        lab: 'فحص موقعي', target: '10 بار / ساعتين', value: 'هبوط 0.4 بار', result: 'fail', date: '2026-07-10',
+        notes: 'رُصد تسريب عند وصلة محور 2-A، يعاد الاختبار بعد المعالجة' },
+      { id: 'TST4', projectId: 'P1', contractorId: 'C2', ref: 'TL-019', title: 'اختبار شد مثبتات رخام الواجهة',
+        lab: 'المختبر السعودي للجودة', target: '5 كيلو نيوتن', value: '7.1 كيلو نيوتن', result: 'pass', date: '2026-07-05' }
+    ];
+
+    // محاضر الاجتماعات
+    db.meetings = [
+      { id: 'MTG1', projectId: 'P1', ref: 'MOM-29', title: 'اجتماع تنسيق الموقع الأسبوعي رقم 29', date: '2026-07-13',
+        attendees: 'الاستشاري، الإعمار الحديثة، البناء المعماري، الطاقة المتحدة، تكييف الخليج',
+        items: ['متابعة تأخر توريد وحدات VRF - تعهد المقاول بالوصول 25 يوليو', 'حسم تعارض دكتات الميزانين مع الكمرات خلال أسبوع', 'التشديد على إغلاق ملاحظات السلامة قبل نهاية الأسبوع', 'رفع مخطط الواجهة المعدل للاعتماد'], by: 'م. خالد العمران' },
+      { id: 'MTG2', projectId: 'P1', ref: 'MOM-28', title: 'اجتماع تنسيق الموقع الأسبوعي رقم 28', date: '2026-07-06',
+        attendees: 'الاستشاري، ممثل المالك، جميع المقاولين',
+        items: ['استعراض نسب الإنجاز مقابل المخطط', 'مناقشة المستخلص 11 لمقاول الهيكل', 'جدولة اختبارات مضخات الحريق'], by: 'م. خالد العمران' }
+    ];
+
+    // قوائم ملاحظات التسليم Snag List
+    db.snags = [
+      { id: 'SNG1', projectId: 'P1', contractorId: 'C2', ref: 'SNG-114', title: 'خدوش بواجهة رخام المصعد الرئيسي', location: 'GF', date: '2026-07-11', status: 'open' },
+      { id: 'SNG2', projectId: 'P1', contractorId: 'C3', ref: 'SNG-112', title: 'لوحة مفاتيح غير مثبتة بإحكام - ممر الدور الأول', location: 'F1', date: '2026-07-09', status: 'open' },
+      { id: 'SNG3', projectId: 'P1', contractorId: 'C2', ref: 'SNG-108', title: 'فواصل سيراميك غير منتظمة بدورة مياه الميزانين', location: 'MZ', date: '2026-07-02', status: 'closed', signature: 'م. خالد العمران', signDate: '2026-07-08' },
+      { id: 'SNG4', projectId: 'P1', contractorId: 'C5', ref: 'SNG-105', title: 'تسريب بسيط أسفل مغسلة القبو', location: 'B1', date: '2026-06-28', status: 'closed', signature: 'م. خالد العمران', signDate: '2026-07-03' }
+    ];
+
+    // تقارير السلامة HSE
+    db.hseReports = [
+      { id: 'HSE1', projectId: 'P1', contractorId: 'C1', ref: 'HSE-067', kind: 'violation', title: 'عمالة بدون أحزمة أمان على حافة الدور الثالث',
+        details: 'رصد بكاميرا المراقبة رقم 2 — أُوقف العمل فوراً وأُلزم المقاول بإعادة التدريب.', severity: 'high', date: '2026-07-10', status: 'open' },
+      { id: 'HSE2', projectId: 'P1', contractorId: 'C4', ref: 'HSE-065', kind: 'observation', title: 'تخزين أسطوانات أكسجين قرب مواد قابلة للاشتعال',
+        details: 'نُقلت الأسطوانات إلى منطقة التخزين الآمنة وثُبتت لافتات تحذيرية.', severity: 'medium', date: '2026-07-06', status: 'closed', signature: 'م. خالد العمران', signDate: '2026-07-07' },
+      { id: 'HSE3', projectId: 'P1', contractorId: 'C2', ref: 'HSE-061', kind: 'incident', title: 'إصابة طفيفة - جرح يد أثناء تركيب الأسقف المستعارة',
+        details: 'إسعاف أولي بالموقع، لا أيام عمل مفقودة. تم التوعية بلبس القفازات المقاومة للقطع.', severity: 'low', date: '2026-06-30', status: 'closed', signature: 'م. خالد العمران', signDate: '2026-07-01' }
+    ];
+
+    // المطالبات وتمديد المدة Claims / EOT
+    db.claims = [
+      { id: 'CLM1', projectId: 'P1', contractorId: 'C4', ref: 'EOT-HVC-02', kind: 'eot', title: 'طلب تمديد مدة 21 يوماً - تأخر جمركي لوحدات VRF',
+        days: 21, amount: 0, date: '2026-07-09', status: 'pending', notes: '' },
+      { id: 'CLM2', projectId: 'P1', contractorId: 'C1', ref: 'CLM-STR-01', kind: 'cost', title: 'مطالبة مالية - أعمال إضافية لتثبيت التربة',
+        days: 0, amount: 260000, date: '2026-06-20', status: 'rejected',
+        notes: 'الأعمال ضمن نطاق العقد وفق البند 4-12 من المواصفات', signature: 'م. خالد العمران', signDate: '2026-06-26' }
+    ];
+
+    // الهندسة القيمية Value Engineering
+    db.valueEngineering = [
+      { id: 'VE1', projectId: 'P1', contractorId: 'C3', ref: 'VE-ELE-03', title: 'استبدال إنارة الممرات بنظام LED بمستشعرات حركة',
+        saving: 185000, date: '2026-07-04', status: 'pending', notes: '', details: 'توفير 35% من استهلاك الإنارة مع عمر تشغيلي أطول.' },
+      { id: 'VE2', projectId: 'P1', contractorId: 'C2', ref: 'VE-ARC-01', title: 'بديل محلي معتمد لرخام السلالم الخدمية',
+        saving: 120000, date: '2026-06-15', status: 'approved', notes: 'اعتمد للسلالم الخدمية فقط دون البهو الرئيسي',
+        signature: 'م. خالد العمران', signDate: '2026-06-22', details: 'نفس السماكة والمقاومة بمصدر توريد أسرع.' }
+    ];
+
+    // مستندات التسليم والإغلاق Handover
+    db.handoverDocs = [
+      { id: 'HND1', projectId: 'P1', contractorId: 'C1', ref: 'ABD-STR-01', kind: 'asbuilt', title: 'مخططات كما نُفذ - الهيكل الإنشائي (حتى الدور الرابع)',
+        date: '2026-07-13', status: 'pending', notes: '', file: 'AsBuilt-STR-R1.pdf' },
+      { id: 'HND2', projectId: 'P1', contractorId: 'C4', ref: 'OMM-HVC-01', kind: 'om', title: 'كتيبات التشغيل والصيانة - وحدات التكييف المركبة',
+        date: '2026-07-08', status: 'pending', notes: '', file: 'OM-HVAC-V1.pdf' },
+      { id: 'HND3', projectId: 'P1', contractorId: 'C5', ref: 'WRT-PLB-01', kind: 'warranty', title: 'شهادات ضمان السخانات المركزية (5 سنوات)',
+        date: '2026-06-25', status: 'approved', notes: 'سارية حتى 2031', signature: 'م. خالد العمران', signDate: '2026-06-28', file: 'Warranty-Heaters.pdf' }
+    ];
+
+    // سجل المراسلات
+    db.correspondence = [
+      { id: 'COR1', projectId: 'P1', ref: 'OUT-2026-088', direction: 'out', to: 'مؤسسة البناء المعماري', title: 'إنذار بشأن تأخر معدل إنجاز التشطيبات', date: '2026-07-12', by: 'م. خالد العمران' },
+      { id: 'COR2', projectId: 'P1', ref: 'IN-2026-134', direction: 'in', to: 'المكتب الاستشاري', from: 'تكييف الخليج المتقدم', title: 'إشعار وصول شحنة وحدات VRF للميناء', date: '2026-07-11' },
+      { id: 'COR3', projectId: 'P1', ref: 'OUT-2026-085', direction: 'out', to: 'ممثل المالك', title: 'رفع التقرير الشهري يونيو مع توصيات تسريع الأعمال', date: '2026-07-02', by: 'م. خالد العمران' }
+    ];
+
     // ============ سجل الرسائل (واتساب / إيميل) ============
     db.messages = [
       { id: 'MSG1', channel: 'whatsapp', to: '0501234567', date: '2026-07-15 09:00', title: 'التقرير الأسبوعي', status: 'sent' },
@@ -303,7 +433,7 @@
     ];
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18' };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 2 };
 
     return db;
   }

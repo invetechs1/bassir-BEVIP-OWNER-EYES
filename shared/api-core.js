@@ -9,8 +9,22 @@
 })(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  const APPROVAL_COLLECTIONS = ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments'];
-  const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS; // المقاول يرى ويُنشئ ضمن هذه المجموعات فقط ما يخصه
+  const APPROVAL_COLLECTIONS = [
+    'shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
+    // موديول المكتب الفني - دورات الاعتماد
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs'
+  ];
+  // مجموعات المكتب الفني المرتبطة بمقاول محدد (يرى المقاول ما يخصه فقط)
+  const TECH_FILTERED = ['rfis', 'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests'];
+  // مجموعات مكتب فني عامة لا تُعرض للمقاول
+  const TECH_INTERNAL = ['meetings', 'correspondence'];
+  const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS.concat(TECH_FILTERED); // المقاول يرى ضمنها ما يخصه فقط
+
+  // الحالة الابتدائية الافتراضية لكل مجموعة
+  const DEFAULT_STATUS = {
+    rfis: 'open', ncrs: 'open', siteInstructions: 'issued',
+    snags: 'open', hseReports: 'open'
+  };
 
   // من يستطيع إنشاء عناصر في كل مجموعة
   const CREATE_RULES = {
@@ -27,7 +41,20 @@
     photos: ['consultant', 'contractor', 'admin'],
     users: ['admin', 'owner_rep'],
     contractors: ['consultant', 'admin'],
-    projects: ['owner_rep', 'admin']
+    projects: ['owner_rep', 'admin'],
+    // موديول المكتب الفني
+    rfis: ['contractor', 'consultant', 'admin'],
+    methodStatements: ['contractor', 'consultant', 'admin'],
+    claims: ['contractor', 'consultant', 'admin'],
+    valueEngineering: ['contractor', 'consultant', 'admin'],
+    handoverDocs: ['contractor', 'consultant', 'admin'],
+    ncrs: ['consultant', 'admin'],
+    siteInstructions: ['consultant', 'admin'],
+    snags: ['consultant', 'admin'],
+    hseReports: ['consultant', 'admin'],
+    materialTests: ['consultant', 'admin'],
+    meetings: ['consultant', 'admin'],
+    correspondence: ['consultant', 'admin']
   };
 
   function createCore(db, persist) {
@@ -71,13 +98,14 @@
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
-      APPROVAL_COLLECTIONS.forEach(function (c) { s[c] = db[c]; });
+      APPROVAL_COLLECTIONS.concat(TECH_FILTERED, TECH_INTERNAL).forEach(function (c) { s[c] = db[c] || []; });
 
       if (role === 'contractor') {
         const cid = user.contractorId;
         CONTRACTOR_OWNED.forEach(function (c) {
-          s[c] = db[c].filter(function (x) { return x.contractorId === cid; });
+          s[c] = (db[c] || []).filter(function (x) { return x.contractorId === cid; });
         });
+        TECH_INTERNAL.forEach(function (c) { s[c] = []; });
         s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
         s.messages = [];
@@ -106,7 +134,10 @@
         if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
       }
       if (!item.date) item.date = todayStr();
-      if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1 && !item.status) item.status = 'pending';
+      if (!item.status) {
+        if (DEFAULT_STATUS[collection]) item.status = DEFAULT_STATUS[collection];
+        else if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
+      }
       db[collection].push(item);
       persist();
       return item;
