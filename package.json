@@ -9,7 +9,10 @@
     "build:demo": "node tools/build-demo.js"
   },
   "engines": {
-    "node": ">=16"
+    "node": ">=22"
+  },
+  "optionalDependencies": {
+    "@anthropic-ai/sdk": "^0.112.0"
   },
   "license": "MIT"
 }

@@ -25,6 +25,14 @@
   }
 
   function money(n) { return n == null ? '—' : '<span class="num">' + Number(n).toLocaleString('en-US') + '</span> ر.س'; }
+
+  /** عرض مرفق: رابط قابل للفتح إن كان مرفوعاً فعلياً على الخادم، وإلا الاسم فقط */
+  function att(f) {
+    if (!f) return '';
+    if (typeof f === 'string') return esc(f);
+    if (f.url) return '<a href="' + esc(f.url) + '" target="_blank" style="color:var(--info)">' + esc(f.name) + ' ⬇</a>';
+    return esc(f.name || '');
+  }
   function millions(n) { return '<span class="num">' + (n / 1e6).toFixed(1) + '</span> مليون ر.س'; }
 
   function toast(msg, isErr) {
@@ -305,7 +313,18 @@
   function renderAi(el, ctx) {
     const overall = ctx.S.projects[0].progressActual;
     const visual = 52.1; // متوسط الرصد البصري في الديمو
-    el.innerHTML =
+    const canAnalyze = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+
+    const analyzeCard = canAnalyze ?
+      '<div class="card mb"><h3>🔬 تحليل صورة جديدة بعين بصير <span class="hint">رؤية حاسوبية حقيقية (Claude Vision) — تتطلب تهيئة ANTHROPIC_API_KEY على الخادم</span></h3>' +
+      '<div class="grid" style="grid-template-columns:2fr 2fr 1fr 1fr;gap:10px;align-items:end">' +
+      '<div><label class="fl">صورة من الموقع</label><input class="inp" id="az-file" type="file" accept="image/*"></div>' +
+      '<div><label class="fl">المنطقة / البند</label><input class="inp" id="az-area" placeholder="الدور الثاني - لياسة"></div>' +
+      '<div><label class="fl">نسبة الاستشاري %</label><input class="inp num" id="az-rep" type="number" min="0" max="100"></div>' +
+      '<div><button class="btn block" id="az-go">تحليل</button></div>' +
+      '</div><div id="az-out"></div></div>' : '';
+
+    el.innerHTML = analyzeCard +
       '<div class="grid g3 mb">' +
       '<div class="card" style="text-align:center"><h3 style="justify-content:center">👁 الإنجاز بعين بصير</h3>' +
       Charts.donut(visual, { label: 'رصد بصري (AI)' }) +
@@ -340,7 +359,7 @@
       '<div class="card"><h3>🧠 رؤى وتنبيهات بصير</h3>' + ctx.S.aiInsights.map(aiItemHtml).join('') + '</div>' +
       '<div class="card"><h3>📸 آخر الصور المُحلَّلة <span class="hint">رفع فريق الموقع</span></h3>' +
       '<div class="grid g2">' + ctx.S.photos.map(function (p) {
-        return '<div class="photo-card"><div class="ph">🏗️<div class="scan"></div></div><div class="info">' +
+        return '<div class="photo-card"><div class="ph">' + (p.url ? '<img src="' + esc(p.url) + '" style="width:100%;height:100%;object-fit:cover" alt="">' : '🏗️') + '<div class="scan"></div></div><div class="info">' +
           '<b>' + esc(p.title) + '</b><div class="muted small">' + esc(p.date) + ' · ' + esc(floorName(ctx, p.area)) + '</div>' +
           '<div class="aiTag">🤖 ' + esc(p.ai) + (p.detected != null ? ' — <b class="num">' + p.detected + '%</b>' : '') + '</div></div></div>';
       }).join('') + '</div></div>' +
@@ -348,6 +367,34 @@
 
     el.querySelectorAll('[data-nav]').forEach(function (b) {
       b.addEventListener('click', function () { ctx.nav(b.getAttribute('data-nav')); });
+    });
+
+    const azGo = el.querySelector('#az-go');
+    if (azGo) azGo.addEventListener('click', async function () {
+      const f = el.querySelector('#az-file').files[0];
+      if (!f) { toast('اختر صورة أولاً', true); return; }
+      const out = el.querySelector('#az-out');
+      out.innerHTML = '<div class="small muted mt">⏳ جارٍ رفع الصورة وتحليلها بالذكاء الاصطناعي...</div>';
+      try {
+        const up = await Api.upload(f);
+        const repVal = el.querySelector('#az-rep').value;
+        const r = await Api.analyzePhoto({
+          url: up.url, mime: f.type,
+          area: el.querySelector('#az-area').value,
+          reported: repVal === '' ? null : Number(repVal)
+        });
+        out.innerHTML = '<div class="ai-item mt sev-' + (r.analysis.safety.length ? 'alert' : 'ok') + '"><div class="ai-ico">🤖</div><div>' +
+          '<p><b>الرصد البصري: <span class="num">' + r.analysis.progress + '%</span></b>' +
+          (r.diff != null ? ' · الفرق عن نسبة الاستشاري: <b class="num" style="color:' + (Math.abs(r.diff) > 5 ? 'var(--danger)' : 'var(--ok)') + '">' + (r.diff > 0 ? '+' : '') + r.diff + '%</b>' : '') + '</p>' +
+          '<p>' + esc(r.analysis.summary) + '</p>' +
+          (r.analysis.observations.length ? '<p class="small">🔎 ' + r.analysis.observations.map(esc).join('؛ ') + '</p>' : '') +
+          (r.analysis.safety.length ? '<p class="small" style="color:var(--danger)">⚠ ' + r.analysis.safety.map(esc).join('؛ ') + '</p>' : '') +
+          '</div></div>';
+        toast('✅ اكتمل التحليل وسُجل في رؤى بصير');
+        ctx.refreshSilent();
+      } catch (e) {
+        out.innerHTML = '<div class="small mt" style="color:var(--warn)">⚠ ' + esc(e.message) + '</div>';
+      }
     });
   }
 
@@ -742,7 +789,7 @@
       '<h3 class="mt">سجل الإرسال</h3>' +
       (ctx.S.messages.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>القناة</th><th>إلى</th><th>التقرير</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
         ctx.S.messages.slice().reverse().map(function (m) {
-          return '<tr><td>' + (m.channel === 'whatsapp' ? '💬 واتساب' : '📧 إيميل') + '</td><td class="num">' + esc(m.to) + '</td><td>' + esc(m.title) + '</td><td class="small muted num">' + esc(m.date) + '</td><td><span class="pill p-ok">أُرسل ✓</span></td></tr>';
+          return '<tr><td>' + (m.channel === 'whatsapp' ? '💬 واتساب' : '📧 إيميل') + '</td><td class="num">' + esc(m.to) + '</td><td>' + esc(m.title) + '</td><td class="small muted num">' + esc(m.date) + '</td><td>' + (m.status === 'sent_demo' ? '<span class="pill p-warn">محاكاة (القناة غير مهيأة)</span>' : '<span class="pill p-ok">أُرسل فعلياً ✓</span>') + '</td></tr>';
         }).join('') + '</tbody></table></div>' : '<div class="empty">لا رسائل بعد</div>') +
       '</div></div></div>';
 
@@ -763,7 +810,7 @@
   window.ViewsShared = {
     pill: pill, money: money, millions: millions, toast: toast, modal: modal,
     discOf: discOf, floorName: floorName, weightedProgress: weightedProgress,
-    summarize: summarize, STATUS: STATUS, esc: esc,
+    summarize: summarize, STATUS: STATUS, esc: esc, att: att,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras

@@ -303,7 +303,7 @@
       const msg = {
         id: nextId('MSG'), channel: payload.channel === 'whatsapp' ? 'whatsapp' : 'email',
         to: payload.to, title: payload.title || 'تقرير المشروع',
-        date: nowStr(), status: 'sent', by: user.name
+        date: nowStr(), status: payload.status === 'sent_demo' ? 'sent_demo' : 'sent', by: user.name
       };
       db.messages.push(msg);
       persist();

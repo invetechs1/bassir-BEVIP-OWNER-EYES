@@ -11,23 +11,23 @@ const crypto = require('crypto');
 
 const seedModule = require('../shared/seed-data.js');
 const coreModule = require('../shared/api-core.js');
+const storageModule = require('./storage.js');
+const integrations = require('./integrations.js');
 
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, '..');
-const DATA_DIR = path.join(ROOT, 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
+const DATA_DIR = storageModule.DATA_DIR;
+const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 
-// ============ قاعدة البيانات (ملف JSON) ============
+// ============ قاعدة البيانات (SQLite افتراضياً) ============
+const storage = storageModule.createStorage();
 const SEED_VERSION = seedModule.buildSeed().meta.version;
 
 function loadDb() {
-  if (process.argv.indexOf('--reset') === -1 && fs.existsSync(DB_FILE)) {
-    try {
-      const saved = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
-      if (saved.meta && saved.meta.version === SEED_VERSION) return saved;
-      console.log('نسخة البيانات قديمة — سيعاد التهيئة بالبيانات المحدثة');
-    }
-    catch (e) { console.error('تعذر قراءة قاعدة البيانات، سيعاد التهيئة:', e.message); }
+  if (process.argv.indexOf('--reset') === -1) {
+    const saved = storage.load();
+    if (saved && saved.meta && saved.meta.version === SEED_VERSION) return saved;
+    if (saved) console.log('نسخة البيانات قديمة — سيعاد التهيئة بالبيانات المحدثة');
   }
   return seedModule.buildSeed();
 }
@@ -38,8 +38,8 @@ function persist() {
   if (saveTimer) return;
   saveTimer = setTimeout(function () {
     saveTimer = null;
-    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-    fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 1));
+    try { storage.persist(db); }
+    catch (e) { console.error('فشل حفظ قاعدة البيانات:', e.message); }
   }, 150);
 }
 
@@ -147,6 +147,37 @@ function readBody(req) {
   });
 }
 
+/** قراءة جسم ثنائي (لرفع الملفات ولقطات الكاميرات) بحد 15MB */
+function readRawBody(req, maxBytes) {
+  maxBytes = maxBytes || 15e6;
+  return new Promise(function (resolve, reject) {
+    const chunks = [];
+    let size = 0;
+    req.on('data', function (c) {
+      size += c.length;
+      if (size > maxBytes) { req.destroy(); reject(new Error('الملف أكبر من الحد المسموح (15MB)')); return; }
+      chunks.push(c);
+    });
+    req.on('end', function () { resolve(Buffer.concat(chunks)); });
+    req.on('error', reject);
+  });
+}
+
+/** حفظ ملف مرفوع باسم عشوائي غير قابل للتخمين وإرجاع سجله */
+function storeUpload(buffer, originalName, mime, byUser) {
+  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  const safe = path.basename(String(originalName || 'file')).replace(/[^\w.\-؀-ۿ]+/g, '_').slice(0, 80) || 'file';
+  const stored = crypto.randomBytes(9).toString('hex') + '-' + safe;
+  fs.writeFileSync(path.join(UPLOADS_DIR, stored), buffer);
+  const rec = {
+    id: 'F' + crypto.randomBytes(6).toString('hex'),
+    name: safe, stored: stored, url: '/uploads/' + stored,
+    size: buffer.length, mime: mime || 'application/octet-stream',
+    by: byUser || null, date: new Date().toISOString().slice(0, 10)
+  };
+  return rec;
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json',
@@ -156,9 +187,11 @@ const MIME = {
 function serveStatic(req, res) {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/') urlPath = '/index.html';
-  const base = urlPath.startsWith('/shared/') ? ROOT : path.join(ROOT, 'public');
-  const rel = urlPath.startsWith('/shared/') ? urlPath : urlPath;
-  const file = path.normalize(path.join(base, rel));
+  let base;
+  if (urlPath.startsWith('/shared/')) base = ROOT;
+  else if (urlPath.startsWith('/uploads/')) { base = DATA_DIR; }
+  else base = path.join(ROOT, 'public');
+  const file = path.normalize(path.join(base, urlPath.startsWith('/uploads/') ? urlPath.replace('/uploads/', 'uploads/') : urlPath));
   if (!file.startsWith(path.join(ROOT))) { json(res, 403, { error: 'forbidden' }); return; }
   fs.readFile(file, function (e, buf) {
     if (e) { json(res, 404, { error: 'not found: ' + urlPath }); return; }
@@ -171,6 +204,40 @@ function serveStatic(req, res) {
 const server = http.createServer(async function (req, res) {
   try {
     const u = req.url.split('?')[0];
+
+    // مدخل لقطات الكاميرات: الكاميرا/NVR تدفع JPEG عبر HTTP بمفتاح CAMERA_KEY
+    let m0 = u.match(/^\/api\/cameras\/([\w-]+)\/snapshot$/);
+    if (m0 && req.method === 'POST') {
+      if (!process.env.CAMERA_KEY || req.headers['x-camera-key'] !== process.env.CAMERA_KEY) {
+        return json(res, 401, { error: 'مفتاح الكاميرا غير صحيح (x-camera-key)' });
+      }
+      const cam = db.cameras.find(function (c) { return c.id === m0[1]; });
+      if (!cam) return json(res, 404, { error: 'كاميرا غير معروفة' });
+      const buf = await readRawBody(req);
+      const rec = storeUpload(buf, cam.id + '-snapshot.jpg', req.headers['content-type'] || 'image/jpeg', cam.name);
+      const photo = {
+        id: 'PH' + Date.now(), date: new Date().toISOString().slice(0, 10),
+        area: cam.location || '', title: 'لقطة ' + cam.name,
+        ai: 'بانتظار التحليل', detected: null, url: rec.url
+      };
+      db.photos.unshift(photo);
+      cam.status = 'online';
+      persist();
+      // تحليل غير متزامن إن كان الذكاء الاصطناعي مهيأ
+      if (integrations.aiConfigured()) {
+        integrations.analyzeImage(buf, rec.mime, { area: cam.name }).then(function (a) {
+          photo.ai = a.summary; photo.detected = a.progress;
+          db.aiInsights.unshift({
+            id: 'AI' + Date.now(), date: photo.date, source: 'camera', area: cam.name,
+            detected: a.progress, reported: null,
+            note: a.summary + (a.safety.length ? ' — سلامة: ' + a.safety.join('؛ ') : ''),
+            severity: a.safety.length ? 'alert' : 'ok'
+          });
+          persist();
+        }).catch(function (e) { photo.ai = 'تعذر التحليل: ' + e.message; persist(); });
+      }
+      return json(res, 201, { ok: true, photo: photo, aiQueued: integrations.aiConfigured() });
+    }
 
     if (!u.startsWith('/api/')) return serveStatic(req, res);
 
@@ -219,6 +286,59 @@ const server = http.createServer(async function (req, res) {
       return json(res, 200, core.deleteItem(user, m[1], m[2]));
     }
 
+    // رفع الملفات (صور، مخططات، مستندات) — تخزين فعلي على القرص
+    if (u === '/api/upload' && req.method === 'POST') {
+      const buf = await readRawBody(req);
+      if (!buf.length) return json(res, 400, { error: 'لا يوجد محتوى' });
+      const name = decodeURIComponent(req.headers['x-filename'] || 'file');
+      const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
+      return json(res, 201, rec);
+    }
+
+    // حالة التكامل مع الخدمات الحقيقية
+    if (u === '/api/integrations/status') {
+      if (['admin', 'consultant'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
+      const s = integrations.status();
+      s.storage = { kind: storage.kind, file: path.basename(storage.file) };
+      s.uploads = fs.existsSync(UPLOADS_DIR) ? fs.readdirSync(UPLOADS_DIR).length : 0;
+      return json(res, 200, s);
+    }
+
+    // تحليل صورة بالذكاء الاصطناعي الحقيقي (Claude Vision)
+    if (u === '/api/actions/analyze-photo' && req.method === 'POST') {
+      if (['admin', 'consultant'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
+      const body = await readBody(req);
+      const stored = String(body.url || '').replace('/uploads/', '');
+      const fpath = path.normalize(path.join(UPLOADS_DIR, stored));
+      if (!stored || !fpath.startsWith(UPLOADS_DIR) || !fs.existsSync(fpath)) {
+        return json(res, 404, { error: 'ارفع الصورة أولاً ثم أعد المحاولة' });
+      }
+      let analysis;
+      try {
+        analysis = await integrations.analyzeImage(fs.readFileSync(fpath), body.mime, {
+          area: body.area, reported: body.reported
+        });
+      } catch (e) {
+        return json(res, e.notConfigured ? 503 : 502, { error: e.message });
+      }
+      const today = new Date().toISOString().slice(0, 10);
+      const diff = body.reported != null ? Math.round((analysis.progress - body.reported) * 10) / 10 : null;
+      db.photos.unshift({
+        id: 'PH' + Date.now(), date: today, area: body.area || '',
+        title: body.area || 'صورة محللة', ai: analysis.summary, detected: analysis.progress, url: body.url
+      });
+      db.aiInsights.unshift({
+        id: 'AI' + Date.now(), date: today, source: 'photos', area: body.area || '',
+        detected: analysis.progress, reported: body.reported != null ? Number(body.reported) : null,
+        note: analysis.summary +
+          (analysis.observations.length ? ' — ' + analysis.observations.join('؛ ') : '') +
+          (analysis.safety.length ? ' — ⚠ سلامة: ' + analysis.safety.join('؛ ') : ''),
+        severity: analysis.safety.length ? 'alert' : (diff != null && Math.abs(diff) > 5 ? 'warn' : 'ok')
+      });
+      persist();
+      return json(res, 200, { analysis: analysis, diff: diff });
+    }
+
     // إجراءات الأعمال
     if (u === '/api/actions/review' && req.method === 'POST') {
       return json(res, 200, core.review(user, await readBody(req)));
@@ -230,7 +350,19 @@ const server = http.createServer(async function (req, res) {
       return json(res, 201, core.addProject(user, await readBody(req)));
     }
     if (u === '/api/actions/send-report' && req.method === 'POST') {
-      return json(res, 200, core.sendReport(user, await readBody(req)));
+      const body = await readBody(req);
+      // إرسال حقيقي إن كانت القناة مهيأة، وإلا يوثق في السجل كمحاكاة
+      const text = 'تقرير من نظام بصير - عيون المالك\n' + (body.title || 'تقرير المشروع') + '\n' +
+        'المشروع: ' + (db.projects[0] ? db.projects[0].name : '') + '\nبواسطة: ' + user.name;
+      try {
+        if (body.channel === 'whatsapp') await integrations.sendWhatsapp(body.to, text);
+        else await integrations.sendEmail(body.to, body.title || 'تقرير بصير', '<div dir="rtl">' + text.replace(/\n/g, '<br>') + '</div>');
+        body.status = 'sent';
+      } catch (e) {
+        if (!e.notConfigured) return json(res, 502, { error: e.message });
+        body.status = 'sent_demo'; // القناة غير مهيأة — سجل محاكاة
+      }
+      return json(res, 200, core.sendReport(user, body));
     }
 
     json(res, 404, { error: 'مسار غير معروف: ' + u });
@@ -240,10 +372,18 @@ const server = http.createServer(async function (req, res) {
 });
 
 server.listen(PORT, function () {
+  const st = integrations.status();
+  const flag = function (c) { return c ? '✅ مهيأ' : '◽ محاكاة (غير مهيأ)'; };
   console.log('');
   console.log('  👁  بصير - عيون المالك | Bassir Owner Eyes');
   console.log('  ─────────────────────────────────────────');
   console.log('  الخادم يعمل على:  http://localhost:' + PORT);
+  console.log('  قاعدة البيانات:   ' + (storage.kind === 'sqlite' ? 'SQLite ✅ (' + path.basename(storage.file) + ')' : 'ملف JSON'));
+  console.log('  البريد:           ' + flag(st.email.configured) + (st.email.provider ? ' (' + st.email.provider + ')' : ''));
+  console.log('  واتساب:           ' + flag(st.whatsapp.configured));
+  console.log('  الذكاء الاصطناعي: ' + flag(st.ai.configured) + (st.ai.keyPresent && !st.ai.sdkInstalled ? ' — ثبّت الحزمة: npm install @anthropic-ai/sdk' : ''));
+  console.log('  مدخل الكاميرات:   ' + flag(st.cameraIngest.configured));
+  console.log('  (فعّل الخدمات عبر ملف .env — انظر .env.example)');
   console.log('');
   console.log('  حسابات الديمو:');
   console.log('    admin / admin123        (مدير النظام)');

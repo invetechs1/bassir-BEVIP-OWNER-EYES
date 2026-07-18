@@ -103,6 +103,31 @@
     addContractor(p) { return call('/api/actions/add-contractor', 'POST', p); },
     addProject(p) { return call('/api/actions/add-project', 'POST', p); },
     sendReport(p) { return call('/api/actions/send-report', 'POST', p); },
+    /** رفع ملف فعلي إلى الخادم — في وضع الديمو يعاد الاسم فقط (محاكاة) */
+    async upload(file) {
+      if (DEMO) return { name: file.name, url: '', demo: true };
+      const token = sessionStorage.getItem('bassir-token');
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': file.type || 'application/octet-stream',
+          'x-filename': encodeURIComponent(file.name)
+        },
+        body: file
+      });
+      const data = await res.json().catch(function () { return {}; });
+      if (!res.ok) { const e = new Error(data.error || 'فشل رفع الملف'); throw e; }
+      return data;
+    },
+    integrationsStatus() {
+      if (DEMO) return Promise.resolve({ demo: true });
+      return call('/api/integrations/status');
+    },
+    analyzePhoto(p) {
+      if (DEMO) { const e = new Error('التحليل الحقيقي متاح في نسخة الخادم بعد إضافة ANTHROPIC_API_KEY'); e.status = 503; return Promise.reject(e); }
+      return call('/api/actions/analyze-photo', 'POST', p);
+    },
     resetDemo() {
       if (DEMO) { localStorage.removeItem('bassir-demo-db'); demoCore = null; }
     }

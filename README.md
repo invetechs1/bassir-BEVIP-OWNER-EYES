@@ -8,12 +8,14 @@
 
 ## التشغيل
 
-بدون أي اعتماديات خارجية — يلزم Node.js 16+ فقط:
+يلزم Node.js 22+ (لقاعدة بيانات SQLite المدمجة):
 
 ```bash
-node server/server.js
-# ثم افتح http://localhost:3000
+npm install            # يثبت @anthropic-ai/sdk لتحليل الصور (اختياري)
+node server/server.js  # ثم افتح http://localhost:3000
 ```
+
+عند الإقلاع تُشفَّر كلمات المرور تلقائياً وتُنشأ قاعدة بيانات SQLite في `data/bassir.db`.
 
 - `npm run seed` — إعادة ضبط بيانات الديمو
 - `npm run build:demo` — توليد ديمو تفاعلي بملف واحد `demo/bassir-demo.html` يعمل بلا خادم (يفتح مباشرة في المتصفح)
@@ -88,8 +90,24 @@ node server/server.js
 │   ├── css/styles.css
 │   └── js/  api.js · charts.js · views.js · views2.js · app.js
 ├── tools/build-demo.js    مولّد الديمو أحادي الملف
-└── data/db.json           قاعدة البيانات (تُنشأ تلقائياً)
+├── server/storage.js      طبقة التخزين (SQLite افتراضياً / JSON)
+├── server/integrations.js الخدمات الحقيقية (بريد، واتساب، Claude Vision)
+├── .env.example           نموذج تهيئة الخدمات
+└── data/                  bassir.db + uploads/ (تُنشأ تلقائياً)
 ```
+
+## قاعدة البيانات والخدمات الحقيقية
+
+| الخدمة | التفعيل | بدون تهيئة |
+|---|---|---|
+| **قاعدة البيانات SQLite** | تلقائي (WAL، كتابة معاملاتية) | — |
+| **رفع الملفات** | تلقائي — `POST /api/upload` وتُقدَّم من `/uploads/` | — |
+| **تحليل الصور AI** (Claude Vision) | `ANTHROPIC_API_KEY` + `npm i @anthropic-ai/sdk` | رسالة توضح التهيئة |
+| **البريد** | `RESEND_API_KEY` أو `SENDGRID_API_KEY` | يُسجل كمحاكاة |
+| **واتساب** (Meta Cloud API) | `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_ID` | يُسجل كمحاكاة |
+| **لقطات الكاميرات** | `CAMERA_KEY` ثم تدفع الكاميرا/NVR لقطاتها:<br>`POST /api/cameras/:id/snapshot` بترويسة `x-camera-key` | مغلق |
+
+انسخ `.env.example` إلى `.env` واملأ ما تحتاجه — كل القيم اختيارية، وصفحة **⚙️ التكامل والإعدادات** داخل النظام تعرض حالة كل خدمة. اللقطات المدفوعة من الكاميرات تُحلَّل تلقائياً بالذكاء الاصطناعي (إن كان مهيأً) وتضاف نتائجها إلى رؤى بصير مع مقارنة نسب الاستشاري.
 
 ### الـ API
 

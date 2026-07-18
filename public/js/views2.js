@@ -45,7 +45,7 @@
         '<th>التاريخ</th><th>الحالة</th><th>الملاحظات / التوقيع</th><th></th></tr></thead><tbody>' +
         items.map(function (it) {
           return '<tr>' +
-            '<td class="num small"><b>' + esc(it.ref) + '</b>' + (it.file ? '<br><span class="muted">📎 ' + esc(it.file) + '</span>' : '') + '</td>' +
+            '<td class="num small"><b>' + esc(it.ref) + '</b>' + (it.file ? '<br><span class="muted">📎 ' + VS.att(it.file) + '</span>' : '') + '</td>' +
             '<td>' + esc(it.title) + (it.location ? '<div class="small muted">الموقع: ' + esc(VS.floorName(ctx, it.location)) + '</div>' : '') + '</td>' +
             '<td class="small">' + esc(contractorName(ctx, it.contractorId)) + '</td>' +
             (tab === 'changeOrders' ? '<td>' + money(it.amount) + '<div class="small muted num">+' + (it.days || 0) + ' يوم</div></td>' : '') +
@@ -242,8 +242,12 @@
   // ============ إعداد التقارير (الاستشاري): يومي / أسبوعي / شهري ============
   const rptState = { tab: 'daily' };
 
-  function filesOf(el, sel) {
-    return Array.prototype.map.call(el.querySelector(sel).files, function (f) { return f.name; });
+  /** رفع الملفات المختارة فعلياً إلى الخادم وإرجاع سجلاتها {name, url} */
+  async function filesOf(el, sel) {
+    const files = el.querySelector(sel).files;
+    const out = [];
+    for (let i = 0; i < files.length; i++) out.push(await Api.upload(files[i]));
+    return out;
   }
 
   function renderDailyReport(el, ctx) {
@@ -334,7 +338,7 @@
           manpower: Number(el.querySelector('#dr-manpower').value) || 0,
           equipment: el.querySelector('#dr-equipment').value || '—',
           works: el.querySelector('#dr-works').value.split('\n').filter(Boolean),
-          photos: filesOf(el, '#dr-photos'), attachments: filesOf(el, '#dr-files'),
+          photos: await filesOf(el, '#dr-photos'), attachments: await filesOf(el, '#dr-files'),
           by: ctx.U.name
         });
         toast('✅ حُفظ التقرير اليومي'); ctx.refresh();
@@ -353,7 +357,7 @@
           summary: el.querySelector('#wr-summary').value,
           achievements: el.querySelector('#wr-ach').value.split('\n').filter(Boolean),
           issues: el.querySelector('#wr-iss').value.split('\n').filter(Boolean),
-          photos: filesOf(el, '#wr-photos'), attachments: filesOf(el, '#wr-files'),
+          photos: await filesOf(el, '#wr-photos'), attachments: await filesOf(el, '#wr-files'),
           by: ctx.U.name
         });
         toast('✅ حُفظ التقرير الأسبوعي'); ctx.refresh();
@@ -370,7 +374,7 @@
           progressActual: Number(el.querySelector('#mr-actual').value) || 0,
           progressPlanned: Number(el.querySelector('#mr-planned').value) || 0,
           summary: el.querySelector('#mr-summary').value,
-          attachments: filesOf(el, '#mr-files'),
+          attachments: await filesOf(el, '#mr-files'),
           by: ctx.U.name
         });
         toast('✅ حُفظ التقرير الشهري'); ctx.refresh();
@@ -689,7 +693,7 @@
       if (tab === 'methodStatements' || tab === 'claims') data.kind = m.querySelector('#sb-kind').value;
       if (isWir) data.location = m.querySelector('#sb-loc').value;
       const files = m.querySelector('#sb-file').files;
-      if (files.length) data.file = files[0].name;
+      if (files.length) data.file = await Api.upload(files[0]);
       if (isPayment) {
         data.lines = Array.prototype.map.call(m.querySelector('#sb-lines').children, function (r) {
           return {
@@ -766,7 +770,7 @@
       pendingOf: function (x) { return x.status === 'pending'; },
       cols: [
         { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + (it.kind === 'itp' ? 'خطة فحص ITP' : 'أسلوب تنفيذ MS') + '</span>'; } },
-        { h: 'العنوان', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + esc(it.file) + '</div>' : ''); } },
+        { h: 'العنوان', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : ''); } },
         { h: 'الملاحظات', r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
       ],
       fields: [
@@ -880,7 +884,7 @@
       pendingOf: function (x) { return x.status === 'pending'; },
       cols: [
         { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + esc(HND_KINDS[it.kind] || it.kind) + '</span>'; } },
-        { h: 'المستند', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + esc(it.file) + '</div>' : ''); } },
+        { h: 'المستند', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : ''); } },
         { h: 'الملاحظات', r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
       ],
       fields: [
@@ -1048,9 +1052,54 @@
       '<div class="val num" style="font-size:22px;margin:4px 0 0">' + val + '</div></div>';
   }
 
+  // ============ التكامل والإعدادات (حالة الخدمات الحقيقية) ============
+  function svcCard(title, ico, ok, okText, offText, hint) {
+    return '<div class="card kpi ' + (ok ? 'k-ok' : 'k-warn') + '"><div class="lbl">' + ico + ' ' + esc(title) + '</div>' +
+      '<div class="val" style="font-size:17px">' + (ok ? '<span style="color:var(--ok)">✅ ' + esc(okText) + '</span>' : '<span style="color:var(--warn)">◽ ' + esc(offText) + '</span>') + '</div>' +
+      '<div class="sub">' + hint + '</div></div>';
+  }
+
+  function renderSystem(el, ctx) {
+    el.innerHTML = '<div class="empty"><div class="e-ico">⏳</div>جارٍ فحص حالة الخدمات...</div>';
+    Api.integrationsStatus().then(function (s) {
+      if (s.demo) {
+        el.innerHTML = '<div class="card"><h3>⚙️ التكامل والإعدادات</h3>' +
+          '<div class="empty"><div class="e-ico">🧪</div>أنت في وضع الديمو داخل المتصفح.<br>' +
+          'حالة التكامل الفعلية (قاعدة البيانات، البريد، واتساب، الذكاء الاصطناعي، الكاميرات)<br>تظهر عند تشغيل نسخة الخادم: <b class="num">node server/server.js</b></div></div>';
+        return;
+      }
+      el.innerHTML =
+        '<div class="grid g3 mb">' +
+        svcCard('قاعدة البيانات', '🗄️', s.storage.kind === 'sqlite', 'SQLite (' + s.storage.file + ')', 'ملف JSON', 'كتابة معاملاتية WAL · للترقية إلى PostgreSQL انظر server/storage.js') +
+        svcCard('تخزين الملفات', '📁', true, s.uploads + ' ملف مرفوع', '', 'رفع فعلي إلى data/uploads — الصور والمخططات والمستندات') +
+        svcCard('الذكاء الاصطناعي', '🤖', s.ai.configured, 'Claude Vision (' + s.ai.model + ')', s.ai.keyPresent && !s.ai.sdkInstalled ? 'ثبّت @anthropic-ai/sdk' : 'أضف ANTHROPIC_API_KEY',
+          'تحليل حقيقي لصور الموقع ولقطات الكاميرات') +
+        svcCard('البريد الإلكتروني', '📧', s.email.configured, 'متصل (' + (s.email.provider || '') + ')', 'محاكاة', 'RESEND_API_KEY أو SENDGRID_API_KEY + EMAIL_FROM') +
+        svcCard('واتساب', '💬', s.whatsapp.configured, 'WhatsApp Cloud API', 'محاكاة', 'WHATSAPP_TOKEN + WHATSAPP_PHONE_ID من Meta Business') +
+        svcCard('مدخل الكاميرات', '🎥', s.cameraIngest.configured, 'يستقبل اللقطات', 'أضف CAMERA_KEY', 'الكاميرا/NVR تدفع لقطة JPEG كل فترة ويحللها الذكاء الاصطناعي') +
+        '</div>' +
+
+        '<div class="grid g2">' +
+        '<div class="card"><h3>🔧 التهيئة (ملف .env بجذر المشروع)</h3>' +
+        '<pre class="small" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-x:auto;direction:ltr;text-align:left;line-height:2">' +
+        '# الذكاء الاصطناعي (تحليل الصور)\nANTHROPIC_API_KEY=sk-ant-...\n\n# البريد\nRESEND_API_KEY=re_...\nEMAIL_FROM=Bassir &lt;reports@yourdomain.com&gt;\n\n# واتساب (Meta Cloud API)\nWHATSAPP_TOKEN=EAAG...\nWHATSAPP_PHONE_ID=1234567890\n\n# مدخل لقطات الكاميرات\nCAMERA_KEY=مفتاح-سري-طويل\n\n# التخزين\nSTORAGE=sqlite\nJWT_SECRET=سر-الإنتاج</pre>' +
+        '<div class="small muted">بعد التعديل أعد تشغيل الخادم. أي خدمة غير مهيأة تعمل تلقائياً بوضع المحاكاة.</div></div>' +
+
+        '<div class="card"><h3>🎥 ربط كاميرات الموقع فعلياً</h3>' +
+        '<div class="small" style="line-height:2">أي كاميرا أو جهاز تسجيل NVR يدعم الدفع عبر HTTP يرسل لقطاته للنظام، ويحللها ذكاء بصير تلقائياً:</div>' +
+        '<pre class="small" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-x:auto;direction:ltr;text-align:left;line-height:2">' +
+        'curl -X POST https://your-domain/api/cameras/CAM1/snapshot \\\n  -H "x-camera-key: $CAMERA_KEY" \\\n  -H "Content-Type: image/jpeg" \\\n  --data-binary @snapshot.jpg</pre>' +
+        '<div class="small muted" style="line-height:2">تُحفظ اللقطة في سجل الصور، وإن كان الذكاء الاصطناعي مهيأً تُحلل فوراً وتضاف نتيجتها إلى رؤى بصير مع مقارنتها بنسب الاستشاري.<br>جدولة الإرسال من الكاميرا نفسها أو عبر cron كل 30 دقيقة.</div></div>' +
+        '</div>';
+    }).catch(function (e) {
+      el.innerHTML = '<div class="empty"><div class="e-ico">⚠️</div>' + esc(e.message) + '</div>';
+    });
+  }
+
   window.ViewsRoles = {
     renderApprovals: renderApprovals,
     renderTechOffice: renderTechOffice,
+    renderSystem: renderSystem,
     renderManageContractors: renderManageContractors,
     renderBoq: renderBoq,
     renderDailyReport: renderDailyReport,
