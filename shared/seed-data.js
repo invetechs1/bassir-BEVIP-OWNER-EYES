@@ -426,6 +426,40 @@
       { id: 'COR3', projectId: 'P1', ref: 'OUT-2026-085', direction: 'out', to: 'ممثل المالك', title: 'رفع التقرير الشهري يونيو مع توصيات تسريع الأعمال', date: '2026-07-02', by: 'م. خالد العمران' }
     ];
 
+    // ============ كاميرات الموقع ============
+    db.cameras = [
+      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', status: 'online', installed: '2025-06-01' },
+      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', status: 'online', installed: '2025-11-15' },
+      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', status: 'online', installed: '2026-03-01' },
+      { id: 'CAM4', name: 'كاميرا 4 - بوابة الموقع', location: 'المدخل الرئيسي', url: 'rtsp://site.bassir.local/cam4', status: 'offline', installed: '2025-06-01' }
+    ];
+
+    // ============ سجل مخططات المشروع (مربوطة بجدول الكميات) ============
+    db.planDrawings = [
+      { id: 'PD1', projectId: 'P1', floor: 'GF', discipline: 'architectural', ref: 'A-101', title: 'المسقط المعماري - الدور الأرضي', file: 'A-101-GF.dwg', date: '2026-05-10', by: 'دار العمران للاستشارات' },
+      { id: 'PD2', projectId: 'P1', floor: 'GF', discipline: 'structural', ref: 'S-101', title: 'المسقط الإنشائي - الدور الأرضي', file: 'S-101-GF.dwg', date: '2026-05-10', by: 'دار العمران للاستشارات' },
+      { id: 'PD3', projectId: 'P1', floor: 'F1', discipline: 'architectural', ref: 'A-102', title: 'المسقط المعماري - الدور الأول', file: 'A-102-F1.dwg', date: '2026-05-12', by: 'دار العمران للاستشارات' },
+      { id: 'PD4', projectId: 'P1', floor: 'F2', discipline: 'electrical', ref: 'E-102', title: 'مخطط القوى والإنارة - الدور الثاني', file: 'E-102-F2.dwg', date: '2026-05-20', by: 'دار العمران للاستشارات' },
+      { id: 'PD5', projectId: 'P1', floor: 'MZ', discipline: 'hvac', ref: 'M-101', title: 'مخطط الدكتات - الميزانين', file: 'M-101-MZ.dwg', date: '2026-05-22', by: 'دار العمران للاستشارات' },
+      { id: 'PD6', projectId: 'P1', floor: 'ELEV', discipline: 'architectural', ref: 'A-201', title: 'مخطط الواجهة الشمالية والجنوبية', file: 'A-201-ELEV.dwg', date: '2026-05-15', by: 'دار العمران للاستشارات' }
+    ];
+
+    // ============ التقارير الأسبوعية ============
+    db.weeklyReports = [
+      { id: 'WR1', projectId: 'P1', weekOf: '2026-07-12', title: 'التقرير الأسبوعي - الأسبوع 29',
+        summary: 'استمرار صب سقف السطح وتقدم التشطيبات بالأدوار السفلية. متوسط العمالة اليومية 175 عاملاً.',
+        progressPlanned: 62, progressActual: 54.5,
+        achievements: ['اكتمال 78% من صب سقف السطح', 'إنجاز رخام البهو الرئيسي بنسبة 62%', 'إقفال 8 ملاحظات استلام'],
+        issues: ['تأخر وصول وحدات VRF (متوقع 25 يوليو)', 'نقص عمالة لياسة بالجناح الغربي'],
+        photos: ['wk29-rf.jpg', 'wk29-gf.jpg', 'wk29-f2.jpg'], attachments: ['manpower-wk29.xlsx'], by: 'م. خالد العمران' },
+      { id: 'WR2', projectId: 'P1', weekOf: '2026-07-05', title: 'التقرير الأسبوعي - الأسبوع 28',
+        summary: 'بدء تجهيزات صب سقف السطح واستكمال تمديدات الدور الثالث.',
+        progressPlanned: 61, progressActual: 53.6,
+        achievements: ['اعتماد 5 مخططات تنفيذية', 'نجاح اختبارات كسر مكعبات الدور الرابع'],
+        issues: ['ملاحظة سلامة عالية الخطورة على حافة الدور الثالث'],
+        photos: ['wk28-f3.jpg', 'wk28-rf.jpg'], attachments: [], by: 'م. خالد العمران' }
+    ];
+
     // ============ سجل الرسائل (واتساب / إيميل) ============
     db.messages = [
       { id: 'MSG1', channel: 'whatsapp', to: '0501234567', date: '2026-07-15 09:00', title: 'التقرير الأسبوعي', status: 'sent' },
@@ -433,7 +467,7 @@
     ];
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 2 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 3 };
 
     return db;
   }

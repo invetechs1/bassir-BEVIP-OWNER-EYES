@@ -242,6 +242,41 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .photo-card .info { padding: 12px; font-size: 12.5px; }
 .photo-card .aiTag { font-size: 11px; color: var(--info); margin-top: 6px; line-height: 1.7; }
 
+/* ============ كاميرات الموقع ============ */
+.cam-feed {
+  position: relative; height: 230px; overflow: hidden;
+  background:
+    radial-gradient(500px 200px at 50% 100%, rgba(224, 164, 88, .07), transparent),
+    linear-gradient(180deg, #0c111c 0%, #10182a 55%, #0b0f18 100%);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.cam-feed.cam-off { background: repeating-linear-gradient(0deg, #0b0e14, #0b0e14 3px, #10141d 3px, #10141d 6px); }
+.cam-scene { position: absolute; inset: 0; }
+.cam-scene span { position: absolute; }
+.cam-bld { font-size: 84px; bottom: 6px; inset-inline-start: 50%; transform: translateX(50%); opacity: .8; }
+.cam-crane { font-size: 56px; bottom: 60px; inset-inline-start: 22%; animation: sway 6s ease-in-out infinite; transform-origin: bottom; opacity: .85; }
+.cam-wrk { font-size: 22px; bottom: 10px; inset-inline-start: 68%; animation: walk 9s linear infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes walk { 0% { inset-inline-start: 72%; } 50% { inset-inline-start: 30%; } 100% { inset-inline-start: 72%; } }
+.cam-osd {
+  position: absolute; inset-inline: 0; bottom: 0; display: flex; justify-content: space-between;
+  padding: 6px 12px; font-size: 10.5px; color: #9fe8c9;
+  background: linear-gradient(0deg, rgba(5, 8, 14, .85), transparent);
+  font-family: Consolas, monospace; direction: ltr;
+}
+.rec-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff4d4d; animation: blink 1.2s infinite; vertical-align: middle; }
+@keyframes blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .cam-crane, .cam-wrk, .rec-dot, .photo-card .ph .scan { animation: none; } }
+
+/* شريط أدوار عين المالك */
+.eye-floor {
+  flex: 1; min-width: 74px; text-align: center; padding: 12px 6px;
+  border-radius: 10px; border: 1px solid #26314a; cursor: pointer; transition: .15s;
+  display: flex; flex-direction: column; gap: 4px; font-size: 11px;
+}
+.eye-floor:hover { transform: translateY(-3px); filter: brightness(1.2); }
+.eye-floor b { font-size: 15px; }
+
 /* ============ نوافذ ورسائل ============ */
 .modal-back { position: fixed; inset: 0; background: rgba(5, 8, 14, .7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
 .modal { width: 560px; max-width: 100%; max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--border); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }

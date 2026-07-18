@@ -87,6 +87,161 @@
     });
   }
 
+  // ============ عين المالك: حالة المشروع بنظرة واحدة ============
+  const DAY = 24 * 3600 * 1000;
+  function daysDiff(a, b) { return Math.round((new Date(a).getTime() - new Date(b).getTime()) / DAY); }
+
+  function projectGlance(ctx, P) {
+    const delayDays = P.endForecast && P.endPlanned ? daysDiff(P.endForecast, P.endPlanned) : 0;
+    const progVar = Math.round(((P.progressActual || 0) - (P.progressPlanned || 0)) * 10) / 10;
+    const costVar = (P.costActual || 0) - (P.costPlannedToDate || 0);
+    const costVarPct = P.costPlannedToDate ? Math.round(costVar / P.costPlannedToDate * 100) : 0;
+    const totalDays = P.endPlanned && P.startPlanned ? daysDiff(P.endPlanned, P.startPlanned) : 0;
+    const elapsed = P.startActual ? Math.max(0, daysDiff(new Date().toISOString().slice(0, 10), P.startActual)) : 0;
+    const elapsedPct = totalDays ? Math.min(100, Math.round(elapsed / totalDays * 100)) : 0;
+    let timeVerdict, timeCls, timeIco;
+    if (delayDays > 7) { timeVerdict = 'متأخر ' + delayDays + ' يوماً عن الجدول'; timeCls = 'danger'; timeIco = '🔴'; }
+    else if (delayDays < -7) { timeVerdict = 'متقدم ' + Math.abs(delayDays) + ' يوماً على الجدول'; timeCls = 'ok'; timeIco = '🟢'; }
+    else { timeVerdict = 'ماشٍ حسب الجدول الزمني'; timeCls = 'ok'; timeIco = '🟢'; }
+    return {
+      delayDays: delayDays, progVar: progVar, costVar: costVar, costVarPct: costVarPct,
+      elapsedPct: elapsedPct, elapsed: elapsed, totalDays: totalDays,
+      timeVerdict: timeVerdict, timeCls: timeCls, timeIco: timeIco
+    };
+  }
+
+  function verdictTile(ico, title, main, sub, cls) {
+    const color = cls === 'danger' ? 'var(--danger)' : cls === 'warn' ? 'var(--warn)' : 'var(--ok)';
+    return '<div class="card" style="text-align:center;border-color:' + color + '55">' +
+      '<div style="font-size:34px">' + ico + '</div>' +
+      '<div class="muted small" style="margin:6px 0 4px">' + esc(title) + '</div>' +
+      '<div style="font-size:19px;font-weight:800;color:' + color + '">' + main + '</div>' +
+      '<div class="small muted" style="margin-top:6px;line-height:1.8">' + sub + '</div></div>';
+  }
+
+  function renderOwnerEye(el, ctx) {
+    const html = ctx.S.projects.map(function (P) {
+      const g = projectGlance(ctx, P);
+      const items = ctx.S.boqItems.filter(function (b) { return b.projectId === P.id; });
+      const floors = (P.floors || []);
+
+      // شريط الأدوار: نظرة سريعة على إنجاز كل دور
+      const floorsStrip = floors.length && items.length ?
+        '<div class="card"><h3>🏢 إنجاز الأدوار بنظرة <span class="hint">اضغط أي دور لفتحه في رؤية المشروع</span></h3>' +
+        '<div class="flex" style="gap:8px;align-items:stretch">' +
+        floors.map(function (f) {
+          const p = weightedProgress(items.filter(function (b) { return b.floor === f.id; }));
+          if (p == null) return '';
+          const t = 0.08 + (p / 100) * 0.84;
+          return '<div class="eye-floor" data-goflor="' + f.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
+            (p >= 95 ? 'box-shadow:0 0 14px rgba(224,164,88,.65);' : '') + '">' +
+            '<b class="num" style="color:' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '">' + p + '%</b>' +
+            '<span style="color:' + (t > 0.5 ? '#233' : '#8b95a8') + '">' + esc(f.name) + '</span></div>';
+        }).join('') + '</div>' +
+        '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>داكن = لم يُنفذ</span>' +
+        '<span><span class="sw" style="background:#e0a458;box-shadow:0 0 8px rgba(224,164,88,.8)"></span>ساطع = منفذ ومعتمد</span></div></div>' : '';
+
+      return '<div class="card mb" style="border-color:rgba(224,164,88,.35)">' +
+        '<div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+        '<div><h3 style="font-size:18px;margin-bottom:4px">🏗️ ' + esc(P.name) + '</h3>' +
+        '<div class="small muted">' + esc(P.location || '') + ' · الاستشاري: ' + esc(P.consultantName || '—') + '</div></div>' +
+        '<div style="text-align:center">' + Charts.donut(Math.round(P.progressActual || 0), { label: 'الإنجاز الفعلي', size: 120 }) + '</div>' +
+        '</div></div>' +
+
+        '<div class="grid g3 mb">' +
+        verdictTile(g.timeIco, 'الوقت: المخطط مقابل الفعلي', esc(g.timeVerdict),
+          'مضى <b class="num">' + g.elapsedPct + '%</b> من المدة (' + g.elapsed + ' من ' + g.totalDays + ' يوماً)' +
+          '<br>التسليم التعاقدي <b class="num">' + esc(P.endPlanned || '—') + '</b> · المتوقع <b class="num">' + esc(P.endForecast || '—') + '</b>', g.timeCls) +
+        verdictTile(g.progVar < -3 ? '🟠' : '🟢', 'الإنجاز: المخطط مقابل الفعلي',
+          '<span class="num">' + (P.progressActual || 0) + '%</span> مقابل <span class="num">' + (P.progressPlanned || 0) + '%</span> مخطط',
+          'الانحراف <b class="num">' + g.progVar + '%</b>' + (g.progVar < -3 ? ' — يلزم تسريع الوتيرة' : ' — ضمن الحدود المقبولة'),
+          g.progVar < -8 ? 'danger' : g.progVar < -3 ? 'warn' : 'ok') +
+        verdictTile(g.costVar > 0 ? '🟠' : '🟢', 'التكلفة: التقديرية مقابل الفعلية',
+          (g.costVar > 0 ? 'تجاوز ' : 'وفر ') + millions(Math.abs(g.costVar)),
+          'الفعلي ' + millions(P.costActual || 0) + ' مقابل ' + millions(P.costPlannedToDate || 0) + ' مخطط (' + (g.costVarPct > 0 ? '+' : '') + g.costVarPct + '%)' +
+          '<br>الميزانية الكلية ' + millions(P.budgetPlanned || 0),
+          g.costVarPct > 10 ? 'danger' : g.costVarPct > 0 ? 'warn' : 'ok') +
+        '</div>' + floorsStrip;
+    }).join('<hr style="border:none;border-top:1px dashed var(--border);margin:26px 0">');
+
+    el.innerHTML =
+      '<div class="card mb" style="background:linear-gradient(120deg,rgba(224,164,88,.12),transparent 60%),linear-gradient(180deg,var(--panel2),var(--panel))">' +
+      '<div class="flex"><span style="font-size:40px;filter:drop-shadow(0 0 14px rgba(224,164,88,.7))">👁</span>' +
+      '<div><b style="font-size:17px">عين المالك</b><div class="small muted" style="margin-top:4px">حالة مشاريعك بنظرة واحدة: الإنجاز، الزمن، التكلفة — دون الحاجة لقراءة التقارير</div></div>' +
+      '<span class="spacer"></span>' +
+      '<button class="btn ghost sm" data-nav="vision">👁 رؤية المشروع</button>' +
+      '<button class="btn ghost sm" data-nav="cameras">🎥 الكاميرات</button></div></div>' + html;
+
+    el.querySelectorAll('[data-nav]').forEach(function (b) {
+      b.addEventListener('click', function () { ctx.nav(b.getAttribute('data-nav')); });
+    });
+    el.querySelectorAll('[data-goflor]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        visionState.tab = '2d';
+        visionState.floor = b.getAttribute('data-goflor');
+        visionState.zone = null;
+        ctx.nav('vision');
+      });
+    });
+  }
+
+  // ============ كاميرات الموقع ============
+  function renderCameras(el, ctx) {
+    const cams = ctx.S.cameras || [];
+    const canManage = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const now = new Date();
+    const ts = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 8);
+
+    el.innerHTML =
+      '<div class="card mb"><div class="flex"><span style="font-size:26px">🎥</span>' +
+      '<div><b>البث المباشر من الموقع</b><div class="small muted" style="margin-top:3px">تُحلَّل اللقطات بذكاء بصير كل 30 دقيقة لاستخراج نسب الإنجاز وتنبيهات السلامة تلقائياً</div></div>' +
+      '<span class="spacer"></span><span class="pill p-ok">● ' + cams.filter(function (c) { return c.status === 'online'; }).length + ' كاميرا متصلة</span></div></div>' +
+
+      '<div class="grid g2 mb">' +
+      cams.map(function (c, i) {
+        const on = c.status === 'online';
+        return '<div class="card" style="padding:0;overflow:hidden">' +
+          '<div class="flex" style="justify-content:space-between;padding:14px 18px">' +
+          '<b>' + esc(c.name) + '</b>' +
+          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE</span>' : '<span class="pill p-muted">غير متصلة</span>') + '</div>' +
+          '<div class="cam-feed' + (on ? '' : ' cam-off') + '">' +
+          (on ?
+            '<div class="cam-scene">' +
+            '<span class="cam-crane" style="animation-delay:' + (i * 1.3) + 's">🏗️</span>' +
+            '<span class="cam-bld">🏢</span><span class="cam-wrk" style="animation-delay:' + (i * 0.7) + 's">👷</span>' +
+            '</div><div class="scan"></div>' +
+            '<div class="cam-osd"><span>' + esc(c.id) + ' · ' + esc(c.location) + '</span><span class="num">' + ts + '</span></div>'
+            : '<div class="empty" style="padding:52px 0"><div class="e-ico">📡</div>انقطع الاتصال — جارٍ إعادة المحاولة</div>') +
+          '</div>' +
+          '<div class="flex" style="justify-content:space-between;padding:12px 18px" class="small">' +
+          '<span class="small muted">📍 ' + esc(c.location) + ' · مركبة منذ ' + esc(c.installed || '') + '</span>' +
+          '<span class="small" style="color:var(--info)">🤖 تحليل AI نشط</span></div></div>';
+      }).join('') + '</div>' +
+
+      (canManage ?
+        '<div class="card"><h3>➕ ربط كاميرا جديدة</h3><div class="grid g4">' +
+        '<div><label class="fl">اسم الكاميرا</label><input class="inp" id="cm-name" placeholder="كاميرا 5 - ..."></div>' +
+        '<div><label class="fl">الموقع</label><input class="inp" id="cm-loc" placeholder="الواجهة الغربية"></div>' +
+        '<div><label class="fl">رابط البث RTSP/HTTP</label><input class="inp num" id="cm-url" placeholder="rtsp://..." dir="ltr"></div>' +
+        '<div><label class="fl">&nbsp;</label><button class="btn block" id="cm-add">ربط الكاميرا</button></div>' +
+        '</div></div>' : '');
+
+    const addBtn = el.querySelector('#cm-add');
+    if (addBtn) addBtn.addEventListener('click', async function () {
+      const name = el.querySelector('#cm-name').value.trim();
+      if (!name) { toast('أدخل اسم الكاميرا', true); return; }
+      try {
+        await Api.create('cameras', {
+          name: name, location: el.querySelector('#cm-loc').value,
+          url: el.querySelector('#cm-url').value, status: 'online',
+          installed: new Date().toISOString().slice(0, 10)
+        });
+        toast('✅ رُبطت الكاميرا وبدأ تحليل بثها');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
   // ============ لوحة القيادة ============
   function renderDashboard(el, ctx) {
     const P = ctx.S.projects[0];
@@ -163,8 +318,23 @@
         return '<div class="flex" style="justify-content:space-between;border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;background:var(--bg2)">' +
           '<span class="small">📡 ' + c + '</span><span class="pill p-ok">● مباشر</span></div>';
       }).join('') +
-      '<div class="small muted">تُحلَّل اللقطات كل 30 دقيقة لاستخراج نسب الإنجاز وتنبيهات السلامة</div></div>' +
+      '<div class="small muted">تُحلَّل اللقطات كل 30 دقيقة لاستخراج نسب الإنجاز وتنبيهات السلامة</div>' +
+      '<button class="btn ghost sm mt" data-nav="cameras">🎥 فتح صفحة الكاميرات ←</button></div>' +
       '</div>' +
+
+      // مقارنة ما يرصده الذكاء الاصطناعي بما يرفعه الاستشاري
+      '<div class="card mb"><h3>⚖️ مقارنة الرصد البصري (AI) مع نسب الاستشاري <span class="hint">الفرق أكثر من 5% يستوجب تحققاً ميدانياً</span></h3>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المنطقة / البند</th><th>المصدر</th><th>نسبة الاستشاري</th><th>رصد بصير AI</th><th>الفرق</th><th>الحكم</th></tr></thead><tbody>' +
+      ctx.S.aiInsights.filter(function (a) { return a.detected != null && a.reported != null; }).map(function (a) {
+        const diff = Math.round((a.detected - a.reported) * 10) / 10;
+        const ok = Math.abs(diff) <= 5;
+        return '<tr><td><b>' + esc(a.area) + '</b></td>' +
+          '<td class="small muted">' + (a.source === 'camera' ? '🎥 كاميرا' : '📸 صور') + '</td>' +
+          '<td class="num">' + a.reported + '%</td>' +
+          '<td class="num" style="color:var(--info)"><b>' + a.detected + '%</b></td>' +
+          '<td class="num" style="color:' + (ok ? 'var(--ok)' : 'var(--danger)') + '">' + (diff > 0 ? '+' : '') + diff + '%</td>' +
+          '<td>' + (ok ? '<span class="pill p-ok">متطابق ✓</span>' : '<span class="pill p-danger">انحراف — تحقق ميداني</span>') + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>' +
 
       '<div class="grid g2">' +
       '<div class="card"><h3>🧠 رؤى وتنبيهات بصير</h3>' + ctx.S.aiInsights.map(aiItemHtml).join('') + '</div>' +
@@ -175,6 +345,10 @@
           '<div class="aiTag">🤖 ' + esc(p.ai) + (p.detected != null ? ' — <b class="num">' + p.detected + '%</b>' : '') + '</div></div></div>';
       }).join('') + '</div></div>' +
       '</div>';
+
+    el.querySelectorAll('[data-nav]').forEach(function (b) {
+      b.addEventListener('click', function () { ctx.nav(b.getAttribute('data-nav')); });
+    });
   }
 
   // ============ صفحة المقاولين (رؤية المالك) ============
@@ -240,11 +414,13 @@
 
     let body = '';
     if (st.tab === '2d') body = render2d(ctx);
+    else if (st.tab === 'elev') body = renderElev(ctx);
     else body = renderBim(ctx);
 
     el.innerHTML =
       '<div class="tabs">' +
       '<div class="tab ' + (st.tab === '2d' ? 'active' : '') + '" data-vtab="2d">🗺️ المخططات ثنائية الأبعاد</div>' +
+      '<div class="tab ' + (st.tab === 'elev' ? 'active' : '') + '" data-vtab="elev">🏙️ واجهات المبنى</div>' +
       '<div class="tab ' + (st.tab === 'bim' ? 'active' : '') + '" data-vtab="bim">🏢 نموذج BIM ثلاثي الأبعاد</div>' +
       '</div>' + discChips + body +
       '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>داكن = أعمال غير منتهية</span>' +
@@ -266,6 +442,13 @@
     });
     el.querySelectorAll('[data-bimfloor]').forEach(function (z) {
       z.addEventListener('click', function () { st.bimFloor = z.getAttribute('data-bimfloor'); renderVision(el, ctx); });
+    });
+    // من الواجهة: الضغط على أي دور يفتحه تلقائياً في عرض المخططات مع تفصيل تخصصاته
+    el.querySelectorAll('[data-elevfloor]').forEach(function (z) {
+      z.addEventListener('click', function () {
+        st.tab = '2d'; st.floor = z.getAttribute('data-elevfloor'); st.zone = null;
+        renderVision(el, ctx);
+      });
     });
   }
 
@@ -299,11 +482,19 @@
       const fill = mixColor(accent, t);
       const done = p != null && p >= 95;
       const sel = st.zone === i;
+      // خطوط المخطط الداخلية: باهتة للأعمال غير المنفذة وساطعة للمنفذة المعتمدة
+      const lineColor = mixColor(accent, Math.min(1, t * 1.25));
+      let hatch = '';
+      for (let k = 1; k <= 3; k++) {
+        const hy = z.y + (z.h * k) / 4;
+        hatch += '<line x1="' + (z.x + 14) + '" y1="' + hy + '" x2="' + (z.x + z.w - 14) + '" y2="' + hy + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
+      }
+      hatch += '<line x1="' + (z.x + z.w / 2) + '" y1="' + (z.y + 10) + '" x2="' + (z.x + z.w / 2) + '" y2="' + (z.y + z.h - 10) + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
       zonesSvg += '<g class="zone-shape" data-zone="' + i + '">' +
         '<rect x="' + z.x + '" y="' + z.y + '" width="' + z.w + '" height="' + z.h + '" rx="6" fill="' + fill + '" ' +
         'stroke="' + (sel ? '#fff' : done ? accent : '#26314a') + '" stroke-width="' + (sel ? 3 : done ? 2 : 1.4) + '"' +
         (done ? ' filter="url(#glow)"' : '') + '>' +
-        '<title>' + esc(z.name) + ' — ' + (p == null ? 'لا بنود' : 'الإنجاز ' + p + '%') + '</title></rect>' +
+        '<title>' + esc(z.name) + ' — ' + (p == null ? 'لا بنود' : 'الإنجاز ' + p + '%') + '</title></rect>' + hatch +
         '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 - 8) + '" text-anchor="middle" fill="' + (t > 0.5 ? '#10151f' : '#aab3c5') + '" font-size="13" font-weight="700" pointer-events="none">' + esc(z.name) + '</text>' +
         '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 + 16) + '" text-anchor="middle" fill="' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '" font-size="18" font-weight="800" pointer-events="none">' + (p == null ? '—' : p + '%') + '</text>' +
         '</g>';
@@ -328,6 +519,28 @@
       '<rect x="40" y="252" width="720" height="36" fill="#0e1420" stroke="#1e2740"/><text x="400" y="274" text-anchor="middle" fill="#4a5570" font-size="11">ممر الحركة الرئيسي</text>' +
       zonesSvg + '</svg>';
 
+    // شريط تفصيل التخصصات للدور الحالي: معماري، إنشائي، كهروميكانيكا...
+    const discStrip = '<div class="card mb" style="padding:12px 16px"><div class="flex" style="gap:16px">' +
+      '<b class="small">📊 إنجاز ' + esc(floorName(ctx, st.floor)) + ' حسب التخصص:</b>' +
+      P.disciplines.map(function (d) {
+        const p = weightedProgress(itemsFor(ctx, st.floor, d.id, null));
+        if (p == null) return '';
+        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(d.name.replace('الأعمال ', '').replace('أعمال ', '')) +
+          ' <b class="num" style="color:' + d.color + '">' + p + '%</b></span>';
+      }).join('') + '</div></div>';
+
+    // المخططات المرفوعة المرتبطة بهذا الدور
+    const floorDrawings = (ctx.S.planDrawings || []).filter(function (dr) {
+      return dr.floor === st.floor && (st.disc === 'all' || dr.discipline === st.disc);
+    });
+    const drawingsHtml = floorDrawings.length ?
+      '<div style="border-top:1px dashed var(--border);margin-top:12px;padding-top:10px">' +
+      '<b class="small">📐 المخططات المرتبطة بهذا الدور:</b>' +
+      floorDrawings.map(function (dr) {
+        return '<div class="small muted" style="margin-top:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
+          ' <span class="pill p-ok" style="font-size:10px">مربوط بجدول الكميات ✓</span></div>';
+      }).join('') + '</div>' : '';
+
     // لوحة البنود الجانبية
     const panelItems = itemsFor(ctx, st.floor, st.disc, st.zone);
     const panelTitle = st.zone == null ? 'كل بنود ' + floorName(ctx, st.floor) : ZONES[st.zone].name + ' — ' + floorName(ctx, st.floor);
@@ -342,10 +555,80 @@
           '<div class="flex mt" style="margin-top:8px"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%;background:linear-gradient(90deg,' + d.color + '88,' + d.color + ')"></i></div><b class="num small">' + b.progress + '%</b></div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="e-ico">🗂️</div>لا توجد بنود مطابقة للتصفية الحالية</div>') +
+      drawingsHtml +
       '</div>';
 
-    return floorTabs +
+    return floorTabs + discStrip +
       '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage">' + svg + '</div>' + panel + '</div>';
+  }
+
+  // ============ واجهات المبنى (High-Rise): كل دور بنسبة إنجازه ============
+  function renderElev(ctx) {
+    const P = ctx.S.projects[0];
+    const st = visionState;
+    const accent = st.disc === 'all' ? '#e0a458' : discOf(ctx, st.disc).color;
+    const floors = P.floors.slice(); // B1 أسفل ... RF أعلى
+
+    const W = 620, H = 600, bx = 120, bw = 300;
+    const fh = 56, baseY = H - 70;
+    let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="direction:ltr">' +
+      '<defs><filter id="eglow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+
+    // الأرض والسماء
+    svg += '<line x1="30" y1="' + baseY + '" x2="' + (W - 30) + '" y2="' + baseY + '" stroke="#33405e" stroke-width="2"/>';
+    svg += '<text x="' + (W - 40) + '" y="' + (baseY + 24) + '" fill="#4a5570" font-size="10" text-anchor="end">منسوب الأرض ±0.00</text>';
+
+    floors.forEach(function (f, i) {
+      const items = itemsFor(ctx, f.id, st.disc, null);
+      const p = weightedProgress(items);
+      const t = p == null ? 0.05 : 0.08 + (p / 100) * 0.84;
+      const fill = mixColor(accent, t);
+      const done = p != null && p >= 95;
+      const isBasement = f.id === 'B1';
+      const y = baseY - (i) * fh - fh;
+
+      // جسم الدور
+      svg += '<g class="bim-floor" data-elevfloor="' + f.id + '"' + (done ? ' filter="url(#eglow)"' : '') + '>' +
+        '<rect x="' + bx + '" y="' + y + '" width="' + bw + '" height="' + (fh - 4) + '" rx="3" fill="' + fill + '" ' +
+        'stroke="' + (st.floor === f.id ? '#fff' : done ? accent : '#26314a') + '" stroke-width="' + (st.floor === f.id ? 2.5 : 1.2) + '"' + (isBasement ? ' stroke-dasharray="6 4" opacity=".85"' : '') + '>' +
+        '<title>' + esc(f.name) + ' — ' + (p == null ? 'لا بنود' : p + '%') + ' (اضغط لفتح الدور)</title></rect>';
+      // نوافذ الواجهة: ساطعة للمنجز
+      for (let wdw = 0; wdw < 6; wdw++) {
+        const wx = bx + 22 + wdw * 45;
+        const lit = p != null && (wdw + 1) / 6 * 100 <= p;
+        svg += '<rect x="' + wx + '" y="' + (y + 14) + '" width="26" height="' + (fh - 32) + '" rx="2" ' +
+          'fill="' + (lit ? mixColor(accent, 1) : '#0c1018') + '" stroke="#1c2536" pointer-events="none"' +
+          (lit ? ' opacity=".95"' : ' opacity=".9"') + '/>';
+      }
+      // التسمية والنسبة
+      svg += '<line x1="' + (bx + bw + 6) + '" y1="' + (y + fh / 2) + '" x2="' + (bx + bw + 26) + '" y2="' + (y + fh / 2) + '" stroke="#33405e" pointer-events="none"/>' +
+        '<text x="' + (bx + bw + 32) + '" y="' + (y + fh / 2 + 4) + '" fill="' + (st.floor === f.id ? '#fff' : '#8b95a8') + '" font-size="12.5" font-weight="' + (st.floor === f.id ? '800' : '400') + '" text-anchor="start">' +
+        (p == null ? '' : p + '% · ') + esc(f.name) + '</text>' +
+        '<text x="' + (bx - 12) + '" y="' + (y + fh / 2 + 4) + '" fill="#4a5570" font-size="10" text-anchor="end" pointer-events="none">' + esc(f.id) + '</text></g>';
+    });
+
+    // سطح المبنى ورافعة
+    const topY = baseY - floors.length * fh - fh + 52;
+    svg += '<rect x="' + (bx + 40) + '" y="' + (topY - 26) + '" width="60" height="22" fill="#141a26" stroke="#26314a" pointer-events="none"/>' +
+      '<text x="' + (bx + bw - 10) + '" y="' + (topY - 12) + '" font-size="26" text-anchor="end" pointer-events="none">🏗️</text>';
+    svg += '</svg>';
+
+    // لوحة جانبية: قائمة الأدوار
+    const panel = '<div class="card zone-panel"><h3>🏙️ واجهة المبنى <span class="hint">اضغط أي دور يفتح تلقائياً</span></h3>' +
+      '<div class="small muted mb" style="line-height:1.9">مخطط الواجهة مرتبط بجداول كميات كل دور — الأدوار الداكنة لم تكتمل، والساطعة المتوهجة اكتملت واعتُمدت مستخلصاتها. بالضغط على أي دور يفتح النظام مسقطه تلقائياً مع نِسَب المعماري والإنشائي والكهروميكانيكا وبقية التخصصات.</div>' +
+      floors.slice().reverse().map(function (f) {
+        const p = weightedProgress(itemsFor(ctx, f.id, st.disc, null));
+        if (p == null) return '';
+        return '<div class="flex" data-elevfloor="' + f.id + '" style="cursor:pointer;justify-content:space-between;border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-bottom:7px;background:var(--bg2)">' +
+          '<span class="small">' + esc(f.name) + '</span>' +
+          '<div class="flex" style="flex:1;max-width:150px;margin:0 10px"><div class="bar" style="flex:1"><i style="width:' + p + '%"></i></div></div>' +
+          '<b class="num small">' + p + '%</b></div>';
+      }).join('') +
+      ((ctx.S.planDrawings || []).some(function (d) { return d.floor === 'ELEV'; }) ?
+        '<div class="sig">📐 ' + esc(((ctx.S.planDrawings || []).find(function (d) { return d.floor === 'ELEV'; }) || {}).title || '') + ' — مربوط بجدول الكميات</div>' : '') +
+      '</div>';
+
+    return '<div class="grid" style="grid-template-columns:1.5fr 1fr"><div class="bim-stage">' + svg + '</div>' + panel + '</div>';
   }
 
   function renderBim(ctx) {
@@ -428,6 +711,16 @@
       }).join('') + '</div>' +
 
       '<div>' +
+      '<div class="card mb"><h3>🗓️ التقارير الأسبوعية</h3>' +
+      (ctx.S.weeklyReports || []).map(function (r) {
+        return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--bg2)">' +
+          '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
+          '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+          '<p class="small" style="line-height:1.9;margin-top:8px;color:#c6cdda">' + esc(r.summary) + '</p>' +
+          (r.achievements && r.achievements.length ? '<div class="small mt" style="color:var(--ok)">✔ ' + r.achievements.map(esc).join(' · ') + '</div>' : '') +
+          (r.issues && r.issues.length ? '<div class="small" style="color:var(--warn);margin-top:4px">⚠ ' + r.issues.map(esc).join(' · ') + '</div>' : '') +
+          '<div class="small muted" style="margin-top:8px">📎 ' + ((r.photos || []).length + (r.attachments || []).length) + ' مرفقات · ' + esc(r.by || '') + '</div></div>';
+      }).join('') + '</div>' +
       '<div class="card mb"><h3>📊 التقارير الشهرية</h3>' +
       ctx.S.monthlyReports.map(function (r) {
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--bg2)">' +
@@ -472,6 +765,7 @@
     discOf: discOf, floorName: floorName, weightedProgress: weightedProgress,
     summarize: summarize, STATUS: STATUS, esc: esc,
     renderDashboard: renderDashboard, renderVision: renderVision,
-    renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports
+    renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
+    renderOwnerEye: renderOwnerEye, renderCameras: renderCameras
   };
 })();

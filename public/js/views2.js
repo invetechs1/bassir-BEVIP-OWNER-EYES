@@ -239,28 +239,94 @@
     });
   }
 
-  // ============ التقارير اليومية (إنشاء - الاستشاري) ============
-  function renderDailyReport(el, ctx) {
-    el.innerHTML =
-      '<div class="grid" style="grid-template-columns:1fr 1.2fr">' +
-      '<div class="card"><h3>📝 تقرير يومي جديد</h3>' +
-      '<label class="fl">التاريخ</label><input class="inp" id="dr-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '">' +
-      '<div class="grid g2"><div><label class="fl">الطقس</label><input class="inp" id="dr-weather" placeholder="مشمس 40°"></div>' +
-      '<div><label class="fl">العمالة</label><input class="inp num" id="dr-manpower" type="number" placeholder="150"></div></div>' +
-      '<label class="fl">المعدات</label><input class="inp" id="dr-equipment" placeholder="رافعة برجية 2...">' +
-      '<label class="fl">الأعمال المنفذة (سطر لكل عمل)</label><textarea class="inp" id="dr-works" rows="5" placeholder="صب خرسانة...\nلياسة..."></textarea>' +
-      '<label class="fl">الصور والملفات الداعمة</label>' +
-      '<input class="inp" id="dr-photos" type="file" multiple accept="image/*,.pdf">' +
-      '<div class="m-actions"><button class="btn block" id="dr-save">حفظ التقرير</button></div></div>' +
-      '<div class="card"><h3>🗄️ أرشيف التقارير اليومية</h3>' +
-      ctx.S.dailyReports.map(function (r) {
-        return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
-          '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="small muted">عمالة: ' + r.manpower + ' · 📎 ' + (r.photos || []).length + '</span></div>' +
-          '<div class="small" style="margin-top:6px;color:#c6cdda">' + r.works.map(esc).join(' • ') + '</div></div>';
-      }).join('') + '</div></div>';
+  // ============ إعداد التقارير (الاستشاري): يومي / أسبوعي / شهري ============
+  const rptState = { tab: 'daily' };
 
-    el.querySelector('#dr-save').addEventListener('click', async function () {
-      const files = el.querySelector('#dr-photos').files;
+  function filesOf(el, sel) {
+    return Array.prototype.map.call(el.querySelector(sel).files, function (f) { return f.name; });
+  }
+
+  function renderDailyReport(el, ctx) {
+    const tab = rptState.tab;
+    const today = new Date().toISOString().slice(0, 10);
+
+    let form = '', archive = '';
+    if (tab === 'daily') {
+      form =
+        '<h3>📝 تقرير يومي جديد</h3>' +
+        '<label class="fl">التاريخ</label><input class="inp" id="dr-date" type="date" value="' + today + '">' +
+        '<div class="grid g2"><div><label class="fl">الطقس</label><input class="inp" id="dr-weather" placeholder="مشمس 40°"></div>' +
+        '<div><label class="fl">العمالة</label><input class="inp num" id="dr-manpower" type="number" placeholder="150"></div></div>' +
+        '<label class="fl">المعدات</label><input class="inp" id="dr-equipment" placeholder="رافعة برجية 2...">' +
+        '<label class="fl">الأعمال المنفذة (سطر لكل عمل)</label><textarea class="inp" id="dr-works" rows="5" placeholder="صب خرسانة...\nلياسة..."></textarea>' +
+        '<label class="fl">الصور من الموقع</label><input class="inp" id="dr-photos" type="file" multiple accept="image/*">' +
+        '<label class="fl">الملفات الداعمة (PDF / Excel)</label><input class="inp" id="dr-files" type="file" multiple accept=".pdf,.xlsx,.xls,.doc,.docx">' +
+        '<div class="m-actions"><button class="btn block" id="dr-save">حفظ التقرير اليومي</button></div>';
+      archive =
+        '<h3>🗄️ أرشيف التقارير اليومية</h3>' +
+        ctx.S.dailyReports.map(function (r) {
+          return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
+            '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="small muted">عمالة: ' + r.manpower + ' · 📎 ' + ((r.photos || []).length + (r.attachments || []).length) + '</span></div>' +
+            '<div class="small" style="margin-top:6px;color:#c6cdda">' + (r.works || []).map(esc).join(' • ') + '</div></div>';
+        }).join('');
+    } else if (tab === 'weekly') {
+      form =
+        '<h3>🗓️ تقرير أسبوعي جديد</h3>' +
+        '<label class="fl">أسبوع يبدأ من</label><input class="inp" id="wr-week" type="date" value="' + today + '">' +
+        '<label class="fl">العنوان</label><input class="inp" id="wr-title" placeholder="التقرير الأسبوعي - الأسبوع ...">' +
+        '<div class="grid g2"><div><label class="fl">الإنجاز الفعلي %</label><input class="inp num" id="wr-actual" type="number" min="0" max="100"></div>' +
+        '<div><label class="fl">الإنجاز المخطط %</label><input class="inp num" id="wr-planned" type="number" min="0" max="100"></div></div>' +
+        '<label class="fl">ملخص الأسبوع</label><textarea class="inp" id="wr-summary" rows="3"></textarea>' +
+        '<label class="fl">أبرز الإنجازات (سطر لكل بند)</label><textarea class="inp" id="wr-ach" rows="3"></textarea>' +
+        '<label class="fl">المعوقات (سطر لكل بند)</label><textarea class="inp" id="wr-iss" rows="2"></textarea>' +
+        '<label class="fl">الصور</label><input class="inp" id="wr-photos" type="file" multiple accept="image/*">' +
+        '<label class="fl">المرفقات</label><input class="inp" id="wr-files" type="file" multiple>' +
+        '<div class="m-actions"><button class="btn block" id="wr-save">حفظ التقرير الأسبوعي</button></div>';
+      archive =
+        '<h3>🗄️ أرشيف التقارير الأسبوعية</h3>' +
+        (ctx.S.weeklyReports || []).map(function (r) {
+          return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
+            '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
+            '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+            '<div class="small" style="margin-top:6px;color:#c6cdda">' + esc(r.summary || '') + '</div>' +
+            '<div class="small muted" style="margin-top:6px">📎 ' + ((r.photos || []).length + (r.attachments || []).length) + ' مرفقات</div></div>';
+        }).join('');
+    } else {
+      form =
+        '<h3>📊 تقرير شهري جديد</h3>' +
+        '<label class="fl">الشهر</label><input class="inp num" id="mr-month" type="month" value="' + today.slice(0, 7) + '">' +
+        '<label class="fl">العنوان</label><input class="inp" id="mr-title" placeholder="التقرير الشهري - ...">' +
+        '<div class="grid g2"><div><label class="fl">الإنجاز الفعلي %</label><input class="inp num" id="mr-actual" type="number" min="0" max="100"></div>' +
+        '<div><label class="fl">الإنجاز المخطط %</label><input class="inp num" id="mr-planned" type="number" min="0" max="100"></div></div>' +
+        '<label class="fl">الملخص التنفيذي</label><textarea class="inp" id="mr-summary" rows="5"></textarea>' +
+        '<label class="fl">الصور والمرفقات</label><input class="inp" id="mr-files" type="file" multiple>' +
+        '<div class="m-actions"><button class="btn block" id="mr-save">حفظ التقرير الشهري</button></div>';
+      archive =
+        '<h3>🗄️ أرشيف التقارير الشهرية</h3>' +
+        ctx.S.monthlyReports.map(function (r) {
+          return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
+            '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
+            '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+            '<div class="small" style="margin-top:6px;color:#c6cdda">' + esc(r.summary || '') + '</div></div>';
+        }).join('');
+    }
+
+    el.innerHTML =
+      '<div class="tabs">' +
+      '<div class="tab ' + (tab === 'daily' ? 'active' : '') + '" data-rtab="daily">📝 يومي</div>' +
+      '<div class="tab ' + (tab === 'weekly' ? 'active' : '') + '" data-rtab="weekly">🗓️ أسبوعي</div>' +
+      '<div class="tab ' + (tab === 'monthly' ? 'active' : '') + '" data-rtab="monthly">📊 شهري</div>' +
+      '</div>' +
+      '<div class="grid" style="grid-template-columns:1fr 1.2fr">' +
+      '<div class="card">' + form + '</div>' +
+      '<div class="card">' + archive + '</div></div>';
+
+    el.querySelectorAll('[data-rtab]').forEach(function (t) {
+      t.addEventListener('click', function () { rptState.tab = t.getAttribute('data-rtab'); renderDailyReport(el, ctx); });
+    });
+
+    const dSave = el.querySelector('#dr-save');
+    if (dSave) dSave.addEventListener('click', async function () {
       try {
         await Api.create('dailyReports', {
           date: el.querySelector('#dr-date').value,
@@ -268,11 +334,46 @@
           manpower: Number(el.querySelector('#dr-manpower').value) || 0,
           equipment: el.querySelector('#dr-equipment').value || '—',
           works: el.querySelector('#dr-works').value.split('\n').filter(Boolean),
-          photos: Array.prototype.map.call(files, function (f) { return f.name; }),
+          photos: filesOf(el, '#dr-photos'), attachments: filesOf(el, '#dr-files'),
           by: ctx.U.name
         });
-        toast('✅ حُفظ التقرير اليومي');
-        ctx.refresh();
+        toast('✅ حُفظ التقرير اليومي'); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+
+    const wSave = el.querySelector('#wr-save');
+    if (wSave) wSave.addEventListener('click', async function () {
+      const title = el.querySelector('#wr-title').value.trim();
+      if (!title) { toast('أدخل عنوان التقرير', true); return; }
+      try {
+        await Api.create('weeklyReports', {
+          weekOf: el.querySelector('#wr-week').value, title: title,
+          progressActual: Number(el.querySelector('#wr-actual').value) || 0,
+          progressPlanned: Number(el.querySelector('#wr-planned').value) || 0,
+          summary: el.querySelector('#wr-summary').value,
+          achievements: el.querySelector('#wr-ach').value.split('\n').filter(Boolean),
+          issues: el.querySelector('#wr-iss').value.split('\n').filter(Boolean),
+          photos: filesOf(el, '#wr-photos'), attachments: filesOf(el, '#wr-files'),
+          by: ctx.U.name
+        });
+        toast('✅ حُفظ التقرير الأسبوعي'); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+
+    const mSave = el.querySelector('#mr-save');
+    if (mSave) mSave.addEventListener('click', async function () {
+      const title = el.querySelector('#mr-title').value.trim();
+      if (!title) { toast('أدخل عنوان التقرير', true); return; }
+      try {
+        await Api.create('monthlyReports', {
+          month: el.querySelector('#mr-month').value, title: title,
+          progressActual: Number(el.querySelector('#mr-actual').value) || 0,
+          progressPlanned: Number(el.querySelector('#mr-planned').value) || 0,
+          summary: el.querySelector('#mr-summary').value,
+          attachments: filesOf(el, '#mr-files'),
+          by: ctx.U.name
+        });
+        toast('✅ حُفظ التقرير الشهري'); ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
   }
@@ -395,12 +496,51 @@
           '<span>' + d.icon + ' ' + esc(d.name) + '</span>' +
           '<span class="small"><b class="num">' + n + '</b> بند مربوط <span class="pill p-ok">✓</span></span></div>';
       }).join('') +
-      '<div class="small muted mt">💡 كل بند كميات مربوط بعناصر النموذج، فيتلوّن العنصر ساطعاً في عرض المالك عند اكتمال البند واعتماد مستخلصه.</div></div></div>';
+      '<div class="small muted mt">💡 كل بند كميات مربوط بعناصر النموذج، فيتلوّن العنصر ساطعاً في عرض المالك عند اكتمال البند واعتماد مستخلصه.</div></div></div>' +
+
+      '<div class="card mt"><h3>📐 سجل مخططات المشروع <span class="hint">كل مخطط يرتبط بدور وتخصص وجدول كمياته — فيظهر داكناً/ساطعاً للمالك حسب التنفيذ</span></h3>' +
+      '<div class="grid" style="grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px">' +
+      '<div><label class="fl">المرجع</label><input class="inp num" id="pd-ref" placeholder="A-103"></div>' +
+      '<div style="grid-column:span 2"><label class="fl">اسم المخطط</label><input class="inp" id="pd-title" placeholder="المسقط المعماري - ..."></div>' +
+      '<div><label class="fl">الدور</label><select class="inp" id="pd-floor">' +
+      P.floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') +
+      '<option value="ELEV">الواجهات</option></select></div>' +
+      '<div><label class="fl">التخصص</label><select class="inp" id="pd-disc">' +
+      P.disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select></div>' +
+      '<div><label class="fl">الملف</label><input class="inp" id="pd-file" type="file" accept=".dwg,.dxf,.pdf"></div>' +
+      '</div>' +
+      '<button class="btn sm mb" id="pd-add">➕ رفع المخطط وربطه بجدول الكميات</button>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المرجع</th><th>المخطط</th><th>الدور</th><th>التخصص</th><th>التاريخ</th><th>الربط</th></tr></thead><tbody>' +
+      (ctx.S.planDrawings || []).map(function (dr) {
+        const d = discOf(ctx, dr.discipline);
+        return '<tr><td class="num small"><b>' + esc(dr.ref) + '</b></td><td>' + esc(dr.title) + '<div class="small muted">📎 ' + esc(dr.file || '') + '</div></td>' +
+          '<td class="small">' + (dr.floor === 'ELEV' ? 'الواجهات' : esc(VS.floorName(ctx, dr.floor))) + '</td>' +
+          '<td class="small">' + d.icon + ' ' + esc(d.name) + '</td>' +
+          '<td class="small muted num">' + esc(dr.date || '') + '</td>' +
+          '<td><span class="pill p-ok">مربوط بجدول الكميات ✓</span></td></tr>';
+      }).join('') + '</tbody></table></div></div>';
 
     el.querySelector('#bim-up').addEventListener('click', function () {
       const f = el.querySelector('#bim-file').files[0];
       if (!f) { toast('اختر ملف النموذج أولاً', true); return; }
       toast('✅ رُفع النموذج "' + f.name + '" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع');
+    });
+
+    el.querySelector('#pd-add').addEventListener('click', async function () {
+      const title = el.querySelector('#pd-title').value.trim();
+      if (!title) { toast('أدخل اسم المخطط', true); return; }
+      const f = el.querySelector('#pd-file').files[0];
+      try {
+        await Api.create('planDrawings', {
+          ref: el.querySelector('#pd-ref').value || 'DWG-' + Math.floor(Math.random() * 900 + 100),
+          title: title,
+          floor: el.querySelector('#pd-floor').value,
+          discipline: el.querySelector('#pd-disc').value,
+          file: f ? f.name : '', by: ctx.U.name
+        });
+        toast('✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر للمالك في رؤية المشروع');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
     });
   }
 

@@ -48,6 +48,9 @@
     claims: ['contractor', 'consultant', 'admin'],
     valueEngineering: ['contractor', 'consultant', 'admin'],
     handoverDocs: ['contractor', 'consultant', 'admin'],
+    weeklyReports: ['consultant', 'admin'],
+    cameras: ['consultant', 'admin'],
+    planDrawings: ['consultant', 'admin'],
     ncrs: ['consultant', 'admin'],
     siteInstructions: ['consultant', 'admin'],
     snags: ['consultant', 'admin'],
@@ -94,7 +97,10 @@
       s.aiInsights = db.aiInsights;
       s.photos = db.photos;
       s.dailyReports = db.dailyReports;
+      s.weeklyReports = db.weeklyReports || [];
       s.monthlyReports = db.monthlyReports;
+      s.cameras = db.cameras || [];
+      s.planDrawings = db.planDrawings || [];
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
@@ -106,6 +112,7 @@
           s[c] = (db[c] || []).filter(function (x) { return x.contractorId === cid; });
         });
         TECH_INTERNAL.forEach(function (c) { s[c] = []; });
+        s.cameras = [];
         s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
         s.messages = [];
