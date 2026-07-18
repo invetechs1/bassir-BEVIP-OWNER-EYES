@@ -440,7 +440,7 @@
       '<th>الاسم</th><th>اسم المستخدم</th>' + (isAdmin ? '<th>كلمة المرور</th>' : '') + '<th>الدور</th><th></th></tr></thead><tbody>' +
       (ctx.S.users || []).map(function (u) {
         return '<tr><td><b>' + esc(u.name) + '</b></td><td class="num">' + esc(u.username) + '</td>' +
-          (isAdmin ? '<td class="num small muted">' + esc(u.password || '••••') + '</td>' : '') +
+          (isAdmin ? '<td class="small muted">🔒 مشفرة</td>' : '') +
           '<td><span class="pill p-info">' + esc(ROLE_NAMES[u.role] || u.role) + '</span></td>' +
           '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">حذف</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +

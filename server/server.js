@@ -42,23 +42,91 @@ function persist() {
     fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 1));
   }, 150);
 }
+
+// ============ تشفير كلمات المرور (scrypt المدمجة) ============
+function hashPassword(plain) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  return { passwordHash: crypto.scryptSync(String(plain), salt, 64).toString('hex'), salt: salt };
+}
+
+function verifyPassword(plain, user) {
+  if (user.passwordHash && user.salt) {
+    const h = crypto.scryptSync(String(plain), user.salt, 64);
+    const stored = Buffer.from(user.passwordHash, 'hex');
+    return h.length === stored.length && crypto.timingSafeEqual(h, stored);
+  }
+  return false;
+}
+
+// ترحيل: أي كلمة مرور نصية قديمة تُشفَّر فور الإقلاع وتُحذف من التخزين
+let migrated = 0;
+db.users.forEach(function (u) {
+  if (u.password) {
+    Object.assign(u, hashPassword(u.password));
+    delete u.password;
+    migrated++;
+  }
+});
+if (migrated) console.log('🔐 شُفِّرت كلمات مرور ' + migrated + ' مستخدم (scrypt)');
 persist();
 
-const core = coreModule.createCore(db, persist);
+const core = coreModule.createCore(db, persist, {
+  password: { hash: hashPassword, verify: verifyPassword }
+});
 
-// ============ الجلسات ============
-const sessions = new Map(); // token -> user
+// ============ توكنات موقعة (JWT HS256) تبقى صالحة بعد إعادة التشغيل ============
+const SECRET_FILE = path.join(DATA_DIR, '.jwt-secret');
+function loadSecret() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  try { return fs.readFileSync(SECRET_FILE, 'utf8').trim(); } catch (e) { /* أول تشغيل */ }
+  const s = crypto.randomBytes(48).toString('hex');
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  fs.writeFileSync(SECRET_FILE, s, { mode: 0o600 });
+  return s;
+}
+const JWT_SECRET = loadSecret();
+const TOKEN_TTL = 12 * 3600 * 1000; // 12 ساعة
 
-function tokenFor(user) {
-  const t = crypto.randomBytes(24).toString('hex');
-  sessions.set(t, user);
-  return t;
+function b64url(buf) {
+  return Buffer.from(buf).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function signToken(user) {
+  const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const payload = b64url(JSON.stringify({ uid: user.id, exp: Date.now() + TOKEN_TTL }));
+  const sig = b64url(crypto.createHmac('sha256', JWT_SECRET).update(header + '.' + payload).digest());
+  return header + '.' + payload + '.' + sig;
+}
+
+function verifyToken(token) {
+  const parts = (token || '').split('.');
+  if (parts.length !== 3) return null;
+  const expected = b64url(crypto.createHmac('sha256', JWT_SECRET).update(parts[0] + '.' + parts[1]).digest());
+  const a = Buffer.from(parts[2]), b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  let payload;
+  try { payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString()); }
+  catch (e) { return null; }
+  if (!payload.exp || payload.exp < Date.now()) return null;
+  const u = db.users.find(function (x) { return x.id === payload.uid; });
+  if (!u) return null;
+  return { id: u.id, username: u.username, name: u.name, role: u.role, contractorId: u.contractorId || null };
 }
 
 function authUser(req) {
   const h = req.headers['authorization'] || '';
   const m = h.match(/^Bearer\s+(.+)$/i);
-  return m ? sessions.get(m[1]) || null : null;
+  return m ? verifyToken(m[1]) : null;
+}
+
+// ============ حد محاولات الدخول (10 محاولات / 10 دقائق لكل عنوان) ============
+const loginAttempts = new Map();
+function loginLimited(ip) {
+  const now = Date.now();
+  const rec = loginAttempts.get(ip);
+  if (!rec || now > rec.resetAt) { loginAttempts.set(ip, { count: 1, resetAt: now + 600000 }); return false; }
+  rec.count++;
+  return rec.count > 10;
 }
 
 // ============ أدوات HTTP ============
@@ -108,17 +176,19 @@ const server = http.createServer(async function (req, res) {
 
     // تسجيل الدخول
     if (u === '/api/login' && req.method === 'POST') {
+      const ip = req.socket.remoteAddress || '?';
+      if (loginLimited(ip)) return json(res, 429, { error: 'محاولات كثيرة — أعد المحاولة بعد 10 دقائق' });
       const body = await readBody(req);
       const user = core.login(body.username, body.password);
-      return json(res, 200, { token: tokenFor(user), user: user });
+      loginAttempts.delete(ip);
+      return json(res, 200, { token: signToken(user), user: user });
     }
 
     const user = authUser(req);
     if (!user) return json(res, 401, { error: 'يلزم تسجيل الدخول' });
 
     if (u === '/api/logout' && req.method === 'POST') {
-      const h = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '');
-      sessions.delete(h);
+      // التوكنات موقعة بلا حالة على الخادم — الخروج بحذف التوكن لدى العميل
       return json(res, 200, { ok: true });
     }
 

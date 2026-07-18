@@ -60,8 +60,14 @@
     correspondence: ['consultant', 'admin']
   };
 
-  function createCore(db, persist) {
+  function createCore(db, persist, opts) {
     persist = persist || function () {};
+    opts = opts || {};
+    // طبقة كلمات المرور: الخادم يمرر تشفير scrypt، ووضع الديمو بالمتصفح يقارن نصاً
+    const pwd = opts.password || {
+      hash: null,
+      verify: function (plain, u) { return u.password === plain; }
+    };
 
     function nextId(prefix) {
       db.meta.seq = (db.meta.seq || 1000) + 1;
@@ -75,15 +81,26 @@
     }
 
     function login(username, password) {
-      const u = db.users.find(function (x) { return x.username === username && x.password === password; });
-      if (!u) throw err('اسم المستخدم أو كلمة المرور غير صحيحة', 401);
+      const u = db.users.find(function (x) { return x.username === username; });
+      if (!u || !password || !pwd.verify(password, u)) throw err('اسم المستخدم أو كلمة المرور غير صحيحة', 401);
       return { id: u.id, username: u.username, name: u.name, role: u.role, contractorId: u.contractorId || null };
     }
 
     function stripPassword(u) {
       const c = Object.assign({}, u);
       delete c.password;
+      delete c.passwordHash;
+      delete c.salt;
       return c;
+    }
+
+    /** يخزن حساباً بكلمة مرور مشفرة ويعيد نسخة عرض تحمل كلمة المرور مرة واحدة فقط */
+    function storeAccount(fields, plainPw) {
+      const stored = Object.assign({}, fields);
+      if (pwd.hash) Object.assign(stored, pwd.hash(plainPw));
+      else stored.password = plainPw;
+      db.users.push(stored);
+      return Object.assign(stripPassword(stored), { password: plainPw });
     }
 
     /** لقطة الحالة الكاملة مُرشّحة حسب دور المستخدم */
@@ -117,9 +134,8 @@
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
         s.messages = [];
         s.users = [];
-      } else if (role === 'admin') {
-        s.users = db.users; // الأدمن فقط يرى كلمات المرور
       } else {
+        // لا تُرسل كلمات المرور أو تجزئاتها لأي دور، بما فيهم الأدمن
         s.users = db.users.map(stripPassword);
       }
       return s;
@@ -144,6 +160,14 @@
       if (!item.status) {
         if (DEFAULT_STATUS[collection]) item.status = DEFAULT_STATUS[collection];
         else if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
+      }
+      if (collection === 'users' && item.password && pwd.hash) {
+        const plain = item.password;
+        delete item.password;
+        Object.assign(item, pwd.hash(plain));
+        db.users.push(item);
+        persist();
+        return Object.assign(stripPassword(item), { password: plain }); // تُعرض مرة واحدة فقط
       }
       db[collection].push(item);
       persist();
@@ -229,11 +253,10 @@
       db.contractors.push(c);
       let account = null;
       if (payload.username) {
-        account = {
-          id: nextId('U'), username: payload.username, password: payload.password || genPassword(),
-          name: c.name, role: 'contractor', contractorId: c.id
-        };
-        db.users.push(account);
+        account = storeAccount(
+          { id: nextId('U'), username: payload.username, name: c.name, role: 'contractor', contractorId: c.id },
+          payload.password || genPassword()
+        );
       }
       (payload.boqItems || []).forEach(function (b, i) {
         db.boqItems.push({
@@ -264,12 +287,11 @@
       db.projects.push(p);
       let account = null;
       if (payload.consultantUsername) {
-        account = {
-          id: nextId('U'), username: payload.consultantUsername,
-          password: payload.consultantPassword || genPassword(),
-          name: payload.consultantName || 'استشاري ' + p.name, role: 'consultant'
-        };
-        db.users.push(account);
+        account = storeAccount(
+          { id: nextId('U'), username: payload.consultantUsername,
+            name: payload.consultantName || 'استشاري ' + p.name, role: 'consultant' },
+          payload.consultantPassword || genPassword()
+        );
       }
       persist();
       return { project: p, account: account };
