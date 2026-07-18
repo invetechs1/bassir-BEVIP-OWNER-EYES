@@ -188,7 +188,7 @@
     // ============ المستخدمون ============
     db.users = [
       { id: 'U1', username: 'admin',      password: 'admin123',   name: 'مدير النظام',                    role: 'admin' },
-      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner' },
+      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner', projectIds: ['P1'] },
       { id: 'U3', username: 'rep',        password: 'rep123',     name: 'م. سالم الحربي (ممثل المالك)',   role: 'owner_rep' },
       { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant' },
       { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1' },
@@ -428,10 +428,10 @@
 
     // ============ كاميرات الموقع ============
     db.cameras = [
-      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', status: 'online', installed: '2025-06-01' },
-      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', status: 'online', installed: '2025-11-15' },
-      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', status: 'online', installed: '2026-03-01' },
-      { id: 'CAM4', name: 'كاميرا 4 - بوابة الموقع', location: 'المدخل الرئيسي', url: 'rtsp://site.bassir.local/cam4', status: 'offline', installed: '2025-06-01' }
+      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', streamPath: 'cam1', status: 'online', installed: '2025-06-01' },
+      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', streamPath: 'cam2', status: 'online', installed: '2025-11-15' },
+      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', streamPath: 'cam3', status: 'online', installed: '2026-03-01' },
+      { id: 'CAM4', name: 'كاميرا 4 - بوابة الموقع', location: 'المدخل الرئيسي', url: 'rtsp://site.bassir.local/cam4', streamPath: 'cam4', status: 'offline', installed: '2025-06-01' }
     ];
 
     // ============ سجل مخططات المشروع (مربوطة بجدول الكميات) ============
@@ -466,8 +466,13 @@
       { id: 'MSG2', channel: 'email', to: 'owner@example.com', date: '2026-07-01 08:30', title: 'التقرير الشهري - يونيو', status: 'sent' }
     ];
 
+    db.auditLog = [
+      { id: 'AL1', time: '2026-07-18 08:15', userName: 'م. خالد العمران (الاستشاري)', role: 'consultant', action: 'review', target: 'اعتماد المستخلص IPC-ELE-04' },
+      { id: 'AL2', time: '2026-07-17 14:02', userName: 'مؤسسة البناء المعماري', role: 'contractor', action: 'create', target: 'رفع طلب استلام WIR-ARC-087' },
+      { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
+    ];
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 3 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 4 };
 
     return db;
   }

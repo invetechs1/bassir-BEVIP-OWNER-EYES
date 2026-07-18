@@ -24,7 +24,8 @@
     { id: 'bim-upload', title: 'المخططات والنماذج', icon: '🏢', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBimUpload },
 
     { id: 'rep-projects', title: 'المشاريع والاستشاريون', icon: '🗂️', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderRepProjects },
-    { id: 'users', title: 'المستخدمون', icon: '👥', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderUsers },
+    { id: 'users', title: 'المستخدمون والصلاحيات', icon: '👥', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderUsers },
+    { id: 'audit', title: 'سجل النظام', icon: '📜', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderAudit },
     { id: 'system', title: 'التكامل والإعدادات', icon: '⚙️', sec: 'الإدارة', roles: ['admin', 'consultant'], render: VR.renderSystem }
   ];
 

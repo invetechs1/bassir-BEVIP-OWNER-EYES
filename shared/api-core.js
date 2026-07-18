@@ -26,6 +26,24 @@
     snags: 'open', hseReports: 'open'
   };
 
+  // أسماء المجموعات بالعربية (لسجل النظام والواجهة)
+  const COLLECTION_LABELS = {
+    shopDrawings: 'مخطط تنفيذي', materials: 'اعتماد مواد', scheduleSubmittals: 'جدول زمني',
+    wirs: 'طلب استلام', changeOrders: 'أمر تغيير', payments: 'مستخلص',
+    methodStatements: 'أسلوب تنفيذ/ITP', claims: 'مطالبة/EOT', valueEngineering: 'هندسة قيمية',
+    handoverDocs: 'مستند تسليم', rfis: 'استفسار RFI', ncrs: 'عدم مطابقة NCR',
+    siteInstructions: 'تعليمات موقعية', snags: 'ملاحظة تسليم', hseReports: 'تقرير سلامة',
+    materialTests: 'اختبار مواد', meetings: 'محضر اجتماع', correspondence: 'خطاب',
+    dailyReports: 'تقرير يومي', weeklyReports: 'تقرير أسبوعي', monthlyReports: 'تقرير شهري',
+    boqItems: 'بند كميات', planDrawings: 'مخطط مشروع', cameras: 'كاميرا',
+    users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة'
+  };
+
+  function labelOf(collection, item) {
+    return (COLLECTION_LABELS[collection] || collection) + ': ' +
+      (item && (item.title || item.name || item.description || item.ref || item.username || item.id) || '');
+  }
+
   // من يستطيع إنشاء عناصر في كل مجموعة
   const CREATE_RULES = {
     shopDrawings: ['contractor', 'consultant', 'admin'],
@@ -80,10 +98,28 @@
       return e;
     }
 
+    /** سجل النظام: توثيق كل عملية (من، متى، ماذا) — يحتفظ بآخر 800 حدث */
+    function audit(user, action, target) {
+      if (!db.auditLog) db.auditLog = [];
+      db.auditLog.unshift({
+        id: nextId('AL'), time: nowStr(),
+        userName: user ? user.name : 'النظام', role: user ? user.role : 'system',
+        action: action, target: target
+      });
+      if (db.auditLog.length > 800) db.auditLog.length = 800;
+    }
+
     function login(username, password) {
       const u = db.users.find(function (x) { return x.username === username; });
       if (!u || !password || !pwd.verify(password, u)) throw err('اسم المستخدم أو كلمة المرور غير صحيحة', 401);
-      return { id: u.id, username: u.username, name: u.name, role: u.role, contractorId: u.contractorId || null };
+      const sessionUser = {
+        id: u.id, username: u.username, name: u.name, role: u.role,
+        contractorId: u.contractorId || null,
+        projectIds: u.projectIds && u.projectIds.length ? u.projectIds : null
+      };
+      audit(sessionUser, 'login', 'دخول إلى النظام');
+      persist();
+      return sessionUser;
     }
 
     function stripPassword(u) {
@@ -138,6 +174,21 @@
         // لا تُرسل كلمات المرور أو تجزئاتها لأي دور، بما فيهم الأدمن
         s.users = db.users.map(stripPassword);
       }
+
+      // سجل النظام: للأدمن وممثل المالك فقط
+      if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
+
+      // تقييد النطاق بالمشاريع المسندة: المالك يرى مشروعه فقط
+      // (وينطبق كذلك على استشاري أُسندت له مشاريع محددة)
+      if (user.projectIds && (role === 'owner' || role === 'consultant')) {
+        const pids = user.projectIds;
+        const inScope = function (x) { return !x.projectId || pids.indexOf(x.projectId) !== -1; };
+        s.projects = s.projects.filter(function (p) { return pids.indexOf(p.id) !== -1; });
+        Object.keys(s).forEach(function (k) {
+          if (k === 'projects' || k === 'users' || k === 'auditLog') return;
+          if (Array.isArray(s[k])) s[k] = s[k].filter(inScope);
+        });
+      }
       return s;
     }
 
@@ -166,10 +217,12 @@
         delete item.password;
         Object.assign(item, pwd.hash(plain));
         db.users.push(item);
+        audit(user, 'create', labelOf('users', item));
         persist();
         return Object.assign(stripPassword(item), { password: plain }); // تُعرض مرة واحدة فقط
       }
       db[collection].push(item);
+      audit(user, 'create', labelOf(collection, item));
       persist();
       return item;
     }
@@ -184,6 +237,7 @@
         if (item.status && item.status !== 'pending') throw err('لا يمكن تعديل طلب تم البت فيه', 403);
       }
       Object.assign(item, patch);
+      audit(user, 'update', labelOf(collection, item));
       persist();
       return item;
     }
@@ -196,6 +250,7 @@
       if (!list) throw err('مجموعة غير معروفة', 404);
       const i = list.findIndex(function (x) { return x.id === id; });
       if (i === -1) throw err('العنصر غير موجود', 404);
+      audit(user, 'delete', labelOf(collection, list[i]));
       list.splice(i, 1);
       persist();
       return { ok: true };
@@ -223,6 +278,8 @@
       if (collection === 'payments' && (status === 'approved' || status === 'approved_notes')) {
         applyPaymentEffects(item);
       }
+      const decision = status === 'rejected' ? 'رفض' : 'اعتماد';
+      audit(user, 'review', decision + ' — ' + labelOf(collection, item));
       persist();
       return item;
     }
@@ -267,6 +324,7 @@
           unitPrice: Number(b.unitPrice) || 0, progress: 0, status: 'لم يبدأ'
         });
       });
+      audit(user, 'create', labelOf('contractors', c) + (account ? ' + حساب دخول (' + account.username + ')' : ''));
       persist();
       return { contractor: c, account: account };
     }
@@ -293,6 +351,7 @@
           payload.consultantPassword || genPassword()
         );
       }
+      audit(user, 'create', labelOf('projects', p) + (account ? ' + حساب استشاري (' + account.username + ')' : ''));
       persist();
       return { project: p, account: account };
     }
@@ -306,6 +365,7 @@
         date: nowStr(), status: payload.status === 'sent_demo' ? 'sent_demo' : 'sent', by: user.name
       };
       db.messages.push(msg);
+      audit(user, 'send', 'إرسال تقرير عبر ' + (msg.channel === 'whatsapp' ? 'واتساب' : 'البريد') + ': ' + msg.title);
       persist();
       return msg;
     }
@@ -358,6 +418,7 @@
 
     return {
       db: db,
+      audit: audit,
       login: login,
       getState: getState,
       createItem: createItem,

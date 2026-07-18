@@ -436,48 +436,196 @@
     consultant: 'الاستشاري', contractor: 'مقاول'
   };
 
+  // وصف صلاحيات كل دور (يظهر عند اختيار الدور وفي مصفوفة الصلاحيات)
+  const ROLE_META = {
+    owner: {
+      icon: '👁', color: 'p-info',
+      desc: 'مالك المشروع: اطلاع فقط على مشروعه المسند إليه — عين المالك، رؤية المشروع، الكاميرات، المقاولون، ذكاء بصير، التقارير. لا يضيف ولا يعدل شيئاً.',
+      scope: 'project'
+    },
+    owner_rep: {
+      icon: '🧑‍💼', color: 'p-info',
+      desc: 'ممثل المالك: يطلع على كامل ملفات ومعلومات جميع المشاريع + سجل النظام، ويضيف المشاريع ويعين الاستشاريين وينشئ المستخدمين ويرسل التقارير.',
+      scope: 'all'
+    },
+    consultant: {
+      icon: '📐', color: 'p-warn',
+      desc: 'الاستشاري (المكتب الفني): الاعتمادات والتوقيع، خدمات المكتب الفني الـ12، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، الكاميرات والتكامل. يمكن قصره على مشاريع محددة.',
+      scope: 'project-optional'
+    },
+    contractor: {
+      icon: '👷', color: 'p-muted',
+      desc: 'المقاول: يرى عقده وبنوده ومبالغه فقط، يرفع طلباته (مخططات، مواد، استلامات، مستخلصات، RFI...) ويتابع قراراتها، ويستقبل ما يوجهه له المكتب الفني.',
+      scope: 'contractor'
+    },
+    admin: {
+      icon: '⚙️', color: 'p-danger',
+      desc: 'أدمن النظام: كل الصفحات والصلاحيات + إدارة المستخدمين والحذف + سجل النظام + التكامل والإعدادات.',
+      scope: 'all'
+    }
+  };
+
+  function userScopeLabel(ctx, u) {
+    if (u.role === 'contractor') {
+      const c = ctx.S.contractors.find(function (x) { return x.id === u.contractorId; });
+      return c ? '🔗 ' + esc(c.name) : '<span class="muted">غير مربوط بمقاول!</span>';
+    }
+    if (u.projectIds && u.projectIds.length) {
+      return '🏗️ ' + u.projectIds.map(function (pid) {
+        const p = ctx.S.projects.find(function (x) { return x.id === pid; });
+        return esc(p ? p.name : pid);
+      }).join('، ');
+    }
+    if (u.role === 'owner') return '<span class="pill p-warn">لم يُسند لمشروع!</span>';
+    return '<span class="muted">جميع المشاريع</span>';
+  }
+
   function renderUsers(el, ctx) {
-    const isAdmin = ctx.U.role === 'admin';
     el.innerHTML =
+      // مصفوفة الصلاحيات
+      '<div class="card mb"><h3>🛡️ مستويات النظام وصلاحياتها</h3><div class="grid" style="grid-template-columns:repeat(5,1fr);gap:10px">' +
+      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+        const m = ROLE_META[r];
+        return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg2)">' +
+          '<div style="font-size:20px">' + m.icon + '</div><b class="small">' + esc(ROLE_NAMES[r]) + '</b>' +
+          '<div class="small muted" style="margin-top:6px;line-height:1.8;font-size:11px">' + esc(m.desc) + '</div></div>';
+      }).join('') + '</div></div>' +
+
       '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
-      '<div class="card"><h3>👥 مستخدمو النظام</h3><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      '<th>الاسم</th><th>اسم المستخدم</th>' + (isAdmin ? '<th>كلمة المرور</th>' : '') + '<th>الدور</th><th></th></tr></thead><tbody>' +
+      '<div class="card"><h3>👥 مستخدمو النظام <span class="hint">كلمات المرور مشفرة ولا تظهر لأحد</span></h3>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      '<th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>النطاق</th><th></th></tr></thead><tbody>' +
       (ctx.S.users || []).map(function (u) {
+        const m = ROLE_META[u.role] || { icon: '👤', color: 'p-muted' };
         return '<tr><td><b>' + esc(u.name) + '</b></td><td class="num">' + esc(u.username) + '</td>' +
-          (isAdmin ? '<td class="small muted">🔒 مشفرة</td>' : '') +
-          '<td><span class="pill p-info">' + esc(ROLE_NAMES[u.role] || u.role) + '</span></td>' +
+          '<td><span class="pill ' + m.color + '">' + m.icon + ' ' + esc(ROLE_NAMES[u.role] || u.role) + '</span></td>' +
+          '<td class="small">' + userScopeLabel(ctx, u) + '</td>' +
           '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">حذف</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="card"><h3>➕ إضافة مستخدم</h3>' +
-      '<label class="fl">الاسم الكامل</label><input class="inp" id="nu-name">' +
-      '<label class="fl">اسم المستخدم</label><input class="inp" id="nu-user">' +
-      '<label class="fl">كلمة المرور</label><input class="inp" id="nu-pass">' +
       '<label class="fl">الدور</label><select class="inp" id="nu-role">' +
-      Object.keys(ROLE_NAMES).map(function (r) { return '<option value="' + r + '">' + ROLE_NAMES[r] + '</option>'; }).join('') + '</select>' +
-      '<label class="fl">ربط بمقاول (لدور المقاول فقط)</label><select class="inp" id="nu-cont"><option value="">—</option>' +
-      ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>' +
-      '<div class="m-actions"><button class="btn block" id="nu-save">إنشاء المستخدم</button></div></div></div>';
+      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+        return '<option value="' + r + '">' + ROLE_META[r].icon + ' ' + ROLE_NAMES[r] + '</option>';
+      }).join('') + '</select>' +
+      '<div class="small muted" id="nu-desc" style="margin-top:8px;line-height:1.8"></div>' +
+      '<label class="fl">الاسم الكامل</label><input class="inp" id="nu-name" placeholder="م. فلان الفلاني">' +
+      '<label class="fl">اسم المستخدم</label><input class="inp num" id="nu-user" placeholder="username" dir="ltr">' +
+      '<label class="fl">كلمة المرور (اتركها فارغة للتوليد التلقائي)</label><input class="inp num" id="nu-pass" placeholder="••••••••" dir="ltr">' +
+      '<div id="nu-scope"></div>' +
+      '<div class="m-actions"><button class="btn block" id="nu-save">إنشاء المستخدم وتسليم بياناته</button></div></div></div>';
+
+    const roleSel = el.querySelector('#nu-role');
+    const scopeBox = el.querySelector('#nu-scope');
+    const descBox = el.querySelector('#nu-desc');
+
+    function drawScope() {
+      const r = roleSel.value;
+      descBox.textContent = ROLE_META[r].desc;
+      if (r === 'contractor') {
+        scopeBox.innerHTML = '<label class="fl">ربط بالمقاول</label><select class="inp" id="nu-cont">' +
+          ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
+      } else if (r === 'owner' || r === 'consultant') {
+        scopeBox.innerHTML = '<label class="fl">' + (r === 'owner' ? 'مشروع المالك (يرى صفحة مشروعه فقط)' : 'المشاريع المسندة (اتركها كلها فارغة = جميع المشاريع)') + '</label>' +
+          ctx.S.projects.map(function (p) {
+            return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="nu-proj" value="' + p.id + '"' +
+              (r === 'owner' && ctx.S.projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+          }).join('');
+      } else {
+        scopeBox.innerHTML = '';
+      }
+    }
+    drawScope();
+    roleSel.addEventListener('change', drawScope);
 
     el.querySelector('#nu-save').addEventListener('click', async function () {
+      const role = roleSel.value;
+      const name = el.querySelector('#nu-name').value.trim();
+      const username = el.querySelector('#nu-user').value.trim();
+      if (!name || !username) { toast('أدخل الاسم واسم المستخدم', true); return; }
+      const data = {
+        name: name, username: username,
+        password: el.querySelector('#nu-pass').value || Math.random().toString(36).slice(2, 10),
+        role: role
+      };
+      const contSel = el.querySelector('#nu-cont');
+      if (contSel) data.contractorId = contSel.value;
+      const projChecks = el.querySelectorAll('.nu-proj:checked');
+      if (projChecks.length) data.projectIds = Array.prototype.map.call(projChecks, function (c) { return c.value; });
+      if (role === 'owner' && !data.projectIds) { toast('حدد مشروع المالك — المالك يرى صفحة مشروعه', true); return; }
       try {
-        await Api.create('users', {
-          name: el.querySelector('#nu-name').value,
-          username: el.querySelector('#nu-user').value,
-          password: el.querySelector('#nu-pass').value,
-          role: el.querySelector('#nu-role').value,
-          contractorId: el.querySelector('#nu-cont').value || undefined
-        });
-        toast('✅ أُنشئ المستخدم');
+        const created = await Api.create('users', data);
+        modal('<h3>✅ أُنشئ الحساب — سلّم هذه البيانات لصاحبها</h3>' +
+          '<div class="m-sub">كلمة المرور تظهر الآن مرة واحدة فقط ولا يمكن استرجاعها لاحقاً (مشفرة في النظام)</div>' +
+          '<div class="card" style="padding:16px">' +
+          '<div>' + ROLE_META[role].icon + ' <b>' + esc(name) + '</b> — ' + esc(ROLE_NAMES[role]) + '</div>' +
+          '<div class="mt">👤 اسم المستخدم: <b class="num">' + esc(username) + '</b></div>' +
+          '<div class="mt">🔑 كلمة المرور: <b class="num">' + esc(created.password || data.password) + '</b></div></div>' +
+          '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">تم التسليم</button></div>');
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
+
     el.querySelectorAll('[data-del]').forEach(function (b) {
       b.addEventListener('click', async function () {
         if (!confirm('حذف هذا المستخدم؟')) return;
         try { await Api.remove('users', b.getAttribute('data-del')); toast('حُذف المستخدم'); ctx.refresh(); }
         catch (e) { toast(e.message, true); }
       });
+    });
+  }
+
+  // ============ سجل النظام (Audit Log) ============
+  const AUDIT_ACTIONS = {
+    login: ['🔑', 'دخول', 'p-info'], create: ['➕', 'إضافة', 'p-ok'],
+    update: ['✏️', 'تعديل', 'p-warn'], delete: ['🗑️', 'حذف', 'p-danger'],
+    review: ['✍️', 'قرار اعتماد', 'p-info'], send: ['📨', 'إرسال تقرير', 'p-ok'],
+    upload: ['📎', 'رفع ملف', 'p-muted'], snapshot: ['📸', 'لقطة كاميرا', 'p-muted']
+  };
+  const auditState = { filter: 'all', q: '' };
+
+  function renderAudit(el, ctx) {
+    const log = ctx.S.auditLog || [];
+    const filtered = log.filter(function (a) {
+      if (auditState.filter !== 'all' && a.action !== auditState.filter) return false;
+      if (auditState.q && (a.userName + ' ' + a.target).indexOf(auditState.q) === -1) return false;
+      return true;
+    });
+
+    el.innerHTML =
+      '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:12px">' +
+      '<h3 style="margin:0">📜 سجل النظام <span class="hint">توثيق كامل: من فعل ماذا ومتى — ' + log.length + ' حدث</span></h3>' +
+      '<input class="inp" id="au-q" placeholder="🔍 بحث بالاسم أو العملية..." style="max-width:260px" value="' + esc(auditState.q) + '"></div>' +
+      '<div class="tabs">' +
+      '<div class="tab ' + (auditState.filter === 'all' ? 'active' : '') + '" data-af="all">الكل</div>' +
+      Object.keys(AUDIT_ACTIONS).map(function (k) {
+        const n = log.filter(function (a) { return a.action === k; }).length;
+        if (!n) return '';
+        return '<div class="tab ' + (auditState.filter === k ? 'active' : '') + '" data-af="' + k + '">' +
+          AUDIT_ACTIONS[k][0] + ' ' + AUDIT_ACTIONS[k][1] + ' <span class="muted num">' + n + '</span></div>';
+      }).join('') + '</div>' +
+      (filtered.length ?
+        '<div class="tbl-wrap" style="max-height:65vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
+        '<th>الوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>التفاصيل</th></tr></thead><tbody>' +
+        filtered.map(function (a) {
+          const m = AUDIT_ACTIONS[a.action] || ['•', a.action, 'p-muted'];
+          return '<tr><td class="small muted num" style="white-space:nowrap">' + esc(a.time) + '</td>' +
+            '<td class="small"><b>' + esc(a.userName) + '</b></td>' +
+            '<td class="small">' + esc(ROLE_NAMES[a.role] || a.role) + '</td>' +
+            '<td><span class="pill ' + m[2] + '">' + m[0] + ' ' + m[1] + '</span></td>' +
+            '<td class="small">' + esc(a.target) + '</td></tr>';
+        }).join('') + '</tbody></table></div>'
+        : '<div class="empty"><div class="e-ico">📜</div>لا أحداث مطابقة</div>') +
+      '</div>';
+
+    el.querySelectorAll('[data-af]').forEach(function (t) {
+      t.addEventListener('click', function () { auditState.filter = t.getAttribute('data-af'); renderAudit(el, ctx); });
+    });
+    const q = el.querySelector('#au-q');
+    q.addEventListener('input', function () {
+      auditState.q = q.value.trim();
+      renderAudit(el, ctx);
+      const q2 = el.querySelector('#au-q'); q2.focus(); q2.setSelectionRange(q2.value.length, q2.value.length);
     });
   }
 
@@ -1077,6 +1225,7 @@
         svcCard('البريد الإلكتروني', '📧', s.email.configured, 'متصل (' + (s.email.provider || '') + ')', 'محاكاة', 'RESEND_API_KEY أو SENDGRID_API_KEY + EMAIL_FROM') +
         svcCard('واتساب', '💬', s.whatsapp.configured, 'WhatsApp Cloud API', 'محاكاة', 'WHATSAPP_TOKEN + WHATSAPP_PHONE_ID من Meta Business') +
         svcCard('مدخل الكاميرات', '🎥', s.cameraIngest.configured, 'يستقبل اللقطات', 'أضف CAMERA_KEY', 'الكاميرا/NVR تدفع لقطة JPEG كل فترة ويحللها الذكاء الاصطناعي') +
+        svcCard('البث المباشر RTSP', '📡', s.media && s.media.configured, 'خادم الوسائط متصل', 'أضف MEDIA_SERVER_URL', 'MediaMTX يحول RTSP إلى بث حي داخل صفحة الكاميرات') +
         '</div>' +
 
         '<div class="grid g2">' +
@@ -1089,7 +1238,11 @@
         '<div class="small" style="line-height:2">أي كاميرا أو جهاز تسجيل NVR يدعم الدفع عبر HTTP يرسل لقطاته للنظام، ويحللها ذكاء بصير تلقائياً:</div>' +
         '<pre class="small" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-x:auto;direction:ltr;text-align:left;line-height:2">' +
         'curl -X POST https://your-domain/api/cameras/CAM1/snapshot \\\n  -H "x-camera-key: $CAMERA_KEY" \\\n  -H "Content-Type: image/jpeg" \\\n  --data-binary @snapshot.jpg</pre>' +
-        '<div class="small muted" style="line-height:2">تُحفظ اللقطة في سجل الصور، وإن كان الذكاء الاصطناعي مهيأً تُحلل فوراً وتضاف نتيجتها إلى رؤى بصير مع مقارنتها بنسب الاستشاري.<br>جدولة الإرسال من الكاميرا نفسها أو عبر cron كل 30 دقيقة.</div></div>' +
+        '<div class="small muted" style="line-height:2">تُحفظ اللقطة في سجل الصور، وإن كان الذكاء الاصطناعي مهيأً تُحلل فوراً وتضاف نتيجتها إلى رؤى بصير مع مقارنتها بنسب الاستشاري.</div>' +
+        '<h3 class="mt">📡 البث المباشر RTSP</h3>' +
+        '<div class="small" style="line-height:2">1) ثبّت <b class="num">MediaMTX</b> على السيرفر (ملف تنفيذي واحد).<br>2) أضف كل كاميرا في mediamtx.yml بمسار يطابق حقل "مسار البث":</div>' +
+        '<pre class="small" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-x:auto;direction:ltr;text-align:left;line-height:2">paths:\n  cam1:\n    source: rtsp://user:pass@192.168.1.10:554/stream1</pre>' +
+        '<div class="small muted" style="line-height:2">3) ضع MEDIA_SERVER_URL=http://السيرفر:8888 في .env — فيظهر البث الحي مباشرة داخل بطاقات صفحة الكاميرات للمالك.</div></div>' +
         '</div>';
     }).catch(function (e) {
       el.innerHTML = '<div class="empty"><div class="e-ico">⚠️</div>' + esc(e.message) + '</div>';
@@ -1105,6 +1258,7 @@
     renderDailyReport: renderDailyReport,
     renderRepProjects: renderRepProjects,
     renderUsers: renderUsers,
+    renderAudit: renderAudit,
     renderBimUpload: renderBimUpload,
     renderContractorHome: renderContractorHome
   };

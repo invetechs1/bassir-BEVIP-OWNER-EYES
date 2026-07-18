@@ -150,7 +150,8 @@ function status() {
       sdkInstalled: !!aiSdk(),
       model: AI_MODEL
     },
-    cameraIngest: { configured: !!process.env.CAMERA_KEY }
+    cameraIngest: { configured: !!process.env.CAMERA_KEY },
+    media: { configured: !!process.env.MEDIA_SERVER_URL, url: process.env.MEDIA_SERVER_URL || null }
   };
 }
 

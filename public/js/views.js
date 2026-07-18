@@ -197,42 +197,54 @@
   function renderCameras(el, ctx) {
     const cams = ctx.S.cameras || [];
     const canManage = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const media = (ctx.S.mediaServerUrl || '').replace(/\/+$/, '');
     const now = new Date();
     const ts = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 8);
 
     el.innerHTML =
       '<div class="card mb"><div class="flex"><span style="font-size:26px">🎥</span>' +
-      '<div><b>البث المباشر من الموقع</b><div class="small muted" style="margin-top:3px">تُحلَّل اللقطات بذكاء بصير كل 30 دقيقة لاستخراج نسب الإنجاز وتنبيهات السلامة تلقائياً</div></div>' +
-      '<span class="spacer"></span><span class="pill p-ok">● ' + cams.filter(function (c) { return c.status === 'online'; }).length + ' كاميرا متصلة</span></div></div>' +
+      '<div><b>البث المباشر من الموقع</b><div class="small muted" style="margin-top:3px">' +
+      (media ? 'بث RTSP حي عبر خادم الوسائط، ' : '') + 'تُحلَّل اللقطات بذكاء بصير كل 30 دقيقة لاستخراج نسب الإنجاز وتنبيهات السلامة تلقائياً</div></div>' +
+      '<span class="spacer"></span>' +
+      (media ? '<span class="pill p-ok">📡 خادم البث متصل</span>' : (canManage ? '<span class="pill p-warn">البث الحي غير مهيأ — MEDIA_SERVER_URL</span>' : '')) +
+      '<span class="pill p-ok">● ' + cams.filter(function (c) { return c.status === 'online'; }).length + ' كاميرا متصلة</span></div></div>' +
 
       '<div class="grid g2 mb">' +
       cams.map(function (c, i) {
         const on = c.status === 'online';
-        return '<div class="card" style="padding:0;overflow:hidden">' +
-          '<div class="flex" style="justify-content:space-between;padding:14px 18px">' +
-          '<b>' + esc(c.name) + '</b>' +
-          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE</span>' : '<span class="pill p-muted">غير متصلة</span>') + '</div>' +
-          '<div class="cam-feed' + (on ? '' : ' cam-off') + '">' +
-          (on ?
-            '<div class="cam-scene">' +
+        const live = on && media && c.streamPath;
+        let feed;
+        if (live) {
+          // بث حي فعلي: مشغل HLS/WebRTC المدمج في خادم الوسائط (MediaMTX)
+          feed = '<iframe src="' + esc(media + '/' + c.streamPath) + '" style="width:100%;height:100%;border:0;position:absolute;inset:0" allow="autoplay" title="' + esc(c.name) + '"></iframe>';
+        } else if (on) {
+          feed = '<div class="cam-scene">' +
             '<span class="cam-crane" style="animation-delay:' + (i * 1.3) + 's">🏗️</span>' +
             '<span class="cam-bld">🏢</span><span class="cam-wrk" style="animation-delay:' + (i * 0.7) + 's">👷</span>' +
             '</div><div class="scan"></div>' +
-            '<div class="cam-osd"><span>' + esc(c.id) + ' · ' + esc(c.location) + '</span><span class="num">' + ts + '</span></div>'
-            : '<div class="empty" style="padding:52px 0"><div class="e-ico">📡</div>انقطع الاتصال — جارٍ إعادة المحاولة</div>') +
-          '</div>' +
+            '<div class="cam-osd"><span>' + esc(c.id) + ' · ' + esc(c.location) + '</span><span class="num">' + ts + '</span></div>';
+        } else {
+          feed = '<div class="empty" style="padding:52px 0"><div class="e-ico">📡</div>انقطع الاتصال — جارٍ إعادة المحاولة</div>';
+        }
+        return '<div class="card" style="padding:0;overflow:hidden">' +
+          '<div class="flex" style="justify-content:space-between;padding:14px 18px">' +
+          '<b>' + esc(c.name) + '</b>' +
+          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE' + (live ? ' · RTSP' : '') + '</span>' : '<span class="pill p-muted">غير متصلة</span>') + '</div>' +
+          '<div class="cam-feed' + (on ? '' : ' cam-off') + '">' + feed + '</div>' +
           '<div class="flex" style="justify-content:space-between;padding:12px 18px" class="small">' +
           '<span class="small muted">📍 ' + esc(c.location) + ' · مركبة منذ ' + esc(c.installed || '') + '</span>' +
           '<span class="small" style="color:var(--info)">🤖 تحليل AI نشط</span></div></div>';
       }).join('') + '</div>' +
 
       (canManage ?
-        '<div class="card"><h3>➕ ربط كاميرا جديدة</h3><div class="grid g4">' +
+        '<div class="card"><h3>➕ ربط كاميرا جديدة</h3><div class="grid" style="grid-template-columns:repeat(5,1fr);gap:10px">' +
         '<div><label class="fl">اسم الكاميرا</label><input class="inp" id="cm-name" placeholder="كاميرا 5 - ..."></div>' +
         '<div><label class="fl">الموقع</label><input class="inp" id="cm-loc" placeholder="الواجهة الغربية"></div>' +
-        '<div><label class="fl">رابط البث RTSP/HTTP</label><input class="inp num" id="cm-url" placeholder="rtsp://..." dir="ltr"></div>' +
+        '<div><label class="fl">رابط المصدر RTSP</label><input class="inp num" id="cm-url" placeholder="rtsp://..." dir="ltr"></div>' +
+        '<div><label class="fl">مسار البث (على خادم الوسائط)</label><input class="inp num" id="cm-path" placeholder="cam5" dir="ltr"></div>' +
         '<div><label class="fl">&nbsp;</label><button class="btn block" id="cm-add">ربط الكاميرا</button></div>' +
-        '</div></div>' : '');
+        '</div>' +
+        '<div class="small muted mt">💡 للبث الحي: شغّل خادم الوسائط MediaMTX واضبط فيه مصدر RTSP للكاميرا بنفس المسار، ثم عرّف MEDIA_SERVER_URL في .env — التفاصيل في صفحة التكامل والإعدادات.</div></div>' : '');
 
     const addBtn = el.querySelector('#cm-add');
     if (addBtn) addBtn.addEventListener('click', async function () {
@@ -241,7 +253,9 @@
       try {
         await Api.create('cameras', {
           name: name, location: el.querySelector('#cm-loc').value,
-          url: el.querySelector('#cm-url').value, status: 'online',
+          url: el.querySelector('#cm-url').value,
+          streamPath: (el.querySelector('#cm-path').value || '').trim(),
+          status: 'online',
           installed: new Date().toISOString().slice(0, 10)
         });
         toast('✅ رُبطت الكاميرا وبدأ تحليل بثها');

@@ -498,7 +498,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     // ============ المستخدمون ============
     db.users = [
       { id: 'U1', username: 'admin',      password: 'admin123',   name: 'مدير النظام',                    role: 'admin' },
-      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner' },
+      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner', projectIds: ['P1'] },
       { id: 'U3', username: 'rep',        password: 'rep123',     name: 'م. سالم الحربي (ممثل المالك)',   role: 'owner_rep' },
       { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant' },
       { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1' },
@@ -738,10 +738,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     // ============ كاميرات الموقع ============
     db.cameras = [
-      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', status: 'online', installed: '2025-06-01' },
-      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', status: 'online', installed: '2025-11-15' },
-      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', status: 'online', installed: '2026-03-01' },
-      { id: 'CAM4', name: 'كاميرا 4 - بوابة الموقع', location: 'المدخل الرئيسي', url: 'rtsp://site.bassir.local/cam4', status: 'offline', installed: '2025-06-01' }
+      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', streamPath: 'cam1', status: 'online', installed: '2025-06-01' },
+      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', streamPath: 'cam2', status: 'online', installed: '2025-11-15' },
+      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', streamPath: 'cam3', status: 'online', installed: '2026-03-01' },
+      { id: 'CAM4', name: 'كاميرا 4 - بوابة الموقع', location: 'المدخل الرئيسي', url: 'rtsp://site.bassir.local/cam4', streamPath: 'cam4', status: 'offline', installed: '2025-06-01' }
     ];
 
     // ============ سجل مخططات المشروع (مربوطة بجدول الكميات) ============
@@ -776,8 +776,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'MSG2', channel: 'email', to: 'owner@example.com', date: '2026-07-01 08:30', title: 'التقرير الشهري - يونيو', status: 'sent' }
     ];
 
+    db.auditLog = [
+      { id: 'AL1', time: '2026-07-18 08:15', userName: 'م. خالد العمران (الاستشاري)', role: 'consultant', action: 'review', target: 'اعتماد المستخلص IPC-ELE-04' },
+      { id: 'AL2', time: '2026-07-17 14:02', userName: 'مؤسسة البناء المعماري', role: 'contractor', action: 'create', target: 'رفع طلب استلام WIR-ARC-087' },
+      { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
+    ];
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 3 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 4 };
 
     return db;
   }
@@ -814,6 +819,24 @@ textarea.inp { resize: vertical; min-height: 80px; }
     rfis: 'open', ncrs: 'open', siteInstructions: 'issued',
     snags: 'open', hseReports: 'open'
   };
+
+  // أسماء المجموعات بالعربية (لسجل النظام والواجهة)
+  const COLLECTION_LABELS = {
+    shopDrawings: 'مخطط تنفيذي', materials: 'اعتماد مواد', scheduleSubmittals: 'جدول زمني',
+    wirs: 'طلب استلام', changeOrders: 'أمر تغيير', payments: 'مستخلص',
+    methodStatements: 'أسلوب تنفيذ/ITP', claims: 'مطالبة/EOT', valueEngineering: 'هندسة قيمية',
+    handoverDocs: 'مستند تسليم', rfis: 'استفسار RFI', ncrs: 'عدم مطابقة NCR',
+    siteInstructions: 'تعليمات موقعية', snags: 'ملاحظة تسليم', hseReports: 'تقرير سلامة',
+    materialTests: 'اختبار مواد', meetings: 'محضر اجتماع', correspondence: 'خطاب',
+    dailyReports: 'تقرير يومي', weeklyReports: 'تقرير أسبوعي', monthlyReports: 'تقرير شهري',
+    boqItems: 'بند كميات', planDrawings: 'مخطط مشروع', cameras: 'كاميرا',
+    users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة'
+  };
+
+  function labelOf(collection, item) {
+    return (COLLECTION_LABELS[collection] || collection) + ': ' +
+      (item && (item.title || item.name || item.description || item.ref || item.username || item.id) || '');
+  }
 
   // من يستطيع إنشاء عناصر في كل مجموعة
   const CREATE_RULES = {
@@ -869,10 +892,28 @@ textarea.inp { resize: vertical; min-height: 80px; }
       return e;
     }
 
+    /** سجل النظام: توثيق كل عملية (من، متى، ماذا) — يحتفظ بآخر 800 حدث */
+    function audit(user, action, target) {
+      if (!db.auditLog) db.auditLog = [];
+      db.auditLog.unshift({
+        id: nextId('AL'), time: nowStr(),
+        userName: user ? user.name : 'النظام', role: user ? user.role : 'system',
+        action: action, target: target
+      });
+      if (db.auditLog.length > 800) db.auditLog.length = 800;
+    }
+
     function login(username, password) {
       const u = db.users.find(function (x) { return x.username === username; });
       if (!u || !password || !pwd.verify(password, u)) throw err('اسم المستخدم أو كلمة المرور غير صحيحة', 401);
-      return { id: u.id, username: u.username, name: u.name, role: u.role, contractorId: u.contractorId || null };
+      const sessionUser = {
+        id: u.id, username: u.username, name: u.name, role: u.role,
+        contractorId: u.contractorId || null,
+        projectIds: u.projectIds && u.projectIds.length ? u.projectIds : null
+      };
+      audit(sessionUser, 'login', 'دخول إلى النظام');
+      persist();
+      return sessionUser;
     }
 
     function stripPassword(u) {
@@ -927,6 +968,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
         // لا تُرسل كلمات المرور أو تجزئاتها لأي دور، بما فيهم الأدمن
         s.users = db.users.map(stripPassword);
       }
+
+      // سجل النظام: للأدمن وممثل المالك فقط
+      if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
+
+      // تقييد النطاق بالمشاريع المسندة: المالك يرى مشروعه فقط
+      // (وينطبق كذلك على استشاري أُسندت له مشاريع محددة)
+      if (user.projectIds && (role === 'owner' || role === 'consultant')) {
+        const pids = user.projectIds;
+        const inScope = function (x) { return !x.projectId || pids.indexOf(x.projectId) !== -1; };
+        s.projects = s.projects.filter(function (p) { return pids.indexOf(p.id) !== -1; });
+        Object.keys(s).forEach(function (k) {
+          if (k === 'projects' || k === 'users' || k === 'auditLog') return;
+          if (Array.isArray(s[k])) s[k] = s[k].filter(inScope);
+        });
+      }
       return s;
     }
 
@@ -955,10 +1011,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
         delete item.password;
         Object.assign(item, pwd.hash(plain));
         db.users.push(item);
+        audit(user, 'create', labelOf('users', item));
         persist();
         return Object.assign(stripPassword(item), { password: plain }); // تُعرض مرة واحدة فقط
       }
       db[collection].push(item);
+      audit(user, 'create', labelOf(collection, item));
       persist();
       return item;
     }
@@ -973,6 +1031,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         if (item.status && item.status !== 'pending') throw err('لا يمكن تعديل طلب تم البت فيه', 403);
       }
       Object.assign(item, patch);
+      audit(user, 'update', labelOf(collection, item));
       persist();
       return item;
     }
@@ -985,6 +1044,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (!list) throw err('مجموعة غير معروفة', 404);
       const i = list.findIndex(function (x) { return x.id === id; });
       if (i === -1) throw err('العنصر غير موجود', 404);
+      audit(user, 'delete', labelOf(collection, list[i]));
       list.splice(i, 1);
       persist();
       return { ok: true };
@@ -1012,6 +1072,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (collection === 'payments' && (status === 'approved' || status === 'approved_notes')) {
         applyPaymentEffects(item);
       }
+      const decision = status === 'rejected' ? 'رفض' : 'اعتماد';
+      audit(user, 'review', decision + ' — ' + labelOf(collection, item));
       persist();
       return item;
     }
@@ -1056,6 +1118,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
           unitPrice: Number(b.unitPrice) || 0, progress: 0, status: 'لم يبدأ'
         });
       });
+      audit(user, 'create', labelOf('contractors', c) + (account ? ' + حساب دخول (' + account.username + ')' : ''));
       persist();
       return { contractor: c, account: account };
     }
@@ -1082,6 +1145,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
           payload.consultantPassword || genPassword()
         );
       }
+      audit(user, 'create', labelOf('projects', p) + (account ? ' + حساب استشاري (' + account.username + ')' : ''));
       persist();
       return { project: p, account: account };
     }
@@ -1095,6 +1159,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         date: nowStr(), status: payload.status === 'sent_demo' ? 'sent_demo' : 'sent', by: user.name
       };
       db.messages.push(msg);
+      audit(user, 'send', 'إرسال تقرير عبر ' + (msg.channel === 'whatsapp' ? 'واتساب' : 'البريد') + ': ' + msg.title);
       persist();
       return msg;
     }
@@ -1147,6 +1212,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     return {
       db: db,
+      audit: audit,
       login: login,
       getState: getState,
       createItem: createItem,
@@ -1605,42 +1671,54 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderCameras(el, ctx) {
     const cams = ctx.S.cameras || [];
     const canManage = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const media = (ctx.S.mediaServerUrl || '').replace(/\/+$/, '');
     const now = new Date();
     const ts = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 8);
 
     el.innerHTML =
       '<div class="card mb"><div class="flex"><span style="font-size:26px">🎥</span>' +
-      '<div><b>البث المباشر من الموقع</b><div class="small muted" style="margin-top:3px">تُحلَّل اللقطات بذكاء بصير كل 30 دقيقة لاستخراج نسب الإنجاز وتنبيهات السلامة تلقائياً</div></div>' +
-      '<span class="spacer"></span><span class="pill p-ok">● ' + cams.filter(function (c) { return c.status === 'online'; }).length + ' كاميرا متصلة</span></div></div>' +
+      '<div><b>البث المباشر من الموقع</b><div class="small muted" style="margin-top:3px">' +
+      (media ? 'بث RTSP حي عبر خادم الوسائط، ' : '') + 'تُحلَّل اللقطات بذكاء بصير كل 30 دقيقة لاستخراج نسب الإنجاز وتنبيهات السلامة تلقائياً</div></div>' +
+      '<span class="spacer"></span>' +
+      (media ? '<span class="pill p-ok">📡 خادم البث متصل</span>' : (canManage ? '<span class="pill p-warn">البث الحي غير مهيأ — MEDIA_SERVER_URL</span>' : '')) +
+      '<span class="pill p-ok">● ' + cams.filter(function (c) { return c.status === 'online'; }).length + ' كاميرا متصلة</span></div></div>' +
 
       '<div class="grid g2 mb">' +
       cams.map(function (c, i) {
         const on = c.status === 'online';
-        return '<div class="card" style="padding:0;overflow:hidden">' +
-          '<div class="flex" style="justify-content:space-between;padding:14px 18px">' +
-          '<b>' + esc(c.name) + '</b>' +
-          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE</span>' : '<span class="pill p-muted">غير متصلة</span>') + '</div>' +
-          '<div class="cam-feed' + (on ? '' : ' cam-off') + '">' +
-          (on ?
-            '<div class="cam-scene">' +
+        const live = on && media && c.streamPath;
+        let feed;
+        if (live) {
+          // بث حي فعلي: مشغل HLS/WebRTC المدمج في خادم الوسائط (MediaMTX)
+          feed = '<iframe src="' + esc(media + '/' + c.streamPath) + '" style="width:100%;height:100%;border:0;position:absolute;inset:0" allow="autoplay" title="' + esc(c.name) + '"></iframe>';
+        } else if (on) {
+          feed = '<div class="cam-scene">' +
             '<span class="cam-crane" style="animation-delay:' + (i * 1.3) + 's">🏗️</span>' +
             '<span class="cam-bld">🏢</span><span class="cam-wrk" style="animation-delay:' + (i * 0.7) + 's">👷</span>' +
             '</div><div class="scan"></div>' +
-            '<div class="cam-osd"><span>' + esc(c.id) + ' · ' + esc(c.location) + '</span><span class="num">' + ts + '</span></div>'
-            : '<div class="empty" style="padding:52px 0"><div class="e-ico">📡</div>انقطع الاتصال — جارٍ إعادة المحاولة</div>') +
-          '</div>' +
+            '<div class="cam-osd"><span>' + esc(c.id) + ' · ' + esc(c.location) + '</span><span class="num">' + ts + '</span></div>';
+        } else {
+          feed = '<div class="empty" style="padding:52px 0"><div class="e-ico">📡</div>انقطع الاتصال — جارٍ إعادة المحاولة</div>';
+        }
+        return '<div class="card" style="padding:0;overflow:hidden">' +
+          '<div class="flex" style="justify-content:space-between;padding:14px 18px">' +
+          '<b>' + esc(c.name) + '</b>' +
+          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE' + (live ? ' · RTSP' : '') + '</span>' : '<span class="pill p-muted">غير متصلة</span>') + '</div>' +
+          '<div class="cam-feed' + (on ? '' : ' cam-off') + '">' + feed + '</div>' +
           '<div class="flex" style="justify-content:space-between;padding:12px 18px" class="small">' +
           '<span class="small muted">📍 ' + esc(c.location) + ' · مركبة منذ ' + esc(c.installed || '') + '</span>' +
           '<span class="small" style="color:var(--info)">🤖 تحليل AI نشط</span></div></div>';
       }).join('') + '</div>' +
 
       (canManage ?
-        '<div class="card"><h3>➕ ربط كاميرا جديدة</h3><div class="grid g4">' +
+        '<div class="card"><h3>➕ ربط كاميرا جديدة</h3><div class="grid" style="grid-template-columns:repeat(5,1fr);gap:10px">' +
         '<div><label class="fl">اسم الكاميرا</label><input class="inp" id="cm-name" placeholder="كاميرا 5 - ..."></div>' +
         '<div><label class="fl">الموقع</label><input class="inp" id="cm-loc" placeholder="الواجهة الغربية"></div>' +
-        '<div><label class="fl">رابط البث RTSP/HTTP</label><input class="inp num" id="cm-url" placeholder="rtsp://..." dir="ltr"></div>' +
+        '<div><label class="fl">رابط المصدر RTSP</label><input class="inp num" id="cm-url" placeholder="rtsp://..." dir="ltr"></div>' +
+        '<div><label class="fl">مسار البث (على خادم الوسائط)</label><input class="inp num" id="cm-path" placeholder="cam5" dir="ltr"></div>' +
         '<div><label class="fl">&nbsp;</label><button class="btn block" id="cm-add">ربط الكاميرا</button></div>' +
-        '</div></div>' : '');
+        '</div>' +
+        '<div class="small muted mt">💡 للبث الحي: شغّل خادم الوسائط MediaMTX واضبط فيه مصدر RTSP للكاميرا بنفس المسار، ثم عرّف MEDIA_SERVER_URL في .env — التفاصيل في صفحة التكامل والإعدادات.</div></div>' : '');
 
     const addBtn = el.querySelector('#cm-add');
     if (addBtn) addBtn.addEventListener('click', async function () {
@@ -1649,7 +1727,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
       try {
         await Api.create('cameras', {
           name: name, location: el.querySelector('#cm-loc').value,
-          url: el.querySelector('#cm-url').value, status: 'online',
+          url: el.querySelector('#cm-url').value,
+          streamPath: (el.querySelector('#cm-path').value || '').trim(),
+          status: 'online',
           installed: new Date().toISOString().slice(0, 10)
         });
         toast('✅ رُبطت الكاميرا وبدأ تحليل بثها');
@@ -2665,48 +2745,196 @@ textarea.inp { resize: vertical; min-height: 80px; }
     consultant: 'الاستشاري', contractor: 'مقاول'
   };
 
+  // وصف صلاحيات كل دور (يظهر عند اختيار الدور وفي مصفوفة الصلاحيات)
+  const ROLE_META = {
+    owner: {
+      icon: '👁', color: 'p-info',
+      desc: 'مالك المشروع: اطلاع فقط على مشروعه المسند إليه — عين المالك، رؤية المشروع، الكاميرات، المقاولون، ذكاء بصير، التقارير. لا يضيف ولا يعدل شيئاً.',
+      scope: 'project'
+    },
+    owner_rep: {
+      icon: '🧑‍💼', color: 'p-info',
+      desc: 'ممثل المالك: يطلع على كامل ملفات ومعلومات جميع المشاريع + سجل النظام، ويضيف المشاريع ويعين الاستشاريين وينشئ المستخدمين ويرسل التقارير.',
+      scope: 'all'
+    },
+    consultant: {
+      icon: '📐', color: 'p-warn',
+      desc: 'الاستشاري (المكتب الفني): الاعتمادات والتوقيع، خدمات المكتب الفني الـ12، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، الكاميرات والتكامل. يمكن قصره على مشاريع محددة.',
+      scope: 'project-optional'
+    },
+    contractor: {
+      icon: '👷', color: 'p-muted',
+      desc: 'المقاول: يرى عقده وبنوده ومبالغه فقط، يرفع طلباته (مخططات، مواد، استلامات، مستخلصات، RFI...) ويتابع قراراتها، ويستقبل ما يوجهه له المكتب الفني.',
+      scope: 'contractor'
+    },
+    admin: {
+      icon: '⚙️', color: 'p-danger',
+      desc: 'أدمن النظام: كل الصفحات والصلاحيات + إدارة المستخدمين والحذف + سجل النظام + التكامل والإعدادات.',
+      scope: 'all'
+    }
+  };
+
+  function userScopeLabel(ctx, u) {
+    if (u.role === 'contractor') {
+      const c = ctx.S.contractors.find(function (x) { return x.id === u.contractorId; });
+      return c ? '🔗 ' + esc(c.name) : '<span class="muted">غير مربوط بمقاول!</span>';
+    }
+    if (u.projectIds && u.projectIds.length) {
+      return '🏗️ ' + u.projectIds.map(function (pid) {
+        const p = ctx.S.projects.find(function (x) { return x.id === pid; });
+        return esc(p ? p.name : pid);
+      }).join('، ');
+    }
+    if (u.role === 'owner') return '<span class="pill p-warn">لم يُسند لمشروع!</span>';
+    return '<span class="muted">جميع المشاريع</span>';
+  }
+
   function renderUsers(el, ctx) {
-    const isAdmin = ctx.U.role === 'admin';
     el.innerHTML =
+      // مصفوفة الصلاحيات
+      '<div class="card mb"><h3>🛡️ مستويات النظام وصلاحياتها</h3><div class="grid" style="grid-template-columns:repeat(5,1fr);gap:10px">' +
+      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+        const m = ROLE_META[r];
+        return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg2)">' +
+          '<div style="font-size:20px">' + m.icon + '</div><b class="small">' + esc(ROLE_NAMES[r]) + '</b>' +
+          '<div class="small muted" style="margin-top:6px;line-height:1.8;font-size:11px">' + esc(m.desc) + '</div></div>';
+      }).join('') + '</div></div>' +
+
       '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
-      '<div class="card"><h3>👥 مستخدمو النظام</h3><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      '<th>الاسم</th><th>اسم المستخدم</th>' + (isAdmin ? '<th>كلمة المرور</th>' : '') + '<th>الدور</th><th></th></tr></thead><tbody>' +
+      '<div class="card"><h3>👥 مستخدمو النظام <span class="hint">كلمات المرور مشفرة ولا تظهر لأحد</span></h3>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      '<th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>النطاق</th><th></th></tr></thead><tbody>' +
       (ctx.S.users || []).map(function (u) {
+        const m = ROLE_META[u.role] || { icon: '👤', color: 'p-muted' };
         return '<tr><td><b>' + esc(u.name) + '</b></td><td class="num">' + esc(u.username) + '</td>' +
-          (isAdmin ? '<td class="small muted">🔒 مشفرة</td>' : '') +
-          '<td><span class="pill p-info">' + esc(ROLE_NAMES[u.role] || u.role) + '</span></td>' +
+          '<td><span class="pill ' + m.color + '">' + m.icon + ' ' + esc(ROLE_NAMES[u.role] || u.role) + '</span></td>' +
+          '<td class="small">' + userScopeLabel(ctx, u) + '</td>' +
           '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">حذف</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="card"><h3>➕ إضافة مستخدم</h3>' +
-      '<label class="fl">الاسم الكامل</label><input class="inp" id="nu-name">' +
-      '<label class="fl">اسم المستخدم</label><input class="inp" id="nu-user">' +
-      '<label class="fl">كلمة المرور</label><input class="inp" id="nu-pass">' +
       '<label class="fl">الدور</label><select class="inp" id="nu-role">' +
-      Object.keys(ROLE_NAMES).map(function (r) { return '<option value="' + r + '">' + ROLE_NAMES[r] + '</option>'; }).join('') + '</select>' +
-      '<label class="fl">ربط بمقاول (لدور المقاول فقط)</label><select class="inp" id="nu-cont"><option value="">—</option>' +
-      ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>' +
-      '<div class="m-actions"><button class="btn block" id="nu-save">إنشاء المستخدم</button></div></div></div>';
+      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+        return '<option value="' + r + '">' + ROLE_META[r].icon + ' ' + ROLE_NAMES[r] + '</option>';
+      }).join('') + '</select>' +
+      '<div class="small muted" id="nu-desc" style="margin-top:8px;line-height:1.8"></div>' +
+      '<label class="fl">الاسم الكامل</label><input class="inp" id="nu-name" placeholder="م. فلان الفلاني">' +
+      '<label class="fl">اسم المستخدم</label><input class="inp num" id="nu-user" placeholder="username" dir="ltr">' +
+      '<label class="fl">كلمة المرور (اتركها فارغة للتوليد التلقائي)</label><input class="inp num" id="nu-pass" placeholder="••••••••" dir="ltr">' +
+      '<div id="nu-scope"></div>' +
+      '<div class="m-actions"><button class="btn block" id="nu-save">إنشاء المستخدم وتسليم بياناته</button></div></div></div>';
+
+    const roleSel = el.querySelector('#nu-role');
+    const scopeBox = el.querySelector('#nu-scope');
+    const descBox = el.querySelector('#nu-desc');
+
+    function drawScope() {
+      const r = roleSel.value;
+      descBox.textContent = ROLE_META[r].desc;
+      if (r === 'contractor') {
+        scopeBox.innerHTML = '<label class="fl">ربط بالمقاول</label><select class="inp" id="nu-cont">' +
+          ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
+      } else if (r === 'owner' || r === 'consultant') {
+        scopeBox.innerHTML = '<label class="fl">' + (r === 'owner' ? 'مشروع المالك (يرى صفحة مشروعه فقط)' : 'المشاريع المسندة (اتركها كلها فارغة = جميع المشاريع)') + '</label>' +
+          ctx.S.projects.map(function (p) {
+            return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="nu-proj" value="' + p.id + '"' +
+              (r === 'owner' && ctx.S.projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+          }).join('');
+      } else {
+        scopeBox.innerHTML = '';
+      }
+    }
+    drawScope();
+    roleSel.addEventListener('change', drawScope);
 
     el.querySelector('#nu-save').addEventListener('click', async function () {
+      const role = roleSel.value;
+      const name = el.querySelector('#nu-name').value.trim();
+      const username = el.querySelector('#nu-user').value.trim();
+      if (!name || !username) { toast('أدخل الاسم واسم المستخدم', true); return; }
+      const data = {
+        name: name, username: username,
+        password: el.querySelector('#nu-pass').value || Math.random().toString(36).slice(2, 10),
+        role: role
+      };
+      const contSel = el.querySelector('#nu-cont');
+      if (contSel) data.contractorId = contSel.value;
+      const projChecks = el.querySelectorAll('.nu-proj:checked');
+      if (projChecks.length) data.projectIds = Array.prototype.map.call(projChecks, function (c) { return c.value; });
+      if (role === 'owner' && !data.projectIds) { toast('حدد مشروع المالك — المالك يرى صفحة مشروعه', true); return; }
       try {
-        await Api.create('users', {
-          name: el.querySelector('#nu-name').value,
-          username: el.querySelector('#nu-user').value,
-          password: el.querySelector('#nu-pass').value,
-          role: el.querySelector('#nu-role').value,
-          contractorId: el.querySelector('#nu-cont').value || undefined
-        });
-        toast('✅ أُنشئ المستخدم');
+        const created = await Api.create('users', data);
+        modal('<h3>✅ أُنشئ الحساب — سلّم هذه البيانات لصاحبها</h3>' +
+          '<div class="m-sub">كلمة المرور تظهر الآن مرة واحدة فقط ولا يمكن استرجاعها لاحقاً (مشفرة في النظام)</div>' +
+          '<div class="card" style="padding:16px">' +
+          '<div>' + ROLE_META[role].icon + ' <b>' + esc(name) + '</b> — ' + esc(ROLE_NAMES[role]) + '</div>' +
+          '<div class="mt">👤 اسم المستخدم: <b class="num">' + esc(username) + '</b></div>' +
+          '<div class="mt">🔑 كلمة المرور: <b class="num">' + esc(created.password || data.password) + '</b></div></div>' +
+          '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">تم التسليم</button></div>');
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
+
     el.querySelectorAll('[data-del]').forEach(function (b) {
       b.addEventListener('click', async function () {
         if (!confirm('حذف هذا المستخدم؟')) return;
         try { await Api.remove('users', b.getAttribute('data-del')); toast('حُذف المستخدم'); ctx.refresh(); }
         catch (e) { toast(e.message, true); }
       });
+    });
+  }
+
+  // ============ سجل النظام (Audit Log) ============
+  const AUDIT_ACTIONS = {
+    login: ['🔑', 'دخول', 'p-info'], create: ['➕', 'إضافة', 'p-ok'],
+    update: ['✏️', 'تعديل', 'p-warn'], delete: ['🗑️', 'حذف', 'p-danger'],
+    review: ['✍️', 'قرار اعتماد', 'p-info'], send: ['📨', 'إرسال تقرير', 'p-ok'],
+    upload: ['📎', 'رفع ملف', 'p-muted'], snapshot: ['📸', 'لقطة كاميرا', 'p-muted']
+  };
+  const auditState = { filter: 'all', q: '' };
+
+  function renderAudit(el, ctx) {
+    const log = ctx.S.auditLog || [];
+    const filtered = log.filter(function (a) {
+      if (auditState.filter !== 'all' && a.action !== auditState.filter) return false;
+      if (auditState.q && (a.userName + ' ' + a.target).indexOf(auditState.q) === -1) return false;
+      return true;
+    });
+
+    el.innerHTML =
+      '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:12px">' +
+      '<h3 style="margin:0">📜 سجل النظام <span class="hint">توثيق كامل: من فعل ماذا ومتى — ' + log.length + ' حدث</span></h3>' +
+      '<input class="inp" id="au-q" placeholder="🔍 بحث بالاسم أو العملية..." style="max-width:260px" value="' + esc(auditState.q) + '"></div>' +
+      '<div class="tabs">' +
+      '<div class="tab ' + (auditState.filter === 'all' ? 'active' : '') + '" data-af="all">الكل</div>' +
+      Object.keys(AUDIT_ACTIONS).map(function (k) {
+        const n = log.filter(function (a) { return a.action === k; }).length;
+        if (!n) return '';
+        return '<div class="tab ' + (auditState.filter === k ? 'active' : '') + '" data-af="' + k + '">' +
+          AUDIT_ACTIONS[k][0] + ' ' + AUDIT_ACTIONS[k][1] + ' <span class="muted num">' + n + '</span></div>';
+      }).join('') + '</div>' +
+      (filtered.length ?
+        '<div class="tbl-wrap" style="max-height:65vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
+        '<th>الوقت</th><th>المستخدم</th><th>الدور</th><th>العملية</th><th>التفاصيل</th></tr></thead><tbody>' +
+        filtered.map(function (a) {
+          const m = AUDIT_ACTIONS[a.action] || ['•', a.action, 'p-muted'];
+          return '<tr><td class="small muted num" style="white-space:nowrap">' + esc(a.time) + '</td>' +
+            '<td class="small"><b>' + esc(a.userName) + '</b></td>' +
+            '<td class="small">' + esc(ROLE_NAMES[a.role] || a.role) + '</td>' +
+            '<td><span class="pill ' + m[2] + '">' + m[0] + ' ' + m[1] + '</span></td>' +
+            '<td class="small">' + esc(a.target) + '</td></tr>';
+        }).join('') + '</tbody></table></div>'
+        : '<div class="empty"><div class="e-ico">📜</div>لا أحداث مطابقة</div>') +
+      '</div>';
+
+    el.querySelectorAll('[data-af]').forEach(function (t) {
+      t.addEventListener('click', function () { auditState.filter = t.getAttribute('data-af'); renderAudit(el, ctx); });
+    });
+    const q = el.querySelector('#au-q');
+    q.addEventListener('input', function () {
+      auditState.q = q.value.trim();
+      renderAudit(el, ctx);
+      const q2 = el.querySelector('#au-q'); q2.focus(); q2.setSelectionRange(q2.value.length, q2.value.length);
     });
   }
 
@@ -3306,6 +3534,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         svcCard('البريد الإلكتروني', '📧', s.email.configured, 'متصل (' + (s.email.provider || '') + ')', 'محاكاة', 'RESEND_API_KEY أو SENDGRID_API_KEY + EMAIL_FROM') +
         svcCard('واتساب', '💬', s.whatsapp.configured, 'WhatsApp Cloud API', 'محاكاة', 'WHATSAPP_TOKEN + WHATSAPP_PHONE_ID من Meta Business') +
         svcCard('مدخل الكاميرات', '🎥', s.cameraIngest.configured, 'يستقبل اللقطات', 'أضف CAMERA_KEY', 'الكاميرا/NVR تدفع لقطة JPEG كل فترة ويحللها الذكاء الاصطناعي') +
+        svcCard('البث المباشر RTSP', '📡', s.media && s.media.configured, 'خادم الوسائط متصل', 'أضف MEDIA_SERVER_URL', 'MediaMTX يحول RTSP إلى بث حي داخل صفحة الكاميرات') +
         '</div>' +
 
         '<div class="grid g2">' +
@@ -3318,7 +3547,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<div class="small" style="line-height:2">أي كاميرا أو جهاز تسجيل NVR يدعم الدفع عبر HTTP يرسل لقطاته للنظام، ويحللها ذكاء بصير تلقائياً:</div>' +
         '<pre class="small" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-x:auto;direction:ltr;text-align:left;line-height:2">' +
         'curl -X POST https://your-domain/api/cameras/CAM1/snapshot \\\n  -H "x-camera-key: $CAMERA_KEY" \\\n  -H "Content-Type: image/jpeg" \\\n  --data-binary @snapshot.jpg</pre>' +
-        '<div class="small muted" style="line-height:2">تُحفظ اللقطة في سجل الصور، وإن كان الذكاء الاصطناعي مهيأً تُحلل فوراً وتضاف نتيجتها إلى رؤى بصير مع مقارنتها بنسب الاستشاري.<br>جدولة الإرسال من الكاميرا نفسها أو عبر cron كل 30 دقيقة.</div></div>' +
+        '<div class="small muted" style="line-height:2">تُحفظ اللقطة في سجل الصور، وإن كان الذكاء الاصطناعي مهيأً تُحلل فوراً وتضاف نتيجتها إلى رؤى بصير مع مقارنتها بنسب الاستشاري.</div>' +
+        '<h3 class="mt">📡 البث المباشر RTSP</h3>' +
+        '<div class="small" style="line-height:2">1) ثبّت <b class="num">MediaMTX</b> على السيرفر (ملف تنفيذي واحد).<br>2) أضف كل كاميرا في mediamtx.yml بمسار يطابق حقل "مسار البث":</div>' +
+        '<pre class="small" style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px;overflow-x:auto;direction:ltr;text-align:left;line-height:2">paths:\n  cam1:\n    source: rtsp://user:pass@192.168.1.10:554/stream1</pre>' +
+        '<div class="small muted" style="line-height:2">3) ضع MEDIA_SERVER_URL=http://السيرفر:8888 في .env — فيظهر البث الحي مباشرة داخل بطاقات صفحة الكاميرات للمالك.</div></div>' +
         '</div>';
     }).catch(function (e) {
       el.innerHTML = '<div class="empty"><div class="e-ico">⚠️</div>' + esc(e.message) + '</div>';
@@ -3334,6 +3567,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     renderDailyReport: renderDailyReport,
     renderRepProjects: renderRepProjects,
     renderUsers: renderUsers,
+    renderAudit: renderAudit,
     renderBimUpload: renderBimUpload,
     renderContractorHome: renderContractorHome
   };
@@ -3367,7 +3601,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
     { id: 'bim-upload', title: 'المخططات والنماذج', icon: '🏢', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBimUpload },
 
     { id: 'rep-projects', title: 'المشاريع والاستشاريون', icon: '🗂️', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderRepProjects },
-    { id: 'users', title: 'المستخدمون', icon: '👥', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderUsers },
+    { id: 'users', title: 'المستخدمون والصلاحيات', icon: '👥', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderUsers },
+    { id: 'audit', title: 'سجل النظام', icon: '📜', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderAudit },
     { id: 'system', title: 'التكامل والإعدادات', icon: '⚙️', sec: 'الإدارة', roles: ['admin', 'consultant'], render: VR.renderSystem }
   ];
 

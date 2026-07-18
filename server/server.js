@@ -110,7 +110,8 @@ function verifyToken(token) {
   if (!payload.exp || payload.exp < Date.now()) return null;
   const u = db.users.find(function (x) { return x.id === payload.uid; });
   if (!u) return null;
-  return { id: u.id, username: u.username, name: u.name, role: u.role, contractorId: u.contractorId || null };
+  return { id: u.id, username: u.username, name: u.name, role: u.role, contractorId: u.contractorId || null,
+    projectIds: u.projectIds && u.projectIds.length ? u.projectIds : null };
 }
 
 function authUser(req) {
@@ -222,6 +223,7 @@ const server = http.createServer(async function (req, res) {
       };
       db.photos.unshift(photo);
       cam.status = 'online';
+      core.audit(null, 'snapshot', 'لقطة واردة من ' + cam.name);
       persist();
       // تحليل غير متزامن إن كان الذكاء الاصطناعي مهيأ
       if (integrations.aiConfigured()) {
@@ -261,7 +263,12 @@ const server = http.createServer(async function (req, res) {
 
     if (u === '/api/me') return json(res, 200, { user: user });
 
-    if (u === '/api/state') return json(res, 200, core.getState(user));
+    if (u === '/api/state') {
+      const st = core.getState(user);
+      // رابط خادم بث الكاميرات (MediaMTX) — لغير المقاول
+      if (user.role !== 'contractor') st.mediaServerUrl = process.env.MEDIA_SERVER_URL || null;
+      return json(res, 200, st);
+    }
 
     if (u === '/api/summary/contractors') {
       const cid = user.role === 'contractor' ? user.contractorId : null;
@@ -292,6 +299,8 @@ const server = http.createServer(async function (req, res) {
       if (!buf.length) return json(res, 400, { error: 'لا يوجد محتوى' });
       const name = decodeURIComponent(req.headers['x-filename'] || 'file');
       const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
+      core.audit(user, 'upload', 'رفع ملف: ' + rec.name);
+      persist();
       return json(res, 201, rec);
     }
 
