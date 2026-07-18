@@ -1,0 +1,15 @@
+{
+  "name": "bassir-owner-eyes",
+  "version": "1.0.0",
+  "description": "نظام بصير - عيون المالك | Bassir Owner Eyes: منصة رؤية بصرية لربط المالك بالاستشاري والمقاول",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "seed": "node server/seed.js --reset",
+    "build:demo": "node tools/build-demo.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "license": "MIT"
+}

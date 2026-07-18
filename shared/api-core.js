@@ -1,0 +1,317 @@
+/**
+ * بصير - عيون المالك | النواة المشتركة لمنطق النظام
+ * تعمل نفس هذه الوحدة في الخادم (Node.js) وفي الديمو التفاعلي (المتصفح)،
+ * فيضمن ذلك تطابق سلوك الصلاحيات والاعتمادات في النسختين.
+ */
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) module.exports = factory();
+  else root.BassirCore = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  const APPROVAL_COLLECTIONS = ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments'];
+  const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS; // المقاول يرى ويُنشئ ضمن هذه المجموعات فقط ما يخصه
+
+  // من يستطيع إنشاء عناصر في كل مجموعة
+  const CREATE_RULES = {
+    shopDrawings: ['contractor', 'consultant', 'admin'],
+    materials: ['contractor', 'consultant', 'admin'],
+    scheduleSubmittals: ['contractor', 'consultant', 'admin'],
+    wirs: ['contractor', 'consultant', 'admin'],
+    changeOrders: ['contractor', 'consultant', 'admin'],
+    payments: ['contractor', 'consultant', 'admin'],
+    dailyReports: ['consultant', 'admin'],
+    monthlyReports: ['consultant', 'admin'],
+    boqItems: ['consultant', 'admin'],
+    aiInsights: ['admin'],
+    photos: ['consultant', 'contractor', 'admin'],
+    users: ['admin', 'owner_rep'],
+    contractors: ['consultant', 'admin'],
+    projects: ['owner_rep', 'admin']
+  };
+
+  function createCore(db, persist) {
+    persist = persist || function () {};
+
+    function nextId(prefix) {
+      db.meta.seq = (db.meta.seq || 1000) + 1;
+      return prefix + db.meta.seq;
+    }
+
+    function err(message, code) {
+      const e = new Error(message);
+      e.status = code || 400;
+      return e;
+    }
+
+    function login(username, password) {
+      const u = db.users.find(function (x) { return x.username === username && x.password === password; });
+      if (!u) throw err('اسم المستخدم أو كلمة المرور غير صحيحة', 401);
+      return { id: u.id, username: u.username, name: u.name, role: u.role, contractorId: u.contractorId || null };
+    }
+
+    function stripPassword(u) {
+      const c = Object.assign({}, u);
+      delete c.password;
+      return c;
+    }
+
+    /** لقطة الحالة الكاملة مُرشّحة حسب دور المستخدم */
+    function getState(user) {
+      const s = {};
+      const role = user.role;
+      s.projects = db.projects;
+      s.scheduleCurve = db.scheduleCurve;
+      s.scheduleTasks = db.scheduleTasks;
+      s.costCurve = db.costCurve;
+      s.aiInsights = db.aiInsights;
+      s.photos = db.photos;
+      s.dailyReports = db.dailyReports;
+      s.monthlyReports = db.monthlyReports;
+      s.messages = db.messages;
+      s.contractors = db.contractors;
+      s.boqItems = db.boqItems;
+      APPROVAL_COLLECTIONS.forEach(function (c) { s[c] = db[c]; });
+
+      if (role === 'contractor') {
+        const cid = user.contractorId;
+        CONTRACTOR_OWNED.forEach(function (c) {
+          s[c] = db[c].filter(function (x) { return x.contractorId === cid; });
+        });
+        s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
+        s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
+        s.messages = [];
+        s.users = [];
+      } else if (role === 'admin') {
+        s.users = db.users; // الأدمن فقط يرى كلمات المرور
+      } else {
+        s.users = db.users.map(stripPassword);
+      }
+      return s;
+    }
+
+    function assertCanCreate(user, collection) {
+      const allowed = CREATE_RULES[collection];
+      if (!allowed) throw err('مجموعة غير معروفة: ' + collection, 404);
+      if (allowed.indexOf(user.role) === -1) throw err('لا تملك صلاحية الإضافة هنا', 403);
+    }
+
+    function createItem(user, collection, data) {
+      assertCanCreate(user, collection);
+      const item = Object.assign({}, data);
+      item.id = nextId(collection.substring(0, 2).toUpperCase());
+      item.projectId = item.projectId || 'P1';
+      if (user.role === 'contractor') {
+        item.contractorId = user.contractorId; // المقاول لا يُنشئ باسم غيره
+        if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
+      }
+      if (!item.date) item.date = todayStr();
+      if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1 && !item.status) item.status = 'pending';
+      db[collection].push(item);
+      persist();
+      return item;
+    }
+
+    function updateItem(user, collection, id, patch) {
+      const list = db[collection];
+      if (!list) throw err('مجموعة غير معروفة', 404);
+      const item = list.find(function (x) { return x.id === id; });
+      if (!item) throw err('العنصر غير موجود', 404);
+      if (user.role === 'contractor') {
+        if (item.contractorId !== user.contractorId) throw err('لا تملك صلاحية التعديل', 403);
+        if (item.status && item.status !== 'pending') throw err('لا يمكن تعديل طلب تم البت فيه', 403);
+      }
+      Object.assign(item, patch);
+      persist();
+      return item;
+    }
+
+    function deleteItem(user, collection, id) {
+      if (user.role !== 'admin' && !(user.role === 'owner_rep' && collection === 'users')) {
+        throw err('الحذف متاح للأدمن فقط', 403);
+      }
+      const list = db[collection];
+      if (!list) throw err('مجموعة غير معروفة', 404);
+      const i = list.findIndex(function (x) { return x.id === id; });
+      if (i === -1) throw err('العنصر غير موجود', 404);
+      list.splice(i, 1);
+      persist();
+      return { ok: true };
+    }
+
+    /**
+     * قرار الاستشاري على أي طلب اعتماد.
+     * status: approved | approved_notes | rejected
+     * اعتماد المستخلص يحدّث نسب إنجاز بنود جدول الكميات المرتبطة به
+     * (فتتحول مناطق المخططات من داكنة إلى ساطعة) ويحدّث المبالغ المستلمة للمقاول.
+     */
+    function review(user, opts) {
+      if (user.role !== 'consultant' && user.role !== 'admin') throw err('قرار الاعتماد صلاحية الاستشاري', 403);
+      const collection = opts.collection, id = opts.id, status = opts.status;
+      if (APPROVAL_COLLECTIONS.indexOf(collection) === -1) throw err('هذه المجموعة ليست ضمن دورة الاعتماد', 400);
+      if (['approved', 'approved_notes', 'rejected'].indexOf(status) === -1) throw err('حالة غير صالحة', 400);
+      const item = db[collection].find(function (x) { return x.id === id; });
+      if (!item) throw err('الطلب غير موجود', 404);
+
+      item.status = status;
+      item.notes = opts.notes || '';
+      item.signature = user.name;
+      item.signDate = todayStr();
+
+      if (collection === 'payments' && (status === 'approved' || status === 'approved_notes')) {
+        applyPaymentEffects(item);
+      }
+      persist();
+      return item;
+    }
+
+    /** أثر اعتماد المستخلص: تحديث نسب البنود + المبالغ المستلمة */
+    function applyPaymentEffects(pc) {
+      const contractor = db.contractors.find(function (c) { return c.id === pc.contractorId; });
+      if (contractor) contractor.amountReceived = (contractor.amountReceived || 0) + (pc.amount || 0);
+      (pc.lines || []).forEach(function (line) {
+        const bq = db.boqItems.find(function (b) { return b.id === line.boqItemId; });
+        if (bq && typeof line.progress === 'number') {
+          bq.progress = Math.max(bq.progress, Math.min(100, line.progress));
+          bq.status = bq.progress >= 100 ? 'منجز' : bq.progress > 0 ? 'جاري' : 'لم يبدأ';
+        }
+      });
+    }
+
+    /** إضافة مقاول جديد مع حسابه وبنود كمياته (صلاحية الاستشاري) */
+    function addContractor(user, payload) {
+      if (['consultant', 'admin'].indexOf(user.role) === -1) throw err('إضافة المقاولين صلاحية الاستشاري', 403);
+      const c = {
+        id: nextId('C'), projectId: payload.projectId || 'P1',
+        name: payload.name, type: payload.type,
+        contractValue: Number(payload.contractValue) || 0,
+        startDate: payload.startDate, endDate: payload.endDate,
+        amountReceived: 0, plannedProgress: 0, phone: payload.phone || ''
+      };
+      db.contractors.push(c);
+      let account = null;
+      if (payload.username) {
+        account = {
+          id: nextId('U'), username: payload.username, password: payload.password || genPassword(),
+          name: c.name, role: 'contractor', contractorId: c.id
+        };
+        db.users.push(account);
+      }
+      (payload.boqItems || []).forEach(function (b, i) {
+        db.boqItems.push({
+          id: nextId('BQ'), projectId: c.projectId, contractorId: c.id,
+          discipline: c.type, floor: b.floor || 'GF', zone: i % 6,
+          code: (c.type || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(2, '0'),
+          description: b.description, unit: b.unit, qty: Number(b.qty) || 0,
+          unitPrice: Number(b.unitPrice) || 0, progress: 0, status: 'لم يبدأ'
+        });
+      });
+      persist();
+      return { contractor: c, account: account };
+    }
+
+    /** إضافة مشروع وتعيين استشاري بحسابه (صلاحية ممثل المالك) */
+    function addProject(user, payload) {
+      if (['owner_rep', 'admin'].indexOf(user.role) === -1) throw err('إضافة المشاريع صلاحية ممثل المالك', 403);
+      const p = {
+        id: nextId('P'), name: payload.name, location: payload.location || '',
+        description: payload.description || '', ownerName: payload.ownerName || '',
+        consultantName: payload.consultantName || '',
+        startPlanned: payload.startPlanned, endPlanned: payload.endPlanned,
+        startActual: null, endForecast: payload.endPlanned,
+        budgetPlanned: Number(payload.budgetPlanned) || 0, costActual: 0, costPlannedToDate: 0,
+        progressPlanned: 0, progressActual: 0,
+        floors: db.projects[0] ? db.projects[0].floors : [], disciplines: db.projects[0] ? db.projects[0].disciplines : []
+      };
+      db.projects.push(p);
+      let account = null;
+      if (payload.consultantUsername) {
+        account = {
+          id: nextId('U'), username: payload.consultantUsername,
+          password: payload.consultantPassword || genPassword(),
+          name: payload.consultantName || 'استشاري ' + p.name, role: 'consultant'
+        };
+        db.users.push(account);
+      }
+      persist();
+      return { project: p, account: account };
+    }
+
+    /** إرسال تقرير للمالك (واتساب / إيميل) — محاكاة قناة الإرسال مع سجل موثق */
+    function sendReport(user, payload) {
+      if (['consultant', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      const msg = {
+        id: nextId('MSG'), channel: payload.channel === 'whatsapp' ? 'whatsapp' : 'email',
+        to: payload.to, title: payload.title || 'تقرير المشروع',
+        date: nowStr(), status: 'sent', by: user.name
+      };
+      db.messages.push(msg);
+      persist();
+      return msg;
+    }
+
+    // ===== حسابات مشتقة =====
+
+    /** ملخص أداء مقاول: إنجاز، مبالغ، تأخر، تجاوز صرف */
+    function contractorSummary(c) {
+      const items = db.boqItems.filter(function (b) { return b.contractorId === c.id; });
+      let earned = 0, total = 0;
+      items.forEach(function (b) {
+        const v = b.qty * b.unitPrice;
+        total += v; earned += v * (b.progress / 100);
+      });
+      const progress = total ? Math.round((earned / total) * 1000) / 10 : 0;
+      const earnedValue = c.contractValue * progress / 100;
+      return {
+        id: c.id, name: c.name, type: c.type,
+        contractValue: c.contractValue, amountReceived: c.amountReceived,
+        startDate: c.startDate, endDate: c.endDate,
+        progress: progress, plannedProgress: c.plannedProgress || 0,
+        delayed: progress < (c.plannedProgress || 0) - 3,
+        overpaid: c.amountReceived > earnedValue * 1.05,
+        earnedValue: Math.round(earnedValue)
+      };
+    }
+
+    /** نسبة إنجاز دور/تخصص لتلوين المخططات (داكن ← ساطع) */
+    function floorDisciplineProgress(floorId, discipline) {
+      const items = db.boqItems.filter(function (b) {
+        return b.floor === floorId && (!discipline || b.discipline === discipline);
+      });
+      if (!items.length) return null;
+      let earned = 0, total = 0;
+      items.forEach(function (b) {
+        const v = b.qty * b.unitPrice;
+        total += v; earned += v * (b.progress / 100);
+      });
+      return total ? Math.round((earned / total) * 100) : 0;
+    }
+
+    function genPassword() {
+      const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+      let p = '';
+      for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
+      return p;
+    }
+    function todayStr() { return new Date().toISOString().slice(0, 10); }
+    function nowStr() { return new Date().toISOString().slice(0, 16).replace('T', ' '); }
+
+    return {
+      db: db,
+      login: login,
+      getState: getState,
+      createItem: createItem,
+      updateItem: updateItem,
+      deleteItem: deleteItem,
+      review: review,
+      addContractor: addContractor,
+      addProject: addProject,
+      sendReport: sendReport,
+      contractorSummary: contractorSummary,
+      floorDisciplineProgress: floorDisciplineProgress,
+      APPROVAL_COLLECTIONS: APPROVAL_COLLECTIONS
+    };
+  }
+
+  return { createCore: createCore };
+});

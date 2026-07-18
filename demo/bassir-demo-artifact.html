@@ -1,0 +1,2297 @@
+<title>بصير - عيون المالك | ديمو تفاعلي</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+/* بصير - عيون المالك | التصميم الأساسي (RTL - داكن) */
+:root {
+  --bg: #0b0e14;
+  --bg2: #0f131c;
+  --panel: #131926;
+  --panel2: #182032;
+  --border: #222c40;
+  --accent: #e0a458;
+  --accent2: #f2c078;
+  --text: #e9ecf3;
+  --muted: #8b95a8;
+  --ok: #2dd4a0;
+  --warn: #f2c94c;
+  --danger: #ef5d75;
+  --info: #4cc9f0;
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Tahoma, "Noto Kufi Arabic", "Cairo", Arial, sans-serif;
+  font-size: 15px;
+}
+
+body { direction: rtl; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #2a3550; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ============ شاشة الدخول ============ */
+.login-wrap {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(900px 500px at 80% -10%, rgba(224, 164, 88, .12), transparent 60%),
+    radial-gradient(700px 500px at 10% 110%, rgba(76, 201, 240, .08), transparent 60%),
+    var(--bg);
+  padding: 24px;
+}
+
+.login-card {
+  width: 420px; max-width: 100%;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: var(--shadow);
+}
+
+.login-logo { text-align: center; margin-bottom: 8px; font-size: 44px; }
+.login-title { text-align: center; font-size: 26px; font-weight: 800; letter-spacing: .5px; }
+.login-title small { display: block; color: var(--accent); font-size: 13px; font-weight: 600; margin-top: 6px; letter-spacing: 2px; }
+.login-sub { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 26px; line-height: 1.8; }
+
+.demo-accounts { margin-top: 22px; border-top: 1px dashed var(--border); padding-top: 16px; }
+.demo-accounts h4 { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.demo-chip {
+  display: inline-block; margin: 3px; padding: 6px 12px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 999px;
+  font-size: 12px; cursor: pointer; color: var(--text); transition: .15s;
+}
+.demo-chip:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* ============ الهيكل العام ============ */
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 258px; flex-shrink: 0;
+  background: linear-gradient(180deg, #101522, #0d111b);
+  border-left: 1px solid var(--border);
+  padding: 20px 14px;
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; padding: 6px 10px 20px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.brand .eye { font-size: 30px; filter: drop-shadow(0 0 12px rgba(224, 164, 88, .6)); }
+.brand b { font-size: 19px; display: block; }
+.brand small { color: var(--accent); font-size: 10.5px; letter-spacing: 1.5px; }
+
+.nav-sec { font-size: 10.5px; color: var(--muted); margin: 14px 10px 6px; letter-spacing: 1px; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  color: #c6cdda; font-size: 14px; margin-bottom: 2px;
+  border: 1px solid transparent; transition: .15s;
+}
+.nav-item:hover { background: rgba(224, 164, 88, .07); color: var(--text); }
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(224, 164, 88, .16), rgba(224, 164, 88, .04));
+  border-color: rgba(224, 164, 88, .35); color: var(--accent2); font-weight: 700;
+}
+.nav-item .ico { width: 22px; text-align: center; }
+.nav-item .badge { margin-right: auto; background: var(--danger); color: #fff; border-radius: 999px; font-size: 11px; padding: 1px 8px; }
+
+.side-user { margin-top: auto; border-top: 1px solid var(--border); padding-top: 14px; }
+.side-user .who { font-size: 13px; font-weight: 700; }
+.side-user .role { font-size: 11.5px; color: var(--accent); margin: 3px 0 10px; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 18px 28px; border-bottom: 1px solid var(--border);
+  background: rgba(15, 19, 28, .8); backdrop-filter: blur(8px);
+  position: sticky; top: 0; z-index: 20;
+}
+.topbar h1 { font-size: 20px; font-weight: 800; }
+.topbar .proj { color: var(--muted); font-size: 13px; }
+.topbar .spacer { flex: 1; }
+
+.content { padding: 26px 28px 60px; }
+
+/* ============ مكونات ============ */
+.grid { display: grid; gap: 18px; }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+.card {
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; box-shadow: 0 4px 18px rgba(0, 0, 0, .22);
+}
+.card h3 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.card h3 .hint { font-size: 11.5px; color: var(--muted); font-weight: 400; margin-right: auto; }
+
+.kpi { position: relative; overflow: hidden; }
+.kpi .lbl { color: var(--muted); font-size: 12.5px; }
+.kpi .val { font-size: 26px; font-weight: 800; margin: 8px 0 4px; }
+.kpi .sub { font-size: 12px; color: var(--muted); }
+.kpi .trend-up { color: var(--ok); } .kpi .trend-down { color: var(--danger); }
+.kpi::after {
+  content: ''; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--accent); opacity: .8; border-radius: 0 4px 4px 0;
+}
+.kpi.k-ok::after { background: var(--ok); } .kpi.k-warn::after { background: var(--warn); }
+.kpi.k-danger::after { background: var(--danger); } .kpi.k-info::after { background: var(--info); }
+
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th { text-align: right; color: var(--muted); font-size: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tbl td { padding: 11px 12px; border-bottom: 1px solid rgba(34, 44, 64, .55); vertical-align: middle; }
+.tbl tr:hover td { background: rgba(224, 164, 88, .04); }
+.tbl-wrap { overflow-x: auto; }
+
+.pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+.pill.p-ok { background: rgba(45, 212, 160, .14); color: var(--ok); }
+.pill.p-warn { background: rgba(242, 201, 76, .14); color: var(--warn); }
+.pill.p-danger { background: rgba(239, 93, 117, .14); color: var(--danger); }
+.pill.p-info { background: rgba(76, 201, 240, .14); color: var(--info); }
+.pill.p-muted { background: rgba(139, 149, 168, .14); color: var(--muted); }
+
+.bar { height: 8px; background: #1a2234; border-radius: 99px; overflow: hidden; min-width: 90px; }
+.bar > i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.bar.b-ok > i { background: linear-gradient(90deg, #1fae85, var(--ok)); }
+.bar.b-danger > i { background: linear-gradient(90deg, #d4405c, var(--danger)); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, var(--accent2), var(--accent));
+  color: #201505; font-weight: 800; font-size: 13.5px;
+  border: 0; border-radius: 10px; padding: 10px 18px; cursor: pointer;
+  transition: .15s; font-family: inherit;
+}
+.btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn.sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+.btn.ghost { background: transparent; color: var(--accent2); border: 1px solid rgba(224, 164, 88, .5); }
+.btn.ok { background: linear-gradient(180deg, #35e0ac, #1fae85); color: #04241a; }
+.btn.danger { background: linear-gradient(180deg, #f27085, #d4405c); color: #2b0710; }
+.btn.mutedb { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+.btn.block { width: 100%; justify-content: center; }
+
+input.inp, select.inp, textarea.inp {
+  width: 100%; background: var(--bg2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 14px; font-size: 14px; font-family: inherit; outline: none; transition: .15s;
+}
+.inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(224, 164, 88, .15); }
+label.fl { display: block; font-size: 12.5px; color: var(--muted); margin: 12px 0 6px; }
+textarea.inp { resize: vertical; min-height: 80px; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.tab {
+  padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--border); color: #c6cdda; transition: .15s;
+}
+.tab:hover { border-color: var(--accent); }
+.tab.active { background: rgba(224, 164, 88, .15); border-color: var(--accent); color: var(--accent2); font-weight: 700; }
+.tab .n { background: var(--danger); color: #fff; border-radius: 99px; padding: 0 7px; font-size: 11px; margin-right: 6px; }
+
+/* ============ رؤية المشروع (المخططات) ============ */
+.disc-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.disc-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 12px; cursor: pointer; font-size: 12.5px;
+  background: var(--panel); border: 1px solid var(--border); transition: .15s;
+}
+.disc-chip:hover { transform: translateY(-1px); }
+.disc-chip.active { border-color: var(--disc-color, var(--accent)); background: color-mix(in srgb, var(--disc-color, var(--accent)) 14%, transparent); font-weight: 700; }
+.disc-chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--disc-color, var(--accent)); }
+
+.floor-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+
+.plan-stage { background: #0a0d13; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; position: relative; }
+.plan-stage svg { width: 100%; height: auto; display: block; }
+
+.legend { display: flex; gap: 18px; align-items: center; font-size: 12px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
+.legend .sw { display: inline-block; width: 26px; height: 12px; border-radius: 4px; vertical-align: middle; margin-left: 6px; }
+
+.zone-panel { max-height: 560px; overflow-y: auto; }
+
+/* مناطق المخطط */
+.zone-shape { cursor: pointer; transition: filter .2s; }
+.zone-shape:hover { filter: brightness(1.35); }
+
+/* ============ BIM ============ */
+.bim-stage { background: radial-gradient(600px 400px at 50% 20%, #131a2a, #0a0d13); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.bim-floor { cursor: pointer; transition: .2s; }
+.bim-floor:hover { filter: brightness(1.3); }
+
+/* ============ AI ============ */
+.ai-item { display: flex; gap: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; background: var(--bg2); }
+.ai-item .ai-ico { font-size: 22px; }
+.ai-item.sev-warn { border-color: rgba(242, 201, 76, .4); }
+.ai-item.sev-alert { border-color: rgba(239, 93, 117, .5); background: rgba(239, 93, 117, .05); }
+.ai-item p { font-size: 13.5px; line-height: 1.9; }
+.ai-item .meta { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+.photo-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg2); }
+.photo-card .ph { height: 130px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: linear-gradient(135deg, #182032, #10151f); border-bottom: 1px solid var(--border); position: relative; }
+.photo-card .ph .scan { position: absolute; inset: 0; background: linear-gradient(180deg, transparent, rgba(76, 201, 240, .12), transparent); animation: scan 3s infinite; }
+@keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+.photo-card .info { padding: 12px; font-size: 12.5px; }
+.photo-card .aiTag { font-size: 11px; color: var(--info); margin-top: 6px; line-height: 1.7; }
+
+/* ============ نوافذ ورسائل ============ */
+.modal-back { position: fixed; inset: 0; background: rgba(5, 8, 14, .7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+.modal { width: 560px; max-width: 100%; max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--border); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }
+.modal h3 { margin-bottom: 6px; }
+.modal .m-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; }
+.m-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+
+.toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
+.toast { background: var(--panel2); border: 1px solid var(--border); border-inline-start: 4px solid var(--ok); border-radius: 12px; padding: 14px 18px; font-size: 13.5px; box-shadow: var(--shadow); animation: pop .25s; max-width: 380px; }
+.toast.t-err { border-inline-start-color: var(--danger); }
+@keyframes pop { from { transform: translateY(10px); opacity: 0; } }
+
+.empty { text-align: center; color: var(--muted); padding: 40px 10px; font-size: 13.5px; }
+.empty .e-ico { font-size: 36px; margin-bottom: 10px; }
+
+.sig { font-size: 12px; color: var(--accent2); border-top: 1px dashed var(--border); margin-top: 8px; padding-top: 8px; }
+
+.muted { color: var(--muted); } .small { font-size: 12px; }
+.mt { margin-top: 16px; } .mb { margin-bottom: 16px; }
+.flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.num { font-variant-numeric: tabular-nums; }
+
+</style>
+<div dir="rtl" style="direction:rtl"><div id="app"></div></div>
+<div style="position:fixed;bottom:0;inset-inline:0;z-index:90;text-align:center;padding:6px;font-size:11px;color:#8b95a8;background:rgba(11,14,20,.9);border-top:1px solid #222c40">نسخة ديمو تفاعلية كاملة تعمل داخل المتصفح — البيانات محفوظة محلياً ويمكن إعادة ضبطها من الشريط الجانبي</div>
+<script>window.DEMO_MODE = true;</script>
+<script>
+/* ===== shared/seed-data.js ===== */
+/**
+ * بصير - عيون المالك | Bassir Owner Eyes
+ * بيانات الديمو الأساسية (تعمل في Node.js وفي المتصفح)
+ * تُولَّد البيانات بشكل حتمي (deterministic) حتى تتطابق نسخة الخادم مع نسخة الديمو التفاعلي.
+ */
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) module.exports = factory();
+  else root.BassirSeed = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  // مولد أرقام شبه عشوائي حتمي (mulberry32)
+  function rng(seed) {
+    let a = seed >>> 0;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  const FLOORS = [
+    { id: 'B1', name: 'القبو' },
+    { id: 'GF', name: 'الدور الأرضي' },
+    { id: 'MZ', name: 'الميزانين' },
+    { id: 'F1', name: 'الدور الأول' },
+    { id: 'F2', name: 'الدور الثاني' },
+    { id: 'F3', name: 'الدور الثالث' },
+    { id: 'F4', name: 'الدور الرابع' },
+    { id: 'RF', name: 'السطح' }
+  ];
+
+  const DISCIPLINES = [
+    { id: 'structural',    name: 'الأعمال الإنشائية', color: '#8d99ae', icon: '🏗️' },
+    { id: 'architectural', name: 'الأعمال المعمارية', color: '#e0a458', icon: '🏛️' },
+    { id: 'electrical',    name: 'الأعمال الكهربائية', color: '#ffd166', icon: '⚡' },
+    { id: 'hvac',          name: 'أعمال التكييف HVAC', color: '#4cc9f0', icon: '❄️' },
+    { id: 'plumbing',      name: 'الأعمال الصحية', color: '#06d6a0', icon: '🚿' },
+    { id: 'fire',          name: 'أعمال الحريق', color: '#ef476f', icon: '🧯' },
+    { id: 'furniture',     name: 'الفرش والأثاث', color: '#b5838d', icon: '🛋️' }
+  ];
+
+  // نسب الإنجاز المستهدفة لكل تخصص في كل دور (تتناقص كلما ارتفعنا)
+  const DISC_BASE_PROGRESS = {
+    structural:    { B1: 100, GF: 100, MZ: 100, F1: 100, F2: 98, F3: 92, F4: 78, RF: 55 },
+    architectural: { B1: 95,  GF: 88,  MZ: 80,  F1: 72,  F2: 55, F3: 35, F4: 15, RF: 5  },
+    electrical:    { B1: 85,  GF: 70,  MZ: 62,  F1: 55,  F2: 40, F3: 22, F4: 8,  RF: 0  },
+    hvac:          { B1: 80,  GF: 62,  MZ: 55,  F1: 45,  F2: 30, F3: 15, F4: 5,  RF: 10 },
+    plumbing:      { B1: 90,  GF: 75,  MZ: 68,  F1: 60,  F2: 45, F3: 28, F4: 12, RF: 20 },
+    fire:          { B1: 70,  GF: 50,  MZ: 40,  F1: 30,  F2: 18, F3: 8,  F4: 0,  RF: 0  },
+    furniture:     { B1: 0,   GF: 25,  MZ: 15,  F1: 10,  F2: 0,  F3: 0,  F4: 0,  RF: 0  }
+  };
+
+  const BOQ_TEMPLATES = {
+    structural: [
+      ['خرسانة مسلحة للأعمدة', 'م3', 180, 950], ['خرسانة مسلحة للأسقف', 'م3', 420, 880],
+      ['حديد تسليح', 'طن', 95, 3200], ['أعمال العزل المائي', 'م2', 600, 45]
+    ],
+    architectural: [
+      ['مباني بلوك أسمنتي', 'م2', 850, 65], ['لياسة داخلية وخارجية', 'م2', 1700, 38],
+      ['أعمال الدهانات', 'م2', 1600, 32], ['تركيب رخام وسيراميك', 'م2', 700, 145],
+      ['أسقف مستعارة جبسية', 'م2', 550, 85], ['أبواب ونوافذ ألمنيوم', 'عدد', 24, 1850]
+    ],
+    electrical: [
+      ['تمديدات كهربائية رئيسية', 'نقطة', 320, 95], ['لوحات توزيع فرعية', 'عدد', 6, 4500],
+      ['إنارة داخلية LED', 'عدد', 180, 120], ['نظام تيار خفيف وشبكات', 'نقطة', 90, 210]
+    ],
+    hvac: [
+      ['وحدات تكييف مركزي', 'عدد', 4, 28000], ['دكتات هواء معزولة', 'م2', 480, 165],
+      ['مخارج هواء وجريلات', 'عدد', 85, 240], ['ترموستات وتحكم', 'عدد', 30, 380]
+    ],
+    plumbing: [
+      ['تمديدات تغذية مياه', 'م.ط', 650, 42], ['تمديدات صرف صحي', 'م.ط', 520, 58],
+      ['أطقم صحية كاملة', 'عدد', 26, 2400], ['سخانات مركزية', 'عدد', 8, 1900]
+    ],
+    fire: [
+      ['شبكة رشاشات آلية', 'رأس', 260, 185], ['خزائن حريق ومطافئ', 'عدد', 18, 1450],
+      ['نظام إنذار حريق', 'نقطة', 140, 260], ['مضخات حريق', 'عدد', 2, 42000]
+    ],
+    furniture: [
+      ['فرش مكاتب إدارية', 'عدد', 40, 3200], ['كنب ومجالس استقبال', 'طقم', 8, 9500],
+      ['ستائر ومعلقات', 'م2', 300, 140], ['تجهيزات مطابخ', 'عدد', 6, 14500]
+    ]
+  };
+
+  function buildSeed() {
+    const rand = rng(20260718);
+    const db = {};
+
+    // ============ المشروع ============
+    db.projects = [{
+      id: 'P1',
+      name: 'برج بصير التجاري',
+      location: 'الرياض - حي الملقا',
+      description: 'برج تجاري إداري مكوّن من قبو وأرضي وميزانين وأربعة أدوار متكررة وسطح، بمساحة بناء إجمالية 12,400 م².',
+      ownerName: 'م. عبدالله الراشد',
+      consultantName: 'دار العمران للاستشارات الهندسية',
+      startPlanned: '2025-03-01', endPlanned: '2026-12-31',
+      startActual: '2025-03-15', endForecast: '2027-02-15',
+      budgetPlanned: 52000000, costActual: 29800000, costPlannedToDate: 27200000,
+      progressPlanned: 62, progressActual: 54.5,
+      floors: FLOORS, disciplines: DISCIPLINES
+    }];
+
+    // ============ المقاولون ============
+    db.contractors = [
+      { id: 'C1', projectId: 'P1', name: 'شركة الإعمار الحديثة', type: 'structural',
+        contractValue: 18000000, startDate: '2025-03-15', endDate: '2026-04-30',
+        amountReceived: 15300000, plannedProgress: 95, phone: '0501112233' },
+      { id: 'C2', projectId: 'P1', name: 'مؤسسة البناء المعماري', type: 'architectural',
+        contractValue: 12000000, startDate: '2025-09-01', endDate: '2026-10-31',
+        amountReceived: 8900000, plannedProgress: 60, phone: '0502223344' },
+      { id: 'C3', projectId: 'P1', name: 'شركة الطاقة المتحدة', type: 'electrical',
+        contractValue: 6500000, startDate: '2025-10-01', endDate: '2026-11-30',
+        amountReceived: 2600000, plannedProgress: 50, phone: '0503334455' },
+      { id: 'C4', projectId: 'P1', name: 'تكييف الخليج المتقدم', type: 'hvac',
+        contractValue: 5000000, startDate: '2025-11-01', endDate: '2026-11-30',
+        amountReceived: 2400000, plannedProgress: 55, phone: '0504445566' },
+      { id: 'C5', projectId: 'P1', name: 'شركة المياه للأعمال الصحية', type: 'plumbing',
+        contractValue: 3200000, startDate: '2025-10-15', endDate: '2026-10-31',
+        amountReceived: 1550000, plannedProgress: 58, phone: '0505556677' },
+      { id: 'C6', projectId: 'P1', name: 'أنظمة الأمان للحريق', type: 'fire',
+        contractValue: 2800000, startDate: '2025-12-01', endDate: '2026-12-15',
+        amountReceived: 1300000, plannedProgress: 45, phone: '0506667788' },
+      { id: 'C7', projectId: 'P1', name: 'دار الفرش الراقي', type: 'furniture',
+        contractValue: 4000000, startDate: '2026-05-01', endDate: '2026-12-20',
+        amountReceived: 350000, plannedProgress: 12, phone: '0507778899' }
+    ];
+
+    // ============ جدول الكميات BOQ (مرتبط بالأدوار والتخصصات) ============
+    db.boqItems = [];
+    let boqSeq = 1;
+    db.contractors.forEach(function (c) {
+      const templates = BOQ_TEMPLATES[c.type];
+      const baseByFloor = DISC_BASE_PROGRESS[c.type];
+      FLOORS.forEach(function (fl, fi) {
+        templates.forEach(function (t, ti) {
+          // ليس كل بند موجوداً في كل دور
+          if (c.type === 'furniture' && (fl.id === 'B1' || fl.id === 'RF')) return;
+          if (c.type === 'hvac' && fl.id === 'RF' && ti > 1) return;
+          const base = baseByFloor[fl.id];
+          const jitter = Math.round((rand() - 0.5) * 12);
+          const progress = Math.max(0, Math.min(100, base + jitter));
+          const qty = Math.max(1, Math.round(t[2] / FLOORS.length + (rand() - 0.5) * 6));
+          db.boqItems.push({
+            id: 'BQ' + (boqSeq++),
+            projectId: 'P1', contractorId: c.id, discipline: c.type,
+            floor: fl.id, zone: ti % 6,
+            code: c.type.substring(0, 2).toUpperCase() + '-' + fl.id + '-' + String(ti + 1).padStart(2, '0'),
+            description: t[0], unit: t[1], qty: qty, unitPrice: t[3],
+            progress: progress,
+            status: progress >= 100 ? 'منجز' : progress > 0 ? 'جاري' : 'لم يبدأ'
+          });
+        });
+      });
+    });
+
+    // ============ الجدول الزمني (منحنى S: مخطط vs فعلي) ============
+    db.scheduleCurve = [
+      { month: '2025-03', planned: 2,  actual: 1 },  { month: '2025-05', planned: 8,  actual: 6 },
+      { month: '2025-07', planned: 15, actual: 12 }, { month: '2025-09', planned: 24, actual: 20 },
+      { month: '2025-11', planned: 33, actual: 28 }, { month: '2026-01', planned: 42, actual: 36 },
+      { month: '2026-03', planned: 50, actual: 44 }, { month: '2026-05', planned: 57, actual: 50 },
+      { month: '2026-07', planned: 62, actual: 54.5 }, { month: '2026-09', planned: 74, actual: null },
+      { month: '2026-11', planned: 88, actual: null }, { month: '2026-12', planned: 100, actual: null }
+    ];
+
+    db.scheduleTasks = [
+      { id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
+      { id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
+      { id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
+      { id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
+      { id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
+      { id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
+      { id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
+      { id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
+    ];
+
+    // ============ منحنى التكلفة ============
+    db.costCurve = [
+      { month: '2025-05', planned: 2.5,  actual: 2.1 },  { month: '2025-08', planned: 7.0,  actual: 6.2 },
+      { month: '2025-11', planned: 13.5, actual: 12.8 }, { month: '2026-02', planned: 19.0, actual: 19.6 },
+      { month: '2026-05', planned: 24.0, actual: 26.3 }, { month: '2026-07', planned: 27.2, actual: 29.8 },
+      { month: '2026-10', planned: 38.0, actual: null }, { month: '2026-12', planned: 52.0, actual: null }
+    ];
+
+    // ============ المستخدمون ============
+    db.users = [
+      { id: 'U1', username: 'admin',      password: 'admin123',   name: 'مدير النظام',                    role: 'admin' },
+      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner' },
+      { id: 'U3', username: 'rep',        password: 'rep123',     name: 'م. سالم الحربي (ممثل المالك)',   role: 'owner_rep' },
+      { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant' },
+      { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1' },
+      { id: 'U6', username: 'cont-arch',  password: 'cont123',    name: 'مؤسسة البناء المعماري',          role: 'contractor', contractorId: 'C2' },
+      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3' }
+    ];
+
+    // ============ اعتمادات المخططات (Shop Drawings) ============
+    db.shopDrawings = [
+      { id: 'SD1', projectId: 'P1', contractorId: 'C2', ref: 'SD-ARC-014', title: 'مخطط تفاصيل الواجهة الشمالية', date: '2026-07-02', status: 'pending', notes: '', file: 'SD-ARC-014.pdf' },
+      { id: 'SD2', projectId: 'P1', contractorId: 'C3', ref: 'SD-ELE-009', title: 'مخطط لوحات التوزيع - الدور الثاني', date: '2026-07-05', status: 'pending', notes: '', file: 'SD-ELE-009.pdf' },
+      { id: 'SD3', projectId: 'P1', contractorId: 'C2', ref: 'SD-ARC-012', title: 'تفاصيل الأسقف المستعارة - الأرضي', date: '2026-06-20', status: 'approved', notes: 'اعتمد مع الالتزام بمناسيب التكييف', signature: 'م. خالد العمران', signDate: '2026-06-24', file: 'SD-ARC-012.pdf' },
+      { id: 'SD4', projectId: 'P1', contractorId: 'C4', ref: 'SD-HVC-006', title: 'مسارات الدكتات - الميزانين', date: '2026-06-15', status: 'rejected', notes: 'تعارض مع كمرة ساقطة محور 5-C، يعاد التنسيق', signature: 'م. خالد العمران', signDate: '2026-06-18', file: 'SD-HVC-006.pdf' },
+      { id: 'SD5', projectId: 'P1', contractorId: 'C1', ref: 'SD-STR-021', title: 'تفاصيل خزان المياه العلوي', date: '2026-06-28', status: 'approved_notes', notes: 'اعتمد مع ملاحظات: زيادة سماكة العزل', signature: 'م. خالد العمران', signDate: '2026-07-01', file: 'SD-STR-021.pdf' }
+    ];
+
+    // ============ اعتمادات المواد (Material Submittals) ============
+    db.materials = [
+      { id: 'MT1', projectId: 'P1', contractorId: 'C2', ref: 'MS-ARC-031', title: 'رخام أرضيات البهو الرئيسي', brand: 'Carrara - إيطالي', date: '2026-07-08', status: 'pending', notes: '', file: 'datasheet-marble.pdf' },
+      { id: 'MT2', projectId: 'P1', contractorId: 'C3', ref: 'MS-ELE-018', title: 'كابلات نحاس مقاومة للحريق', brand: 'الرياض للكابلات', date: '2026-07-06', status: 'pending', notes: '', file: 'datasheet-cables.pdf' },
+      { id: 'MT3', projectId: 'P1', contractorId: 'C4', ref: 'MS-HVC-011', title: 'وحدات تكييف VRF', brand: 'Daikin', date: '2026-06-22', status: 'approved', notes: 'مطابق للمواصفات', signature: 'م. خالد العمران', signDate: '2026-06-25', file: 'datasheet-vrf.pdf' },
+      { id: 'MT4', projectId: 'P1', contractorId: 'C6', ref: 'MS-FIR-004', title: 'رؤوس رشاشات آلية', brand: 'Tyco', date: '2026-06-18', status: 'rejected', notes: 'الشهادة UL منتهية، يرفق إصدار محدث', signature: 'م. خالد العمران', signDate: '2026-06-21', file: 'datasheet-sprinkler.pdf' }
+    ];
+
+    // ============ اعتماد الجداول الزمنية ============
+    db.scheduleSubmittals = [
+      { id: 'SC1', projectId: 'P1', contractorId: 'C2', ref: 'SCH-ARC-R3', title: 'الجدول الزمني المحدّث - أعمال التشطيبات (مراجعة 3)', date: '2026-07-01', status: 'pending', notes: '', file: 'schedule-arc-r3.xml' },
+      { id: 'SC2', projectId: 'P1', contractorId: 'C7', ref: 'SCH-FUR-R1', title: 'الجدول الزمني المبدئي - أعمال الفرش', date: '2026-06-25', status: 'approved', notes: 'اعتمد مع ربط البدء بجاهزية التشطيبات', signature: 'م. خالد العمران', signDate: '2026-06-28', file: 'schedule-fur-r1.xml' }
+    ];
+
+    // ============ طلبات استلام الأعمال (WIR) ============
+    db.wirs = [
+      { id: 'WIR1', projectId: 'P1', contractorId: 'C2', ref: 'WIR-ARC-087', title: 'استلام لياسة الدور الأول - الجناح الشرقي', date: '2026-07-10', status: 'pending', notes: '', location: 'F1' },
+      { id: 'WIR2', projectId: 'P1', contractorId: 'C5', ref: 'WIR-PLB-042', title: 'استلام تمديدات الصرف - الدور الثاني', date: '2026-07-09', status: 'pending', notes: '', location: 'F2' },
+      { id: 'WIR3', projectId: 'P1', contractorId: 'C1', ref: 'WIR-STR-134', title: 'استلام خرسانة سقف الدور الرابع', date: '2026-06-30', status: 'approved', notes: 'استلمت الأعمال - نتائج الكسر مطابقة', signature: 'م. خالد العمران', signDate: '2026-07-02', location: 'F4' },
+      { id: 'WIR4', projectId: 'P1', contractorId: 'C3', ref: 'WIR-ELE-055', title: 'استلام تمديدات الدور الثالث', date: '2026-06-26', status: 'approved_notes', notes: 'قبول مع ملاحظات: استكمال تثبيت العلب في المحور B', signature: 'م. خالد العمران', signDate: '2026-06-29', location: 'F3' },
+      { id: 'WIR5', projectId: 'P1', contractorId: 'C4', ref: 'WIR-HVC-019', title: 'استلام دكتات الميزانين', date: '2026-06-20', status: 'rejected', notes: 'مرفوض: العزل غير مكتمل والتعليق غير مطابق', signature: 'م. خالد العمران', signDate: '2026-06-23', location: 'MZ' }
+    ];
+
+    // ============ أوامر التغيير ============
+    db.changeOrders = [
+      { id: 'CO1', projectId: 'P1', contractorId: 'C2', ref: 'CO-ARC-05', title: 'تغيير رخام الواجهة إلى حجر طبيعي', amount: 380000, days: 15, date: '2026-07-04', status: 'pending', notes: '' },
+      { id: 'CO2', projectId: 'P1', contractorId: 'C3', ref: 'CO-ELE-03', title: 'إضافة نقاط شواحن سيارات كهربائية بالقبو', amount: 145000, days: 10, date: '2026-06-27', status: 'approved', notes: 'معتمد ضمن ميزانية الاحتياطي', signature: 'م. خالد العمران', signDate: '2026-07-01' },
+      { id: 'CO3', projectId: 'P1', contractorId: 'C4', ref: 'CO-HVC-02', title: 'رفع سعة تكييف قاعة الاجتماعات', amount: 95000, days: 7, date: '2026-06-15', status: 'rejected', notes: 'الحمل الحراري الحالي كافٍ وفق الدراسة', signature: 'م. خالد العمران', signDate: '2026-06-19' }
+    ];
+
+    // ============ المستخلصات ============
+    db.payments = [
+      { id: 'PC1', projectId: 'P1', contractorId: 'C1', ref: 'IPC-STR-11', title: 'المستخلص رقم 11 - أعمال الهيكل (سقف السطح)', amount: 1250000, date: '2026-07-06', status: 'pending', notes: '',
+        lines: [
+          { boqItemId: 'BQ29', progress: 100 }, { boqItemId: 'BQ30', progress: 95 },
+          { boqItemId: 'BQ31', progress: 100 }, { boqItemId: 'BQ32', progress: 90 }
+        ] },
+      { id: 'PC2', projectId: 'P1', contractorId: 'C2', ref: 'IPC-ARC-07', title: 'المستخلص رقم 7 - تشطيبات الدور الثاني', amount: 980000, date: '2026-07-08', status: 'pending', notes: '',
+        lines: [
+          { boqItemId: 'BQ57', progress: 100 }, { boqItemId: 'BQ58', progress: 90 },
+          { boqItemId: 'BQ59', progress: 85 }, { boqItemId: 'BQ60', progress: 95 }
+        ] },
+      { id: 'PC3', projectId: 'P1', contractorId: 'C3', ref: 'IPC-ELE-04', title: 'المستخلص رقم 4 - الأعمال الكهربائية', amount: 620000, date: '2026-06-20', status: 'approved', notes: 'صرف بعد خصم الدفعة المقدمة', signature: 'م. خالد العمران', signDate: '2026-06-24', lines: [] }
+    ];
+
+    // ============ التقارير اليومية والشهرية ============
+    db.dailyReports = [
+      { id: 'DR1', projectId: 'P1', date: '2026-07-16', weather: 'مشمس 41°', manpower: 186, equipment: 'رافعة برجية 2، بوبكات 3، خلاطة 1',
+        works: ['صب خرسانة سقف السطح - المرحلة الثانية', 'لياسة الدور الثاني - الجناح الغربي', 'تمديدات كهرباء الدور الثالث', 'تركيب دكتات الدور الأول'],
+        photos: ['ph-f4-slab.jpg', 'ph-f2-plaster.jpg', 'ph-f3-elec.jpg'], by: 'م. خالد العمران' },
+      { id: 'DR2', projectId: 'P1', date: '2026-07-15', weather: 'مشمس 40°', manpower: 172, equipment: 'رافعة برجية 2، بوبكات 2',
+        works: ['تجهيز حديد سقف السطح', 'تركيب رخام البهو الرئيسي', 'اختبار ضغط شبكة الحريق - القبو'],
+        photos: ['ph-rf-steel.jpg', 'ph-gf-marble.jpg'], by: 'م. خالد العمران' },
+      { id: 'DR3', projectId: 'P1', date: '2026-07-14', weather: 'غائم جزئياً 38°', manpower: 165, equipment: 'رافعة برجية 2',
+        works: ['أعمال عزل السطح', 'دهانات الوجه الأول - الدور الأول', 'تركيب أطقم صحية - الأرضي'],
+        photos: ['ph-rf-insul.jpg', 'ph-f1-paint.jpg'], by: 'م. خالد العمران' }
+    ];
+
+    db.monthlyReports = [
+      { id: 'MR1', projectId: 'P1', month: '2026-06', title: 'التقرير الشهري - يونيو 2026',
+        summary: 'بلغت نسبة الإنجاز الفعلية 52.8% مقابل 60% مخطط. أبرز المعوقات: تأخر توريد وحدات التكييف وإعادة تقديم مخططات الدكتات. تمت معالجة 14 طلب اعتماد مواد و22 طلب استلام أعمال.',
+        progressPlanned: 60, progressActual: 52.8, by: 'م. خالد العمران' },
+      { id: 'MR2', projectId: 'P1', month: '2026-05', title: 'التقرير الشهري - مايو 2026',
+        summary: 'نسبة الإنجاز 50% فعلي مقابل 57% مخطط. اكتمال الهيكل حتى الدور الرابع وبدء التشطيبات في الأدوار السفلية.',
+        progressPlanned: 57, progressActual: 50, by: 'م. خالد العمران' }
+    ];
+
+    // ============ رؤى الذكاء الاصطناعي ============
+    db.aiInsights = [
+      { id: 'AI1', date: '2026-07-16', source: 'camera', area: 'الدور الرابع - سقف', detected: 78, reported: 78,
+        note: 'تحليل بث الكاميرا رقم 3: صب السقف مكتمل بنسبة 78% ويطابق تقرير الموقع.', severity: 'ok' },
+      { id: 'AI2', date: '2026-07-15', source: 'photos', area: 'الدور الثاني - لياسة', detected: 49, reported: 55,
+        note: 'رصد النظام فرقاً 6% بين نسبة اللياسة المرصودة بصرياً (49%) والنسبة المرفوعة في التقرير (55%). يُنصح بالتحقق ميدانياً قبل اعتماد المستخلص القادم.', severity: 'warn' },
+      { id: 'AI3', date: '2026-07-14', source: 'camera', area: 'الميزانين - دكتات التكييف', detected: 38, reported: 40,
+        note: 'وتيرة تقدم أعمال الدكتات أبطأ من المخطط بـ 12 يوماً. عند استمرار الوتيرة الحالية سيتأخر تسليم الميزانين إلى نوفمبر.', severity: 'warn' },
+      { id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
+        note: 'تركيب مضخات الحريق يسير وفق الجدول. يُنصح بجدولة اختبار التشغيل خلال أسبوعين.', severity: 'ok' },
+      { id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
+        note: 'تنبيه سلامة: رصدت الكاميرا 2 عمالة دون أحزمة أمان على حافة الدور الثالث يوم 10 يوليو الساعة 10:42 صباحاً. تم إشعار مدير السلامة.', severity: 'alert' },
+      { id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
+        note: 'تنبيه مالي: مقاول الحريق (أنظمة الأمان) استلم 46% من قيمة العقد مقابل إنجاز فعلي 31%. يُنصح بمراجعة الدفعات القادمة وربطها بمستخلصات موثقة بصرياً.', severity: 'alert' }
+    ];
+
+    // ============ صور الموقع (مع تحليل AI محاكى) ============
+    db.photos = [
+      { id: 'PH1', date: '2026-07-16', area: 'F4', title: 'صب سقف الدور الرابع', ai: 'خرسانة حديثة الصب - اكتشاف 4 عمال، معدات صب مكتملة', detected: 78 },
+      { id: 'PH2', date: '2026-07-15', area: 'GF', title: 'رخام البهو الرئيسي', ai: 'تقدم التبليط 62% من مساحة البهو', detected: 62 },
+      { id: 'PH3', date: '2026-07-14', area: 'F2', title: 'لياسة الجناح الغربي', ai: 'اللياسة المنجزة 49% من مساحة الجدران المرصودة', detected: 49 },
+      { id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
+    ];
+
+    // ============ سجل الرسائل (واتساب / إيميل) ============
+    db.messages = [
+      { id: 'MSG1', channel: 'whatsapp', to: '0501234567', date: '2026-07-15 09:00', title: 'التقرير الأسبوعي', status: 'sent' },
+      { id: 'MSG2', channel: 'email', to: 'owner@example.com', date: '2026-07-01 08:30', title: 'التقرير الشهري - يونيو', status: 'sent' }
+    ];
+
+    db.notifications = [];
+    db.meta = { seq: 1000, seededAt: '2026-07-18' };
+
+    return db;
+  }
+
+  return { buildSeed: buildSeed, FLOORS: FLOORS, DISCIPLINES: DISCIPLINES };
+});
+
+
+/* ===== shared/api-core.js ===== */
+/**
+ * بصير - عيون المالك | النواة المشتركة لمنطق النظام
+ * تعمل نفس هذه الوحدة في الخادم (Node.js) وفي الديمو التفاعلي (المتصفح)،
+ * فيضمن ذلك تطابق سلوك الصلاحيات والاعتمادات في النسختين.
+ */
+(function (root, factory) {
+  if (typeof module !== 'undefined' && module.exports) module.exports = factory();
+  else root.BassirCore = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  const APPROVAL_COLLECTIONS = ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments'];
+  const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS; // المقاول يرى ويُنشئ ضمن هذه المجموعات فقط ما يخصه
+
+  // من يستطيع إنشاء عناصر في كل مجموعة
+  const CREATE_RULES = {
+    shopDrawings: ['contractor', 'consultant', 'admin'],
+    materials: ['contractor', 'consultant', 'admin'],
+    scheduleSubmittals: ['contractor', 'consultant', 'admin'],
+    wirs: ['contractor', 'consultant', 'admin'],
+    changeOrders: ['contractor', 'consultant', 'admin'],
+    payments: ['contractor', 'consultant', 'admin'],
+    dailyReports: ['consultant', 'admin'],
+    monthlyReports: ['consultant', 'admin'],
+    boqItems: ['consultant', 'admin'],
+    aiInsights: ['admin'],
+    photos: ['consultant', 'contractor', 'admin'],
+    users: ['admin', 'owner_rep'],
+    contractors: ['consultant', 'admin'],
+    projects: ['owner_rep', 'admin']
+  };
+
+  function createCore(db, persist) {
+    persist = persist || function () {};
+
+    function nextId(prefix) {
+      db.meta.seq = (db.meta.seq || 1000) + 1;
+      return prefix + db.meta.seq;
+    }
+
+    function err(message, code) {
+      const e = new Error(message);
+      e.status = code || 400;
+      return e;
+    }
+
+    function login(username, password) {
+      const u = db.users.find(function (x) { return x.username === username && x.password === password; });
+      if (!u) throw err('اسم المستخدم أو كلمة المرور غير صحيحة', 401);
+      return { id: u.id, username: u.username, name: u.name, role: u.role, contractorId: u.contractorId || null };
+    }
+
+    function stripPassword(u) {
+      const c = Object.assign({}, u);
+      delete c.password;
+      return c;
+    }
+
+    /** لقطة الحالة الكاملة مُرشّحة حسب دور المستخدم */
+    function getState(user) {
+      const s = {};
+      const role = user.role;
+      s.projects = db.projects;
+      s.scheduleCurve = db.scheduleCurve;
+      s.scheduleTasks = db.scheduleTasks;
+      s.costCurve = db.costCurve;
+      s.aiInsights = db.aiInsights;
+      s.photos = db.photos;
+      s.dailyReports = db.dailyReports;
+      s.monthlyReports = db.monthlyReports;
+      s.messages = db.messages;
+      s.contractors = db.contractors;
+      s.boqItems = db.boqItems;
+      APPROVAL_COLLECTIONS.forEach(function (c) { s[c] = db[c]; });
+
+      if (role === 'contractor') {
+        const cid = user.contractorId;
+        CONTRACTOR_OWNED.forEach(function (c) {
+          s[c] = db[c].filter(function (x) { return x.contractorId === cid; });
+        });
+        s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
+        s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
+        s.messages = [];
+        s.users = [];
+      } else if (role === 'admin') {
+        s.users = db.users; // الأدمن فقط يرى كلمات المرور
+      } else {
+        s.users = db.users.map(stripPassword);
+      }
+      return s;
+    }
+
+    function assertCanCreate(user, collection) {
+      const allowed = CREATE_RULES[collection];
+      if (!allowed) throw err('مجموعة غير معروفة: ' + collection, 404);
+      if (allowed.indexOf(user.role) === -1) throw err('لا تملك صلاحية الإضافة هنا', 403);
+    }
+
+    function createItem(user, collection, data) {
+      assertCanCreate(user, collection);
+      const item = Object.assign({}, data);
+      item.id = nextId(collection.substring(0, 2).toUpperCase());
+      item.projectId = item.projectId || 'P1';
+      if (user.role === 'contractor') {
+        item.contractorId = user.contractorId; // المقاول لا يُنشئ باسم غيره
+        if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
+      }
+      if (!item.date) item.date = todayStr();
+      if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1 && !item.status) item.status = 'pending';
+      db[collection].push(item);
+      persist();
+      return item;
+    }
+
+    function updateItem(user, collection, id, patch) {
+      const list = db[collection];
+      if (!list) throw err('مجموعة غير معروفة', 404);
+      const item = list.find(function (x) { return x.id === id; });
+      if (!item) throw err('العنصر غير موجود', 404);
+      if (user.role === 'contractor') {
+        if (item.contractorId !== user.contractorId) throw err('لا تملك صلاحية التعديل', 403);
+        if (item.status && item.status !== 'pending') throw err('لا يمكن تعديل طلب تم البت فيه', 403);
+      }
+      Object.assign(item, patch);
+      persist();
+      return item;
+    }
+
+    function deleteItem(user, collection, id) {
+      if (user.role !== 'admin' && !(user.role === 'owner_rep' && collection === 'users')) {
+        throw err('الحذف متاح للأدمن فقط', 403);
+      }
+      const list = db[collection];
+      if (!list) throw err('مجموعة غير معروفة', 404);
+      const i = list.findIndex(function (x) { return x.id === id; });
+      if (i === -1) throw err('العنصر غير موجود', 404);
+      list.splice(i, 1);
+      persist();
+      return { ok: true };
+    }
+
+    /**
+     * قرار الاستشاري على أي طلب اعتماد.
+     * status: approved | approved_notes | rejected
+     * اعتماد المستخلص يحدّث نسب إنجاز بنود جدول الكميات المرتبطة به
+     * (فتتحول مناطق المخططات من داكنة إلى ساطعة) ويحدّث المبالغ المستلمة للمقاول.
+     */
+    function review(user, opts) {
+      if (user.role !== 'consultant' && user.role !== 'admin') throw err('قرار الاعتماد صلاحية الاستشاري', 403);
+      const collection = opts.collection, id = opts.id, status = opts.status;
+      if (APPROVAL_COLLECTIONS.indexOf(collection) === -1) throw err('هذه المجموعة ليست ضمن دورة الاعتماد', 400);
+      if (['approved', 'approved_notes', 'rejected'].indexOf(status) === -1) throw err('حالة غير صالحة', 400);
+      const item = db[collection].find(function (x) { return x.id === id; });
+      if (!item) throw err('الطلب غير موجود', 404);
+
+      item.status = status;
+      item.notes = opts.notes || '';
+      item.signature = user.name;
+      item.signDate = todayStr();
+
+      if (collection === 'payments' && (status === 'approved' || status === 'approved_notes')) {
+        applyPaymentEffects(item);
+      }
+      persist();
+      return item;
+    }
+
+    /** أثر اعتماد المستخلص: تحديث نسب البنود + المبالغ المستلمة */
+    function applyPaymentEffects(pc) {
+      const contractor = db.contractors.find(function (c) { return c.id === pc.contractorId; });
+      if (contractor) contractor.amountReceived = (contractor.amountReceived || 0) + (pc.amount || 0);
+      (pc.lines || []).forEach(function (line) {
+        const bq = db.boqItems.find(function (b) { return b.id === line.boqItemId; });
+        if (bq && typeof line.progress === 'number') {
+          bq.progress = Math.max(bq.progress, Math.min(100, line.progress));
+          bq.status = bq.progress >= 100 ? 'منجز' : bq.progress > 0 ? 'جاري' : 'لم يبدأ';
+        }
+      });
+    }
+
+    /** إضافة مقاول جديد مع حسابه وبنود كمياته (صلاحية الاستشاري) */
+    function addContractor(user, payload) {
+      if (['consultant', 'admin'].indexOf(user.role) === -1) throw err('إضافة المقاولين صلاحية الاستشاري', 403);
+      const c = {
+        id: nextId('C'), projectId: payload.projectId || 'P1',
+        name: payload.name, type: payload.type,
+        contractValue: Number(payload.contractValue) || 0,
+        startDate: payload.startDate, endDate: payload.endDate,
+        amountReceived: 0, plannedProgress: 0, phone: payload.phone || ''
+      };
+      db.contractors.push(c);
+      let account = null;
+      if (payload.username) {
+        account = {
+          id: nextId('U'), username: payload.username, password: payload.password || genPassword(),
+          name: c.name, role: 'contractor', contractorId: c.id
+        };
+        db.users.push(account);
+      }
+      (payload.boqItems || []).forEach(function (b, i) {
+        db.boqItems.push({
+          id: nextId('BQ'), projectId: c.projectId, contractorId: c.id,
+          discipline: c.type, floor: b.floor || 'GF', zone: i % 6,
+          code: (c.type || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(2, '0'),
+          description: b.description, unit: b.unit, qty: Number(b.qty) || 0,
+          unitPrice: Number(b.unitPrice) || 0, progress: 0, status: 'لم يبدأ'
+        });
+      });
+      persist();
+      return { contractor: c, account: account };
+    }
+
+    /** إضافة مشروع وتعيين استشاري بحسابه (صلاحية ممثل المالك) */
+    function addProject(user, payload) {
+      if (['owner_rep', 'admin'].indexOf(user.role) === -1) throw err('إضافة المشاريع صلاحية ممثل المالك', 403);
+      const p = {
+        id: nextId('P'), name: payload.name, location: payload.location || '',
+        description: payload.description || '', ownerName: payload.ownerName || '',
+        consultantName: payload.consultantName || '',
+        startPlanned: payload.startPlanned, endPlanned: payload.endPlanned,
+        startActual: null, endForecast: payload.endPlanned,
+        budgetPlanned: Number(payload.budgetPlanned) || 0, costActual: 0, costPlannedToDate: 0,
+        progressPlanned: 0, progressActual: 0,
+        floors: db.projects[0] ? db.projects[0].floors : [], disciplines: db.projects[0] ? db.projects[0].disciplines : []
+      };
+      db.projects.push(p);
+      let account = null;
+      if (payload.consultantUsername) {
+        account = {
+          id: nextId('U'), username: payload.consultantUsername,
+          password: payload.consultantPassword || genPassword(),
+          name: payload.consultantName || 'استشاري ' + p.name, role: 'consultant'
+        };
+        db.users.push(account);
+      }
+      persist();
+      return { project: p, account: account };
+    }
+
+    /** إرسال تقرير للمالك (واتساب / إيميل) — محاكاة قناة الإرسال مع سجل موثق */
+    function sendReport(user, payload) {
+      if (['consultant', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      const msg = {
+        id: nextId('MSG'), channel: payload.channel === 'whatsapp' ? 'whatsapp' : 'email',
+        to: payload.to, title: payload.title || 'تقرير المشروع',
+        date: nowStr(), status: 'sent', by: user.name
+      };
+      db.messages.push(msg);
+      persist();
+      return msg;
+    }
+
+    // ===== حسابات مشتقة =====
+
+    /** ملخص أداء مقاول: إنجاز، مبالغ، تأخر، تجاوز صرف */
+    function contractorSummary(c) {
+      const items = db.boqItems.filter(function (b) { return b.contractorId === c.id; });
+      let earned = 0, total = 0;
+      items.forEach(function (b) {
+        const v = b.qty * b.unitPrice;
+        total += v; earned += v * (b.progress / 100);
+      });
+      const progress = total ? Math.round((earned / total) * 1000) / 10 : 0;
+      const earnedValue = c.contractValue * progress / 100;
+      return {
+        id: c.id, name: c.name, type: c.type,
+        contractValue: c.contractValue, amountReceived: c.amountReceived,
+        startDate: c.startDate, endDate: c.endDate,
+        progress: progress, plannedProgress: c.plannedProgress || 0,
+        delayed: progress < (c.plannedProgress || 0) - 3,
+        overpaid: c.amountReceived > earnedValue * 1.05,
+        earnedValue: Math.round(earnedValue)
+      };
+    }
+
+    /** نسبة إنجاز دور/تخصص لتلوين المخططات (داكن ← ساطع) */
+    function floorDisciplineProgress(floorId, discipline) {
+      const items = db.boqItems.filter(function (b) {
+        return b.floor === floorId && (!discipline || b.discipline === discipline);
+      });
+      if (!items.length) return null;
+      let earned = 0, total = 0;
+      items.forEach(function (b) {
+        const v = b.qty * b.unitPrice;
+        total += v; earned += v * (b.progress / 100);
+      });
+      return total ? Math.round((earned / total) * 100) : 0;
+    }
+
+    function genPassword() {
+      const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+      let p = '';
+      for (let i = 0; i < 8; i++) p += chars[Math.floor(Math.random() * chars.length)];
+      return p;
+    }
+    function todayStr() { return new Date().toISOString().slice(0, 10); }
+    function nowStr() { return new Date().toISOString().slice(0, 16).replace('T', ' '); }
+
+    return {
+      db: db,
+      login: login,
+      getState: getState,
+      createItem: createItem,
+      updateItem: updateItem,
+      deleteItem: deleteItem,
+      review: review,
+      addContractor: addContractor,
+      addProject: addProject,
+      sendReport: sendReport,
+      contractorSummary: contractorSummary,
+      floorDisciplineProgress: floorDisciplineProgress,
+      APPROVAL_COLLECTIONS: APPROVAL_COLLECTIONS
+    };
+  }
+
+  return { createCore: createCore };
+});
+
+
+/* ===== public/js/api.js ===== */
+/**
+ * بصير | طبقة الاتصال Api
+ * وضعان:
+ *  - الوضع المتصل: يتخاطب مع خادم Node عبر fetch
+ *  - وضع الديمو (window.DEMO_MODE): يشغّل نفس نواة المنطق داخل المتصفح بلا خادم
+ */
+(function () {
+  'use strict';
+
+  const DEMO = !!window.DEMO_MODE;
+
+  // ============ وضع الديمو: نواة داخل المتصفح ============
+  let demoCore = null, demoUser = null;
+
+  function demoInit() {
+    if (demoCore) return;
+    let db = null;
+    try {
+      const saved = localStorage.getItem('bassir-demo-db');
+      if (saved) db = JSON.parse(saved);
+    } catch (e) { /* تجاهل */ }
+    if (!db || !db.meta) db = window.BassirSeed.buildSeed();
+    demoCore = window.BassirCore.createCore(db, function persist() {
+      try { localStorage.setItem('bassir-demo-db', JSON.stringify(db)); } catch (e) { /* تجاهل */ }
+    });
+    try {
+      const su = sessionStorage.getItem('bassir-demo-user');
+      if (su) demoUser = JSON.parse(su);
+    } catch (e) { /* تجاهل */ }
+  }
+
+  function demoCall(path, method, body) {
+    demoInit();
+    const c = demoCore;
+    if (path === '/api/login') {
+      const user = c.login(body.username, body.password);
+      demoUser = user;
+      sessionStorage.setItem('bassir-demo-user', JSON.stringify(user));
+      return { token: 'demo', user: user };
+    }
+    if (!demoUser) { const e = new Error('يلزم تسجيل الدخول'); e.status = 401; throw e; }
+    if (path === '/api/logout') { demoUser = null; sessionStorage.removeItem('bassir-demo-user'); return { ok: true }; }
+    if (path === '/api/me') return { user: demoUser };
+    if (path === '/api/state') return c.getState(demoUser);
+    if (path === '/api/summary/contractors') {
+      const cid = demoUser.role === 'contractor' ? demoUser.contractorId : null;
+      return c.db.contractors.filter(function (x) { return !cid || x.id === cid; }).map(c.contractorSummary);
+    }
+    let m = path.match(/^\/api\/collections\/(\w+)$/);
+    if (m && method === 'POST') return c.createItem(demoUser, m[1], body);
+    m = path.match(/^\/api\/collections\/(\w+)\/([\w-]+)$/);
+    if (m && method === 'PUT') return c.updateItem(demoUser, m[1], m[2], body);
+    if (m && method === 'DELETE') return c.deleteItem(demoUser, m[1], m[2]);
+    if (path === '/api/actions/review') return c.review(demoUser, body);
+    if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
+    if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
+    if (path === '/api/actions/send-report') return c.sendReport(demoUser, body);
+    const e = new Error('مسار غير معروف'); e.status = 404; throw e;
+  }
+
+  // ============ الواجهة الموحدة ============
+  async function call(path, method, body) {
+    method = method || 'GET';
+    if (DEMO) {
+      try { return structuredClone(demoCall(path, method, body)); }
+      catch (e) { return Promise.reject(e); }
+    }
+    const headers = { 'Content-Type': 'application/json' };
+    const token = sessionStorage.getItem('bassir-token');
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(path, {
+      method: method, headers: headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    const data = await res.json().catch(function () { return {}; });
+    if (!res.ok) { const e = new Error(data.error || ('خطأ ' + res.status)); e.status = res.status; throw e; }
+    return data;
+  }
+
+  window.Api = {
+    demo: DEMO,
+    async login(username, password) {
+      const r = await call('/api/login', 'POST', { username: username, password: password });
+      if (!DEMO) sessionStorage.setItem('bassir-token', r.token);
+      sessionStorage.setItem('bassir-user', JSON.stringify(r.user));
+      return r.user;
+    },
+    async logout() {
+      try { await call('/api/logout', 'POST', {}); } catch (e) { /* تجاهل */ }
+      sessionStorage.removeItem('bassir-token');
+      sessionStorage.removeItem('bassir-user');
+    },
+    currentUser() {
+      try { return JSON.parse(sessionStorage.getItem('bassir-user')); } catch (e) { return null; }
+    },
+    state() { return call('/api/state'); },
+    contractorsSummary() { return call('/api/summary/contractors'); },
+    create(collection, data) { return call('/api/collections/' + collection, 'POST', data); },
+    update(collection, id, patch) { return call('/api/collections/' + collection + '/' + id, 'PUT', patch); },
+    remove(collection, id) { return call('/api/collections/' + collection + '/' + id, 'DELETE'); },
+    review(opts) { return call('/api/actions/review', 'POST', opts); },
+    addContractor(p) { return call('/api/actions/add-contractor', 'POST', p); },
+    addProject(p) { return call('/api/actions/add-project', 'POST', p); },
+    sendReport(p) { return call('/api/actions/send-report', 'POST', p); },
+    resetDemo() {
+      if (DEMO) { localStorage.removeItem('bassir-demo-db'); demoCore = null; }
+    }
+  };
+})();
+
+
+/* ===== public/js/charts.js ===== */
+/** بصير | رسوم بيانية SVG خفيفة (بدون مكتبات خارجية) */
+(function () {
+  'use strict';
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  /** منحنى S: مخطط مقابل فعلي */
+  function sCurve(points, opts) {
+    opts = opts || {};
+    const W = 640, H = 280, PL = 46, PR = 16, PT = 18, PB = 40;
+    const iw = W - PL - PR, ih = H - PT - PB;
+    const maxY = opts.maxY || 100;
+    const n = points.length;
+    const x = function (i) { return PL + (iw * i) / (n - 1); };
+    const y = function (v) { return PT + ih - (ih * v) / maxY; };
+
+    function pathFor(key) {
+      let d = '', started = false;
+      points.forEach(function (p, i) {
+        if (p[key] == null) return;
+        d += (started ? ' L ' : 'M ') + x(i).toFixed(1) + ' ' + y(p[key]).toFixed(1);
+        started = true;
+      });
+      return d;
+    }
+
+    let grid = '';
+    for (let g = 0; g <= 4; g++) {
+      const gy = PT + (ih * g) / 4;
+      grid += '<line x1="' + PL + '" y1="' + gy + '" x2="' + (W - PR) + '" y2="' + gy + '" stroke="#1c2536" stroke-width="1"/>' +
+        '<text x="' + (PL - 8) + '" y="' + (gy + 4) + '" fill="#67718a" font-size="10" text-anchor="end">' + Math.round(maxY - (maxY * g) / 4) + (opts.unit || '%') + '</text>';
+    }
+    let labels = '';
+    points.forEach(function (p, i) {
+      if (i % Math.ceil(n / 8) !== 0 && i !== n - 1) return;
+      labels += '<text x="' + x(i) + '" y="' + (H - 12) + '" fill="#67718a" font-size="9.5" text-anchor="middle">' + esc(p.month || p.label) + '</text>';
+    });
+
+    let dots = '';
+    points.forEach(function (p, i) {
+      if (p.actual != null) dots += '<circle cx="' + x(i) + '" cy="' + y(p.actual) + '" r="3.4" fill="#e0a458"/>';
+    });
+
+    // منطقة تظليل تحت المنحنى الفعلي
+    let lastActual = -1;
+    points.forEach(function (p, i) { if (p.actual != null) lastActual = i; });
+    let area = '';
+    if (lastActual > 0) {
+      area = pathFor('actual') + ' L ' + x(lastActual) + ' ' + y(0) + ' L ' + x(0) + ' ' + y(0) + ' Z';
+    }
+
+    return '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img">' +
+      grid + labels +
+      (area ? '<path d="' + area + '" fill="rgba(224,164,88,.09)"/>' : '') +
+      '<path d="' + pathFor('planned') + '" fill="none" stroke="#4cc9f0" stroke-width="2.2" stroke-dasharray="7 5"/>' +
+      '<path d="' + pathFor('actual') + '" fill="none" stroke="#e0a458" stroke-width="3"/>' +
+      dots +
+      '<g font-size="11">' +
+      '<rect x="' + (PL + 4) + '" y="' + (PT + 2) + '" width="12" height="4" rx="2" fill="#4cc9f0"/><text x="' + (PL + 22) + '" y="' + (PT + 8) + '" fill="#aab3c5">' + esc(opts.plannedLabel || 'المخطط') + '</text>' +
+      '<rect x="' + (PL + 84) + '" y="' + (PT + 2) + '" width="12" height="4" rx="2" fill="#e0a458"/><text x="' + (PL + 102) + '" y="' + (PT + 8) + '" fill="#aab3c5">' + esc(opts.actualLabel || 'الفعلي') + '</text>' +
+      '</g></svg>';
+  }
+
+  /** حلقة نسبة إنجاز */
+  function donut(value, opts) {
+    opts = opts || {};
+    const R = 52, C = 2 * Math.PI * R;
+    const v = Math.max(0, Math.min(100, value || 0));
+    const color = opts.color || (v >= 70 ? '#2dd4a0' : v >= 40 ? '#e0a458' : '#ef5d75');
+    return '<svg viewBox="0 0 140 140" style="max-width:' + (opts.size || 140) + 'px">' +
+      '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="#1a2234" stroke-width="14"/>' +
+      '<circle cx="70" cy="70" r="' + R + '" fill="none" stroke="' + color + '" stroke-width="14" stroke-linecap="round" ' +
+      'stroke-dasharray="' + (C * v / 100).toFixed(1) + ' ' + C.toFixed(1) + '" transform="rotate(-90 70 70)"/>' +
+      '<text x="70" y="66" text-anchor="middle" fill="#e9ecf3" font-size="24" font-weight="800">' + v + '%</text>' +
+      '<text x="70" y="88" text-anchor="middle" fill="#8b95a8" font-size="10.5">' + esc(opts.label || '') + '</text></svg>';
+  }
+
+  /** أعمدة أفقية مقارنة (مخطط/فعلي لكل عنصر) */
+  function compareBars(rows) {
+    let html = '<div>';
+    rows.forEach(function (r) {
+      const a = Math.max(0, Math.min(100, r.actual));
+      const p = Math.max(0, Math.min(100, r.planned));
+      const behind = a < p - 3;
+      html += '<div style="margin-bottom:14px">' +
+        '<div class="flex" style="justify-content:space-between;font-size:12.5px;margin-bottom:5px">' +
+        '<span>' + esc(r.label) + '</span>' +
+        '<span class="num ' + (behind ? '' : '') + '" style="color:' + (behind ? '#ef5d75' : '#2dd4a0') + '">' + a + '% <span class="muted">/ ' + p + '% مخطط</span></span></div>' +
+        '<div style="position:relative;height:10px;background:#1a2234;border-radius:99px">' +
+        '<i style="position:absolute;inset-inline-start:0;top:0;bottom:0;width:' + a + '%;border-radius:99px;background:linear-gradient(90deg,' + (behind ? '#d4405c,#ef5d75' : '#1fae85,#2dd4a0') + ')"></i>' +
+        '<i style="position:absolute;inset-inline-start:' + p + '%;top:-3px;bottom:-3px;width:2.5px;background:#4cc9f0;border-radius:2px" title="المخطط"></i>' +
+        '</div></div>';
+    });
+    return html + '</div>';
+  }
+
+  window.Charts = { sCurve: sCurve, donut: donut, compareBars: compareBars, esc: esc };
+})();
+
+
+/* ===== public/js/views.js ===== */
+/** بصير | الصفحات المشتركة: لوحة القيادة، رؤية المشروع، المقاولون، الذكاء الاصطناعي، التقارير */
+(function () {
+  'use strict';
+
+  const esc = Charts.esc;
+
+  // ============ أدوات مشتركة ============
+  const STATUS = {
+    pending: ['قيد المراجعة', 'p-warn'],
+    approved: ['معتمد', 'p-ok'],
+    approved_notes: ['معتمد مع ملاحظات', 'p-info'],
+    rejected: ['مرفوض', 'p-danger']
+  };
+
+  function pill(status) {
+    const s = STATUS[status] || [status, 'p-muted'];
+    return '<span class="pill ' + s[1] + '">' + esc(s[0]) + '</span>';
+  }
+
+  function money(n) { return n == null ? '—' : '<span class="num">' + Number(n).toLocaleString('en-US') + '</span> ر.س'; }
+  function millions(n) { return '<span class="num">' + (n / 1e6).toFixed(1) + '</span> مليون ر.س'; }
+
+  function toast(msg, isErr) {
+    let wrap = document.querySelector('.toast-wrap');
+    if (!wrap) { wrap = document.createElement('div'); wrap.className = 'toast-wrap'; document.body.appendChild(wrap); }
+    const t = document.createElement('div');
+    t.className = 'toast' + (isErr ? ' t-err' : '');
+    t.textContent = msg;
+    wrap.appendChild(t);
+    setTimeout(function () { t.remove(); }, 4200);
+  }
+
+  function modal(html) {
+    const back = document.createElement('div');
+    back.className = 'modal-back';
+    back.innerHTML = '<div class="modal">' + html + '</div>';
+    back.addEventListener('click', function (e) { if (e.target === back) back.remove(); });
+    document.body.appendChild(back);
+    return back;
+  }
+
+  function discOf(ctx, id) {
+    return (ctx.S.projects[0].disciplines || []).find(function (d) { return d.id === id; }) || { name: id, color: '#8b95a8', icon: '🔧' };
+  }
+
+  function floorName(ctx, id) {
+    const f = (ctx.S.projects[0].floors || []).find(function (x) { return x.id === id; });
+    return f ? f.name : id;
+  }
+
+  /** إنجاز مرجّح بالقيمة لمجموعة بنود */
+  function weightedProgress(items) {
+    let earned = 0, total = 0;
+    items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
+    return total ? Math.round((earned / total) * 100) : null;
+  }
+
+  /** مزج لون التخصص مع الخلفية الداكنة حسب نسبة الإنجاز (داكن ← ساطع) */
+  function mixColor(hex, t) {
+    const dark = [16, 21, 31];
+    const c = [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+    const r = c.map(function (v, i) { return Math.round(dark[i] + (v - dark[i]) * t); });
+    return 'rgb(' + r.join(',') + ')';
+  }
+
+  function summarize(ctx) {
+    // ملخصات المقاولين محلياً (تطابق منطق الخادم)
+    return ctx.S.contractors.map(function (c) {
+      const items = ctx.S.boqItems.filter(function (b) { return b.contractorId === c.id; });
+      const progress = weightedProgress(items) || 0;
+      const earnedValue = c.contractValue * progress / 100;
+      return {
+        id: c.id, name: c.name, type: c.type, contractValue: c.contractValue,
+        amountReceived: c.amountReceived, startDate: c.startDate, endDate: c.endDate,
+        progress: progress, plannedProgress: c.plannedProgress || 0,
+        delayed: progress < (c.plannedProgress || 0) - 3,
+        overpaid: c.amountReceived > earnedValue * 1.05,
+        earnedValue: Math.round(earnedValue)
+      };
+    });
+  }
+
+  // ============ لوحة القيادة ============
+  function renderDashboard(el, ctx) {
+    const P = ctx.S.projects[0];
+    const sums = summarize(ctx);
+    const delayedCount = sums.filter(function (s) { return s.delayed; }).length;
+    const alerts = ctx.S.aiInsights.filter(function (a) { return a.severity !== 'ok'; }).slice(0, 3);
+    const variance = Math.round((P.progressActual - P.progressPlanned) * 10) / 10;
+    const costVar = P.costActual - P.costPlannedToDate;
+
+    el.innerHTML =
+      '<div class="grid g4 mb">' +
+      '<div class="card kpi"><div class="lbl">نسبة الإنجاز الفعلية</div><div class="val num">' + P.progressActual + '%</div>' +
+      '<div class="sub">المخطط: <b class="num">' + P.progressPlanned + '%</b> · الانحراف <b class="' + (variance < 0 ? 'trend-down' : 'trend-up') + ' num">' + variance + '%</b></div></div>' +
+      '<div class="card kpi ' + (costVar > 0 ? 'k-danger' : 'k-ok') + '"><div class="lbl">التكلفة الفعلية حتى تاريخه</div><div class="val">' + millions(P.costActual) + '</div>' +
+      '<div class="sub">المخطط: ' + millions(P.costPlannedToDate) + ' · ' + (costVar > 0 ? '<span class="trend-down">تجاوز ' + millions(costVar) + '</span>' : '<span class="trend-up">ضمن الميزانية</span>') + '</div></div>' +
+      '<div class="card kpi k-info"><div class="lbl">قيمة العقود / الميزانية</div><div class="val">' + millions(P.budgetPlanned) + '</div>' +
+      '<div class="sub">التسليم المتوقع: <b>' + esc(P.endForecast) + '</b> (التعاقدي ' + esc(P.endPlanned) + ')</div></div>' +
+      '<div class="card kpi ' + (delayedCount ? 'k-warn' : 'k-ok') + '"><div class="lbl">المقاولون</div><div class="val num">' + sums.length + '</div>' +
+      '<div class="sub">' + (delayedCount ? '<span class="trend-down">' + delayedCount + ' متأخر عن الجدول</span>' : '<span class="trend-up">الجميع ضمن الجدول</span>') + '</div></div>' +
+      '</div>' +
+
+      '<div class="grid g2 mb">' +
+      '<div class="card"><h3>📈 الجدول الزمني: المخطط مقابل الفعلي <span class="hint">منحنى S التراكمي</span></h3>' + Charts.sCurve(ctx.S.scheduleCurve) + '</div>' +
+      '<div class="card"><h3>💰 التكلفة: المخطط مقابل الفعلي <span class="hint">مليون ريال</span></h3>' + Charts.sCurve(ctx.S.costCurve, { maxY: 55, unit: 'م' }) + '</div>' +
+      '</div>' +
+
+      '<div class="grid g2">' +
+      '<div class="card"><h3>🗂️ مراحل المشروع</h3>' +
+      Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
+        return { label: t.name, actual: t.progress, planned: taskPlanned(t) };
+      })) + '</div>' +
+      '<div class="card"><h3>🔔 تنبيهات بصير الذكية <span class="hint">من تحليل الصور والكاميرات</span></h3>' +
+      (alerts.length ? alerts.map(aiItemHtml).join('') : '<div class="empty"><div class="e-ico">✨</div>لا توجد تنبيهات حرجة</div>') +
+      '<button class="btn ghost sm" data-nav="ai">فتح صفحة الذكاء الاصطناعي ←</button></div>' +
+      '</div>';
+
+    el.querySelectorAll('[data-nav]').forEach(function (b) {
+      b.addEventListener('click', function () { ctx.nav(b.getAttribute('data-nav')); });
+    });
+  }
+
+  function taskPlanned(t) {
+    // نسبة مخططة تقريبية بحسب موقع اليوم بين بداية ونهاية النشاط المخطط
+    const now = Date.now();
+    const s = new Date(t.startPlanned).getTime(), e = new Date(t.endPlanned).getTime();
+    if (now <= s) return 0;
+    if (now >= e) return 100;
+    return Math.round(((now - s) / (e - s)) * 100);
+  }
+
+  // ============ الذكاء الاصطناعي ============
+  function aiItemHtml(a) {
+    const ico = a.severity === 'alert' ? '🚨' : a.severity === 'warn' ? '⚠️' : '✅';
+    const src = a.source === 'camera' ? 'كاميرات الموقع' : a.source === 'photos' ? 'تحليل الصور' : 'تحليل البيانات';
+    return '<div class="ai-item sev-' + a.severity + '"><div class="ai-ico">' + ico + '</div><div style="flex:1">' +
+      '<p>' + esc(a.note) + '</p>' +
+      '<div class="meta">' + esc(a.date) + ' · المصدر: ' + src + (a.area ? ' · الموقع: ' + esc(a.area) : '') +
+      (a.detected != null ? ' · الرصد البصري: <b class="num">' + a.detected + '%</b>' : '') + '</div></div></div>';
+  }
+
+  function renderAi(el, ctx) {
+    const overall = ctx.S.projects[0].progressActual;
+    const visual = 52.1; // متوسط الرصد البصري في الديمو
+    el.innerHTML =
+      '<div class="grid g3 mb">' +
+      '<div class="card" style="text-align:center"><h3 style="justify-content:center">👁 الإنجاز بعين بصير</h3>' +
+      Charts.donut(visual, { label: 'رصد بصري (AI)' }) +
+      '<div class="small muted mt">تحليل ' + ctx.S.photos.length + ' صور و3 كاميرات مثبتة</div></div>' +
+      '<div class="card" style="text-align:center"><h3 style="justify-content:center">📋 الإنجاز المُبلَّغ</h3>' +
+      Charts.donut(overall, { label: 'تقارير الموقع', color: '#4cc9f0' }) +
+      '<div class="small muted mt">وفق مستخلصات وتقارير فريق العمل</div></div>' +
+      '<div class="card"><h3>🎥 الكاميرات المباشرة</h3>' +
+      ['كاميرا 1 - الواجهة الشمالية', 'كاميرا 2 - الدور الثالث', 'كاميرا 3 - السطح'].map(function (c, i) {
+        return '<div class="flex" style="justify-content:space-between;border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;background:var(--bg2)">' +
+          '<span class="small">📡 ' + c + '</span><span class="pill p-ok">● مباشر</span></div>';
+      }).join('') +
+      '<div class="small muted">تُحلَّل اللقطات كل 30 دقيقة لاستخراج نسب الإنجاز وتنبيهات السلامة</div></div>' +
+      '</div>' +
+
+      '<div class="grid g2">' +
+      '<div class="card"><h3>🧠 رؤى وتنبيهات بصير</h3>' + ctx.S.aiInsights.map(aiItemHtml).join('') + '</div>' +
+      '<div class="card"><h3>📸 آخر الصور المُحلَّلة <span class="hint">رفع فريق الموقع</span></h3>' +
+      '<div class="grid g2">' + ctx.S.photos.map(function (p) {
+        return '<div class="photo-card"><div class="ph">🏗️<div class="scan"></div></div><div class="info">' +
+          '<b>' + esc(p.title) + '</b><div class="muted small">' + esc(p.date) + ' · ' + esc(floorName(ctx, p.area)) + '</div>' +
+          '<div class="aiTag">🤖 ' + esc(p.ai) + (p.detected != null ? ' — <b class="num">' + p.detected + '%</b>' : '') + '</div></div></div>';
+      }).join('') + '</div></div>' +
+      '</div>';
+  }
+
+  // ============ صفحة المقاولين (رؤية المالك) ============
+  function renderContractors(el, ctx) {
+    const sums = summarize(ctx);
+    const totalContracts = sums.reduce(function (a, s) { return a + s.contractValue; }, 0);
+    const totalReceived = sums.reduce(function (a, s) { return a + s.amountReceived; }, 0);
+    const delayed = sums.filter(function (s) { return s.delayed; });
+    const overpaid = sums.filter(function (s) { return s.overpaid; });
+
+    el.innerHTML =
+      '<div class="grid g4 mb">' +
+      '<div class="card kpi"><div class="lbl">عدد المقاولين في المشروع</div><div class="val num">' + sums.length + '</div><div class="sub">' + esc(sums.map(function (s) { return discOf(ctx, s.type).icon; }).join(' ')) + '</div></div>' +
+      '<div class="card kpi k-info"><div class="lbl">إجمالي قيم العقود</div><div class="val">' + millions(totalContracts) + '</div><div class="sub">لجميع التخصصات</div></div>' +
+      '<div class="card kpi"><div class="lbl">إجمالي المبالغ المستلمة</div><div class="val">' + millions(totalReceived) + '</div><div class="sub num">' + Math.round(totalReceived / totalContracts * 100) + '% من قيمة العقود</div></div>' +
+      '<div class="card kpi ' + (delayed.length || overpaid.length ? 'k-danger' : 'k-ok') + '"><div class="lbl">مؤشرات الخطر</div><div class="val num">' + (delayed.length + overpaid.length) + '</div>' +
+      '<div class="sub">' + delayed.length + ' متأخر · ' + overpaid.length + ' صرف أعلى من المستحق</div></div>' +
+      '</div>' +
+
+      '<div class="card"><h3>👷 أداء المقاولين <span class="hint">الإنجاز محسوب من جداول الكميات المعتمدة</span></h3>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      '<th>المقاول</th><th>التخصص</th><th>قيمة العقد</th><th>نسبة الإنجاز</th><th>المستحق (Earned)</th><th>المستلم</th><th>الجدول</th><th>الصرف</th><th>المدة</th>' +
+      '</tr></thead><tbody>' +
+      sums.map(function (s) {
+        const d = discOf(ctx, s.type);
+        return '<tr>' +
+          '<td><b>' + esc(s.name) + '</b></td>' +
+          '<td><span class="pill p-muted">' + d.icon + ' ' + esc(d.name) + '</span></td>' +
+          '<td>' + money(s.contractValue) + '</td>' +
+          '<td><div class="flex"><div class="bar ' + (s.delayed ? 'b-danger' : 'b-ok') + '" style="flex:1"><i style="width:' + s.progress + '%"></i></div><b class="num">' + s.progress + '%</b></div>' +
+          '<div class="small muted num">المخطط ' + s.plannedProgress + '%</div></td>' +
+          '<td>' + money(s.earnedValue) + '</td>' +
+          '<td>' + money(s.amountReceived) + '</td>' +
+          '<td>' + (s.delayed ? '<span class="pill p-danger">متأخر</span>' : '<span class="pill p-ok">ضمن الجدول</span>') + '</td>' +
+          '<td>' + (s.overpaid ? '<span class="pill p-danger">استلم أكثر من مستحقه</span>' : '<span class="pill p-ok">سليم</span>') + '</td>' +
+          '<td class="small muted num">' + esc(s.startDate) + '<br>' + esc(s.endDate) + '</td>' +
+          '</tr>';
+      }).join('') +
+      '</tbody></table></div></div>';
+  }
+
+  // ============ رؤية المشروع (2D + BIM) ============
+  const visionState = { tab: '2d', floor: 'GF', disc: 'all', zone: null, bimFloor: null };
+
+  function itemsFor(ctx, floorId, disc, zone) {
+    return ctx.S.boqItems.filter(function (b) {
+      return b.floor === floorId &&
+        (disc === 'all' || b.discipline === disc) &&
+        (zone == null || b.zone === zone);
+    });
+  }
+
+  function renderVision(el, ctx) {
+    const P = ctx.S.projects[0];
+    const st = visionState;
+
+    const discChips = '<div class="disc-chips">' +
+      '<div class="disc-chip ' + (st.disc === 'all' ? 'active' : '') + '" data-disc="all" style="--disc-color:#e0a458"><span class="dot"></span>جميع البنود</div>' +
+      P.disciplines.map(function (d) {
+        return '<div class="disc-chip ' + (st.disc === d.id ? 'active' : '') + '" data-disc="' + d.id + '" style="--disc-color:' + d.color + '">' +
+          '<span class="dot"></span>' + d.icon + ' ' + esc(d.name) + '</div>';
+      }).join('') + '</div>';
+
+    let body = '';
+    if (st.tab === '2d') body = render2d(ctx);
+    else body = renderBim(ctx);
+
+    el.innerHTML =
+      '<div class="tabs">' +
+      '<div class="tab ' + (st.tab === '2d' ? 'active' : '') + '" data-vtab="2d">🗺️ المخططات ثنائية الأبعاد</div>' +
+      '<div class="tab ' + (st.tab === 'bim' ? 'active' : '') + '" data-vtab="bim">🏢 نموذج BIM ثلاثي الأبعاد</div>' +
+      '</div>' + discChips + body +
+      '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>داكن = أعمال غير منتهية</span>' +
+      '<span><span class="sw" style="background:linear-gradient(90deg,#8a6a35,#e0a458);box-shadow:0 0 10px rgba(224,164,88,.7)"></span>ساطع = بنود منتهية (مستخلصات معتمدة)</span>' +
+      '<span>اضغط أي منطقة/دور لعرض بنود جدول الكميات المرتبطة بها</span></div>';
+
+    // ربط الأحداث
+    el.querySelectorAll('[data-vtab]').forEach(function (t) {
+      t.addEventListener('click', function () { st.tab = t.getAttribute('data-vtab'); renderVision(el, ctx); });
+    });
+    el.querySelectorAll('[data-disc]').forEach(function (t) {
+      t.addEventListener('click', function () { st.disc = t.getAttribute('data-disc'); st.zone = null; renderVision(el, ctx); });
+    });
+    el.querySelectorAll('[data-floor]').forEach(function (t) {
+      t.addEventListener('click', function () { st.floor = t.getAttribute('data-floor'); st.zone = null; renderVision(el, ctx); });
+    });
+    el.querySelectorAll('[data-zone]').forEach(function (z) {
+      z.addEventListener('click', function () { st.zone = Number(z.getAttribute('data-zone')); renderVision(el, ctx); });
+    });
+    el.querySelectorAll('[data-bimfloor]').forEach(function (z) {
+      z.addEventListener('click', function () { st.bimFloor = z.getAttribute('data-bimfloor'); renderVision(el, ctx); });
+    });
+  }
+
+  // مواقع مناطق المخطط 2D (ست مناطق + ممر)
+  const ZONES = [
+    { x: 40, y: 40, w: 230, h: 200, name: 'الجناح الشمالي الشرقي' },
+    { x: 285, y: 40, w: 230, h: 200, name: 'القلب الخدمي' },
+    { x: 530, y: 40, w: 230, h: 200, name: 'الجناح الشمالي الغربي' },
+    { x: 40, y: 300, w: 230, h: 180, name: 'الجناح الجنوبي الشرقي' },
+    { x: 285, y: 300, w: 230, h: 180, name: 'البهو والمصاعد' },
+    { x: 530, y: 300, w: 230, h: 180, name: 'الجناح الجنوبي الغربي' }
+  ];
+
+  function render2d(ctx) {
+    const P = ctx.S.projects[0];
+    const st = visionState;
+    const accent = st.disc === 'all' ? '#e0a458' : discOf(ctx, st.disc).color;
+
+    const floorTabs = '<div class="floor-tabs">' + P.floors.map(function (f) {
+      const fp = weightedProgress(itemsFor(ctx, f.id, st.disc, null));
+      return '<div class="tab ' + (st.floor === f.id ? 'active' : '') + '" data-floor="' + f.id + '">' + esc(f.name) +
+        (fp != null ? ' <span class="muted num">' + fp + '%</span>' : '') + '</div>';
+    }).join('') + '</div>';
+
+    // بناء SVG للمخطط
+    let zonesSvg = '';
+    ZONES.forEach(function (z, i) {
+      const items = itemsFor(ctx, st.floor, st.disc, i);
+      const p = weightedProgress(items);
+      const t = p == null ? 0.04 : 0.06 + (p / 100) * 0.86;
+      const fill = mixColor(accent, t);
+      const done = p != null && p >= 95;
+      const sel = st.zone === i;
+      zonesSvg += '<g class="zone-shape" data-zone="' + i + '">' +
+        '<rect x="' + z.x + '" y="' + z.y + '" width="' + z.w + '" height="' + z.h + '" rx="6" fill="' + fill + '" ' +
+        'stroke="' + (sel ? '#fff' : done ? accent : '#26314a') + '" stroke-width="' + (sel ? 3 : done ? 2 : 1.4) + '"' +
+        (done ? ' filter="url(#glow)"' : '') + '>' +
+        '<title>' + esc(z.name) + ' — ' + (p == null ? 'لا بنود' : 'الإنجاز ' + p + '%') + '</title></rect>' +
+        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 - 8) + '" text-anchor="middle" fill="' + (t > 0.5 ? '#10151f' : '#aab3c5') + '" font-size="13" font-weight="700" pointer-events="none">' + esc(z.name) + '</text>' +
+        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 + 16) + '" text-anchor="middle" fill="' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '" font-size="18" font-weight="800" pointer-events="none">' + (p == null ? '—' : p + '%') + '</text>' +
+        '</g>';
+    });
+
+    // محاور الشبكة الهندسية
+    let axes = '';
+    ['A', 'B', 'C'].forEach(function (a, i) {
+      const y = 40 + i * 220;
+      axes += '<circle cx="790" cy="' + y + '" r="11" fill="none" stroke="#33405e"/><text x="790" y="' + (y + 4) + '" text-anchor="middle" fill="#67718a" font-size="10">' + a + '</text>';
+    });
+    for (let g = 0; g < 4; g++) {
+      const x = 40 + g * 245;
+      axes += '<circle cx="' + x + '" cy="505" r="11" fill="none" stroke="#33405e"/><text x="' + x + '" y="509" text-anchor="middle" fill="#67718a" font-size="10">' + (g + 1) + '</text>' +
+        '<line x1="' + x + '" y1="30" x2="' + x + '" y2="490" stroke="#1a2234" stroke-dasharray="4 8"/>';
+    }
+
+    const svg = '<svg viewBox="0 0 810 525">' +
+      '<defs><filter id="glow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+      '<rect x="28" y="28" width="744" height="464" rx="10" fill="none" stroke="#33405e" stroke-width="3"/>' +
+      axes +
+      '<rect x="40" y="252" width="720" height="36" fill="#0e1420" stroke="#1e2740"/><text x="400" y="274" text-anchor="middle" fill="#4a5570" font-size="11">ممر الحركة الرئيسي</text>' +
+      zonesSvg + '</svg>';
+
+    // لوحة البنود الجانبية
+    const panelItems = itemsFor(ctx, st.floor, st.disc, st.zone);
+    const panelTitle = st.zone == null ? 'كل بنود ' + floorName(ctx, st.floor) : ZONES[st.zone].name + ' — ' + floorName(ctx, st.floor);
+    const panel =
+      '<div class="card zone-panel"><h3>📋 ' + esc(panelTitle) + ' <span class="hint num">' + panelItems.length + ' بند</span></h3>' +
+      (panelItems.length ? panelItems.map(function (b) {
+        const d = discOf(ctx, b.discipline);
+        const done = b.progress >= 100;
+        return '<div style="border:1px solid ' + (done ? d.color : 'var(--border)') + ';border-radius:10px;padding:10px 12px;margin-bottom:9px;background:var(--bg2)' + (done ? ';box-shadow:0 0 12px ' + d.color + '33' : '') + '">' +
+          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(b.status) + '</span></div>' +
+          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + ' ر.س · ' + d.icon + ' ' + esc(d.name) + '</div>' +
+          '<div class="flex mt" style="margin-top:8px"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%;background:linear-gradient(90deg,' + d.color + '88,' + d.color + ')"></i></div><b class="num small">' + b.progress + '%</b></div>' +
+          '</div>';
+      }).join('') : '<div class="empty"><div class="e-ico">🗂️</div>لا توجد بنود مطابقة للتصفية الحالية</div>') +
+      '</div>';
+
+    return floorTabs +
+      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage">' + svg + '</div>' + panel + '</div>';
+  }
+
+  function renderBim(ctx) {
+    const P = ctx.S.projects[0];
+    const st = visionState;
+    const accent = st.disc === 'all' ? '#e0a458' : discOf(ctx, st.disc).color;
+    const floors = P.floors.slice(); // B1 أسفل ... RF أعلى
+
+    const W = 640, cx = 250, fw = 170, fd = 52, fh = 34, gap = 6;
+    let svg = '<svg viewBox="0 0 ' + W + ' 560" style="direction:ltr">' +
+      '<defs><filter id="bimglow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
+
+    // أرضية شبكية
+    svg += '<g opacity=".5">';
+    for (let i = -3; i <= 3; i++) {
+      svg += '<line x1="' + (cx + i * 55 - fw) + '" y1="530" x2="' + (cx + i * 55 + fw) + '" y2="440" stroke="#17203270" stroke-width="1"/>';
+      svg += '<line x1="' + (cx + i * 55 - fw) + '" y1="440" x2="' + (cx + i * 55 + fw) + '" y2="530" stroke="#17203270" stroke-width="1"/>';
+    }
+    svg += '</g>';
+
+    const baseY = 470;
+    let floorLabels = '';
+    floors.forEach(function (f, i) {
+      const items = itemsFor(ctx, f.id, st.disc, null);
+      const p = weightedProgress(items);
+      const t = p == null ? 0.05 : 0.07 + (p / 100) * 0.85;
+      const topColor = mixColor(accent, t);
+      const sideColor = mixColor(accent, t * 0.55);
+      const side2Color = mixColor(accent, t * 0.35);
+      const done = p != null && p >= 95;
+      const y = baseY - i * (fh + gap);
+      const sel = st.bimFloor === f.id;
+
+      const top = 'M ' + cx + ' ' + (y - fd) + ' L ' + (cx + fw) + ' ' + y + ' L ' + cx + ' ' + (y + fd) + ' L ' + (cx - fw) + ' ' + y + ' Z';
+      const right = 'M ' + (cx + fw) + ' ' + y + ' L ' + cx + ' ' + (y + fd) + ' L ' + cx + ' ' + (y + fd + fh) + ' L ' + (cx + fw) + ' ' + (y + fh) + ' Z';
+      const left = 'M ' + (cx - fw) + ' ' + y + ' L ' + cx + ' ' + (y + fd) + ' L ' + cx + ' ' + (y + fd + fh) + ' L ' + (cx - fw) + ' ' + (y + fh) + ' Z';
+
+      svg += '<g class="bim-floor" data-bimfloor="' + f.id + '"' + (done ? ' filter="url(#bimglow)"' : '') + '>' +
+        '<path d="' + left + '" fill="' + side2Color + '" stroke="#0a0d13" stroke-width="1"/>' +
+        '<path d="' + right + '" fill="' + sideColor + '" stroke="#0a0d13" stroke-width="1"/>' +
+        '<path d="' + top + '" fill="' + topColor + '" stroke="' + (sel ? '#fff' : done ? accent : '#26314a') + '" stroke-width="' + (sel ? 2.5 : 1.2) + '">' +
+        '<title>' + esc(f.name) + ' — ' + (p == null ? 'لا بنود' : p + '%') + '</title></path></g>';
+      floorLabels += '<g class="bim-floor" data-bimfloor="' + f.id + '">' +
+        '<line x1="' + (cx + fw + 4) + '" y1="' + (y + fh / 2) + '" x2="' + (cx + fw + 26) + '" y2="' + (y + fh / 2) + '" stroke="#33405e"/>' +
+        '<text x="' + (cx + fw + 32) + '" y="' + (y + fh / 2 + 4) + '" fill="' + (sel ? '#fff' : '#8b95a8') + '" font-size="12" font-weight="' + (sel ? '800' : '400') + '" text-anchor="start">' +
+        (p == null ? '' : p + '% · ') + esc(f.name) + '</text></g>';
+    });
+    svg += floorLabels + '</svg>';
+
+    // لوحة تفاصيل الدور المحدد
+    const selFloor = st.bimFloor || 'GF';
+    const detail =
+      '<div class="card zone-panel"><h3>🏢 ' + esc(floorName(ctx, selFloor)) + ' <span class="hint">تفصيل التخصصات</span></h3>' +
+      P.disciplines.map(function (d) {
+        const p = weightedProgress(itemsFor(ctx, selFloor, d.id, null));
+        if (p == null) return '';
+        return '<div style="margin-bottom:13px"><div class="flex" style="justify-content:space-between;font-size:12.5px;margin-bottom:5px">' +
+          '<span>' + d.icon + ' ' + esc(d.name) + '</span><b class="num" style="color:' + d.color + '">' + p + '%</b></div>' +
+          '<div class="bar"><i style="width:' + p + '%;background:linear-gradient(90deg,' + d.color + '77,' + d.color + ')' + (p >= 95 ? ';box-shadow:0 0 10px ' + d.color : '') + '"></i></div></div>';
+      }).join('') +
+      '<div class="small muted mt">💡 المناطق الساطعة المتوهجة = بنود مكتملة اعتُمدت مستخلصاتها. اضغط أي دور في النموذج لعرض تفاصيله.</div>' +
+      '<div class="sig">نموذج BIM مرفوع بواسطة: ' + esc(P.consultantName) + ' · مرتبط بجدول الكميات (' + ctx.S.boqItems.length + ' بند)</div>' +
+      '</div>';
+
+    return '<div class="grid" style="grid-template-columns:1.5fr 1fr"><div class="bim-stage">' + svg + '</div>' + detail + '</div>';
+  }
+
+  // ============ التقارير والإرسال ============
+  function renderReports(el, ctx) {
+    const canSend = ['consultant', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
+    el.innerHTML =
+      '<div class="grid g2 mb">' +
+      '<div class="card"><h3>📅 التقارير اليومية</h3>' +
+      ctx.S.dailyReports.map(function (r) {
+        return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--bg2)">' +
+          '<div class="flex" style="justify-content:space-between"><b>تقرير يوم ' + esc(r.date) + '</b><span class="pill p-info">☀️ ' + esc(r.weather) + '</span></div>' +
+          '<div class="small muted" style="margin:6px 0">العمالة: <b class="num">' + r.manpower + '</b> · المعدات: ' + esc(r.equipment) + '</div>' +
+          '<ul style="margin:8px 18px 0;font-size:13px;line-height:2">' + r.works.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>' +
+          '<div class="small muted mt" style="margin-top:8px">📎 ' + r.photos.length + ' صور مرفقة · أعده: ' + esc(r.by) + '</div></div>';
+      }).join('') + '</div>' +
+
+      '<div>' +
+      '<div class="card mb"><h3>📊 التقارير الشهرية</h3>' +
+      ctx.S.monthlyReports.map(function (r) {
+        return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--bg2)">' +
+          '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
+          '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+          '<p class="small" style="line-height:1.9;margin-top:8px;color:#c6cdda">' + esc(r.summary) + '</p></div>';
+      }).join('') + '</div>' +
+
+      '<div class="card"><h3>📨 إرسال التقارير للمالك</h3>' +
+      (canSend ?
+        '<label class="fl">القناة</label><select class="inp" id="rp-channel"><option value="whatsapp">واتساب WhatsApp</option><option value="email">البريد الإلكتروني</option></select>' +
+        '<label class="fl">المستلم (رقم / بريد)</label><input class="inp" id="rp-to" placeholder="05xxxxxxxx أو owner@example.com" value="0501234567">' +
+        '<label class="fl">التقرير</label><select class="inp" id="rp-title">' +
+        '<option>التقرير اليومي - ' + esc(ctx.S.dailyReports[0] ? ctx.S.dailyReports[0].date : '') + '</option>' +
+        ctx.S.monthlyReports.map(function (r) { return '<option>' + esc(r.title) + '</option>'; }).join('') +
+        '<option>ملخص أداء المقاولين</option></select>' +
+        '<div class="m-actions"><button class="btn" id="rp-send">📤 إرسال الآن</button></div>'
+        : '<div class="muted small">الإرسال متاح للاستشاري وممثل المالك</div>') +
+      '<h3 class="mt">سجل الإرسال</h3>' +
+      (ctx.S.messages.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>القناة</th><th>إلى</th><th>التقرير</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
+        ctx.S.messages.slice().reverse().map(function (m) {
+          return '<tr><td>' + (m.channel === 'whatsapp' ? '💬 واتساب' : '📧 إيميل') + '</td><td class="num">' + esc(m.to) + '</td><td>' + esc(m.title) + '</td><td class="small muted num">' + esc(m.date) + '</td><td><span class="pill p-ok">أُرسل ✓</span></td></tr>';
+        }).join('') + '</tbody></table></div>' : '<div class="empty">لا رسائل بعد</div>') +
+      '</div></div></div>';
+
+    const sendBtn = el.querySelector('#rp-send');
+    if (sendBtn) sendBtn.addEventListener('click', async function () {
+      try {
+        await Api.sendReport({
+          channel: el.querySelector('#rp-channel').value,
+          to: el.querySelector('#rp-to').value,
+          title: el.querySelector('#rp-title').value
+        });
+        toast('✅ تم إرسال التقرير بنجاح عبر ' + (el.querySelector('#rp-channel').value === 'whatsapp' ? 'واتساب' : 'البريد الإلكتروني'));
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  window.ViewsShared = {
+    pill: pill, money: money, millions: millions, toast: toast, modal: modal,
+    discOf: discOf, floorName: floorName, weightedProgress: weightedProgress,
+    summarize: summarize, STATUS: STATUS, esc: esc,
+    renderDashboard: renderDashboard, renderVision: renderVision,
+    renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports
+  };
+})();
+
+
+/* ===== public/js/views2.js ===== */
+/** بصير | صفحات الاستشاري والمقاول والإدارة */
+(function () {
+  'use strict';
+
+  const VS = window.ViewsShared;
+  const esc = VS.esc, pill = VS.pill, money = VS.money, toast = VS.toast, modal = VS.modal, discOf = VS.discOf;
+
+  const APPROVAL_TABS = [
+    { col: 'shopDrawings', name: 'المخططات التنفيذية', icon: '📐' },
+    { col: 'scheduleSubmittals', name: 'الجداول الزمنية', icon: '🗓️' },
+    { col: 'materials', name: 'المواد والداتا شيت', icon: '🧱' },
+    { col: 'wirs', name: 'طلبات الاستلام', icon: '✅' },
+    { col: 'changeOrders', name: 'أوامر التغيير', icon: '🔁' },
+    { col: 'payments', name: 'المستخلصات', icon: '💰' }
+  ];
+
+  function contractorName(ctx, id) {
+    const c = ctx.S.contractors.find(function (x) { return x.id === id; });
+    return c ? c.name : id || '—';
+  }
+
+  // ============ صفحة اعتمادات الاستشاري ============
+  const apprState = { tab: 'shopDrawings' };
+
+  function renderApprovals(el, ctx) {
+    const tab = apprState.tab;
+    const items = (ctx.S[tab] || []).slice().sort(function (a, b) {
+      return (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1);
+    });
+
+    el.innerHTML =
+      '<div class="tabs">' + APPROVAL_TABS.map(function (t) {
+        const pending = (ctx.S[t.col] || []).filter(function (x) { return x.status === 'pending'; }).length;
+        return '<div class="tab ' + (tab === t.col ? 'active' : '') + '" data-atab="' + t.col + '">' + t.icon + ' ' + t.name +
+          (pending ? '<span class="n">' + pending + '</span>' : '') + '</div>';
+      }).join('') + '</div>' +
+
+      '<div class="card"><h3>' + (APPROVAL_TABS.find(function (t) { return t.col === tab; }) || {}).icon + ' ' +
+      esc((APPROVAL_TABS.find(function (t) { return t.col === tab; }) || {}).name) +
+      ' <span class="hint">القرار يُوقَّع إلكترونياً باسم الاستشاري ويُشعَر به المقاول</span></h3>' +
+      (items.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+        '<th>المرجع</th><th>العنوان</th><th>المقاول</th>' +
+        (tab === 'changeOrders' ? '<th>القيمة / الأيام</th>' : '') +
+        (tab === 'payments' ? '<th>القيمة</th>' : '') +
+        '<th>التاريخ</th><th>الحالة</th><th>الملاحظات / التوقيع</th><th></th></tr></thead><tbody>' +
+        items.map(function (it) {
+          return '<tr>' +
+            '<td class="num small"><b>' + esc(it.ref) + '</b>' + (it.file ? '<br><span class="muted">📎 ' + esc(it.file) + '</span>' : '') + '</td>' +
+            '<td>' + esc(it.title) + (it.location ? '<div class="small muted">الموقع: ' + esc(VS.floorName(ctx, it.location)) + '</div>' : '') + '</td>' +
+            '<td class="small">' + esc(contractorName(ctx, it.contractorId)) + '</td>' +
+            (tab === 'changeOrders' ? '<td>' + money(it.amount) + '<div class="small muted num">+' + (it.days || 0) + ' يوم</div></td>' : '') +
+            (tab === 'payments' ? '<td>' + money(it.amount) + '</td>' : '') +
+            '<td class="small muted num">' + esc(it.date) + '</td>' +
+            '<td>' + pill(it.status) + '</td>' +
+            '<td class="small" style="max-width:220px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
+            (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
+            '<td>' + (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">مراجعة وقرار</button>' : '') + '</td>' +
+            '</tr>';
+        }).join('') + '</tbody></table></div>'
+        : '<div class="empty"><div class="e-ico">📭</div>لا توجد طلبات في هذا القسم</div>') +
+      '</div>';
+
+    el.querySelectorAll('[data-atab]').forEach(function (t) {
+      t.addEventListener('click', function () { apprState.tab = t.getAttribute('data-atab'); renderApprovals(el, ctx); });
+    });
+    el.querySelectorAll('[data-review]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-review'); });
+        openReviewModal(ctx, tab, it);
+      });
+    });
+  }
+
+  function openReviewModal(ctx, collection, it) {
+    const isPayment = collection === 'payments';
+    const m = modal(
+      '<h3>مراجعة: ' + esc(it.title) + '</h3>' +
+      '<div class="m-sub">' + esc(it.ref) + ' · ' + esc(contractorName(ctx, it.contractorId)) +
+      (it.amount ? ' · القيمة ' + money(it.amount) : '') + '</div>' +
+      (isPayment && (it.lines || []).length ?
+        '<div class="card" style="padding:12px;margin-bottom:10px"><b class="small">بنود جدول الكميات في هذا المستخلص:</b>' +
+        it.lines.map(function (l) {
+          const bq = ctx.S.boqItems.find(function (b) { return b.id === l.boqItemId; });
+          return '<div class="small muted" style="margin-top:6px">• ' + (bq ? esc(bq.description) + ' (' + esc(bq.floor) + ')' : l.boqItemId) + ' ← إنجاز <b class="num" style="color:var(--ok)">' + l.progress + '%</b></div>';
+        }).join('') +
+        '<div class="small mt" style="color:var(--accent2)">💡 عند الاعتماد ستتحدث نسب هذه البنود تلقائياً وتتحول مناطقها في المخططات من داكنة إلى ساطعة.</div></div>' : '') +
+      '<label class="fl">القرار</label>' +
+      '<select class="inp" id="rv-status">' +
+      '<option value="approved">✅ اعتماد</option>' +
+      '<option value="approved_notes">📝 اعتماد مع ملاحظات</option>' +
+      '<option value="rejected">❌ رفض وإرجاع للمقاول</option></select>' +
+      '<label class="fl">الملاحظات</label><textarea class="inp" id="rv-notes" placeholder="اكتب ملاحظاتك للمقاول..."></textarea>' +
+      '<label class="fl flex" style="cursor:pointer"><input type="checkbox" id="rv-sign" checked> توقيع إلكتروني باسم: <b style="color:var(--accent2)">' + esc(ctx.U.name) + '</b></label>' +
+      '<div class="m-actions"><button class="btn" id="rv-ok">تأكيد القرار</button><button class="btn mutedb" id="rv-cancel">إلغاء</button></div>'
+    );
+    m.querySelector('#rv-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#rv-ok').addEventListener('click', async function () {
+      if (!m.querySelector('#rv-sign').checked) { toast('يلزم التوقيع الإلكتروني لتأكيد القرار', true); return; }
+      try {
+        await Api.review({
+          collection: collection, id: it.id,
+          status: m.querySelector('#rv-status').value,
+          notes: m.querySelector('#rv-notes').value
+        });
+        m.remove();
+        toast('✅ تم تسجيل القرار وتوقيعه وإشعار المقاول');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  // ============ إدارة المقاولين (الاستشاري) ============
+  function renderManageContractors(el, ctx) {
+    const sums = VS.summarize(ctx);
+    el.innerHTML =
+      '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
+      '<div class="card"><h3>👷 مقاولو المشروع</h3><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      '<th>المقاول</th><th>التخصص</th><th>قيمة العقد</th><th>المدة</th><th>الإنجاز</th><th>حساب الدخول</th></tr></thead><tbody>' +
+      sums.map(function (s) {
+        const d = discOf(ctx, s.type);
+        const acc = (ctx.S.users || []).find(function (u) { return u.contractorId === s.id; });
+        return '<tr><td><b>' + esc(s.name) + '</b></td>' +
+          '<td>' + d.icon + ' ' + esc(d.name) + '</td>' +
+          '<td>' + money(s.contractValue) + '</td>' +
+          '<td class="small muted num">' + esc(s.startDate) + '<br>' + esc(s.endDate) + '</td>' +
+          '<td><b class="num">' + s.progress + '%</b></td>' +
+          '<td class="small">' + (acc ? '👤 <b class="num">' + esc(acc.username) + '</b>' : '<span class="muted">بلا حساب</span>') + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>' +
+
+      '<div class="card"><h3>➕ إضافة مقاول جديد</h3>' +
+      '<label class="fl">اسم المقاول</label><input class="inp" id="nc-name" placeholder="شركة ...">' +
+      '<label class="fl">التخصص</label><select class="inp" id="nc-type">' +
+      ctx.S.projects[0].disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select>' +
+      '<div class="grid g2"><div><label class="fl">قيمة العقد (ر.س)</label><input class="inp num" id="nc-value" type="number" placeholder="1000000"></div>' +
+      '<div><label class="fl">الجوال</label><input class="inp num" id="nc-phone" placeholder="05xxxxxxxx"></div></div>' +
+      '<div class="grid g2"><div><label class="fl">تاريخ البدء</label><input class="inp" id="nc-start" type="date"></div>' +
+      '<div><label class="fl">تاريخ الانتهاء</label><input class="inp" id="nc-end" type="date"></div></div>' +
+      '<label class="fl">بنود جدول الكميات</label><div id="nc-boq"></div>' +
+      '<button class="btn ghost sm" id="nc-addrow">+ إضافة بند</button>' +
+      '<label class="fl">اسم مستخدم للمقاول (لإنشاء حساب دخول)</label><input class="inp" id="nc-user" placeholder="cont-name">' +
+      '<label class="fl">كلمة المرور (اتركها فارغة للتوليد التلقائي)</label><input class="inp" id="nc-pass" placeholder="••••••••">' +
+      '<div class="m-actions"><button class="btn block" id="nc-save">حفظ المقاول وإنشاء الحساب</button></div>' +
+      '</div></div>';
+
+    const boqWrap = el.querySelector('#nc-boq');
+    function addRow() {
+      const r = document.createElement('div');
+      r.className = 'grid'; r.style.cssText = 'grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px';
+      r.innerHTML = '<input class="inp" placeholder="وصف البند" data-f="description">' +
+        '<input class="inp" placeholder="الوحدة" data-f="unit">' +
+        '<input class="inp num" type="number" placeholder="كمية" data-f="qty">' +
+        '<input class="inp num" type="number" placeholder="سعر" data-f="unitPrice">' +
+        '<select class="inp" data-f="floor">' + ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>';
+      boqWrap.appendChild(r);
+    }
+    addRow();
+    el.querySelector('#nc-addrow').addEventListener('click', addRow);
+
+    el.querySelector('#nc-save').addEventListener('click', async function () {
+      const name = el.querySelector('#nc-name').value.trim();
+      if (!name) { toast('أدخل اسم المقاول', true); return; }
+      const boqItems = Array.prototype.map.call(boqWrap.children, function (r) {
+        const o = {};
+        r.querySelectorAll('[data-f]').forEach(function (i) { o[i.getAttribute('data-f')] = i.value; });
+        return o;
+      }).filter(function (o) { return o.description; });
+      try {
+        const res = await Api.addContractor({
+          name: name, type: el.querySelector('#nc-type').value,
+          contractValue: el.querySelector('#nc-value').value,
+          phone: el.querySelector('#nc-phone').value,
+          startDate: el.querySelector('#nc-start').value, endDate: el.querySelector('#nc-end').value,
+          boqItems: boqItems,
+          username: el.querySelector('#nc-user').value.trim() || null,
+          password: el.querySelector('#nc-pass').value || null
+        });
+        if (res.account) {
+          modal('<h3>✅ تم إنشاء المقاول وحسابه</h3><div class="m-sub">سلّم هذه البيانات للمقاول للدخول على صفحة المشروع:</div>' +
+            '<div class="card" style="padding:16px"><div>👤 اسم المستخدم: <b class="num">' + esc(res.account.username) + '</b></div>' +
+            '<div class="mt">🔑 كلمة المرور: <b class="num">' + esc(res.account.password) + '</b></div></div>' +
+            '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">تم</button></div>');
+        } else toast('✅ تمت إضافة المقاول');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  // ============ جدول الكميات (الاستشاري) ============
+  const boqState = { contractor: 'all' };
+
+  function renderBoq(el, ctx) {
+    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const items = ctx.S.boqItems.filter(function (b) {
+      return boqState.contractor === 'all' || b.contractorId === boqState.contractor;
+    });
+    const total = items.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
+    const earned = items.reduce(function (a, b) { return a + b.qty * b.unitPrice * b.progress / 100; }, 0);
+
+    el.innerHTML =
+      '<div class="card"><h3>📊 جدول الكميات BOQ <span class="hint">تحديث نسب الإنجاز هنا يغيّر سطوع المخططات مباشرة</span></h3>' +
+      '<div class="flex mb"><select class="inp" id="bq-filter" style="max-width:320px"><option value="all">كل المقاولين</option>' +
+      ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '"' + (boqState.contractor === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') +
+      '</select>' +
+      '<span class="pill p-info">القيمة: ' + money(Math.round(total)) + '</span>' +
+      '<span class="pill p-ok">المنفذ: ' + money(Math.round(earned)) + ' (' + (total ? Math.round(earned / total * 100) : 0) + '%)</span></div>' +
+      '<div class="tbl-wrap" style="max-height:60vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
+      '<th>الكود</th><th>البند</th><th>الدور</th><th>الوحدة</th><th>الكمية</th><th>سعر الوحدة</th><th>الإجمالي</th><th style="min-width:160px">نسبة الإنجاز</th></tr></thead><tbody>' +
+      items.map(function (b) {
+        const d = discOf(ctx, b.discipline);
+        return '<tr><td class="num small">' + esc(b.code) + '</td>' +
+          '<td>' + d.icon + ' ' + esc(b.description) + '</td>' +
+          '<td class="small">' + esc(VS.floorName(ctx, b.floor)) + '</td>' +
+          '<td class="small">' + esc(b.unit) + '</td><td class="num">' + b.qty + '</td>' +
+          '<td class="num">' + b.unitPrice.toLocaleString('en-US') + '</td>' +
+          '<td class="num">' + (b.qty * b.unitPrice).toLocaleString('en-US') + '</td>' +
+          '<td><div class="flex">' +
+          (canEdit ? '<input type="range" min="0" max="100" value="' + b.progress + '" data-bq="' + b.id + '" style="flex:1;accent-color:' + d.color + '">' :
+            '<div class="bar" style="flex:1"><i style="width:' + b.progress + '%"></i></div>') +
+          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td></tr>';
+      }).join('') + '</tbody></table></div></div>';
+
+    el.querySelector('#bq-filter').addEventListener('change', function (e) {
+      boqState.contractor = e.target.value; renderBoq(el, ctx);
+    });
+    el.querySelectorAll('[data-bq]').forEach(function (r) {
+      r.addEventListener('input', function () {
+        el.querySelector('#bqv-' + r.getAttribute('data-bq')).textContent = r.value + '%';
+      });
+      r.addEventListener('change', async function () {
+        try {
+          const v = Number(r.value);
+          await Api.update('boqItems', r.getAttribute('data-bq'), {
+            progress: v, status: v >= 100 ? 'منجز' : v > 0 ? 'جاري' : 'لم يبدأ'
+          });
+          toast('✅ حُدّث البند — انعكس ذلك على سطوع المخططات');
+          ctx.refreshSilent();
+        } catch (e) { toast(e.message, true); }
+      });
+    });
+  }
+
+  // ============ التقارير اليومية (إنشاء - الاستشاري) ============
+  function renderDailyReport(el, ctx) {
+    el.innerHTML =
+      '<div class="grid" style="grid-template-columns:1fr 1.2fr">' +
+      '<div class="card"><h3>📝 تقرير يومي جديد</h3>' +
+      '<label class="fl">التاريخ</label><input class="inp" id="dr-date" type="date" value="' + new Date().toISOString().slice(0, 10) + '">' +
+      '<div class="grid g2"><div><label class="fl">الطقس</label><input class="inp" id="dr-weather" placeholder="مشمس 40°"></div>' +
+      '<div><label class="fl">العمالة</label><input class="inp num" id="dr-manpower" type="number" placeholder="150"></div></div>' +
+      '<label class="fl">المعدات</label><input class="inp" id="dr-equipment" placeholder="رافعة برجية 2...">' +
+      '<label class="fl">الأعمال المنفذة (سطر لكل عمل)</label><textarea class="inp" id="dr-works" rows="5" placeholder="صب خرسانة...\nلياسة..."></textarea>' +
+      '<label class="fl">الصور والملفات الداعمة</label>' +
+      '<input class="inp" id="dr-photos" type="file" multiple accept="image/*,.pdf">' +
+      '<div class="m-actions"><button class="btn block" id="dr-save">حفظ التقرير</button></div></div>' +
+      '<div class="card"><h3>🗄️ أرشيف التقارير اليومية</h3>' +
+      ctx.S.dailyReports.map(function (r) {
+        return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
+          '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="small muted">عمالة: ' + r.manpower + ' · 📎 ' + (r.photos || []).length + '</span></div>' +
+          '<div class="small" style="margin-top:6px;color:#c6cdda">' + r.works.map(esc).join(' • ') + '</div></div>';
+      }).join('') + '</div></div>';
+
+    el.querySelector('#dr-save').addEventListener('click', async function () {
+      const files = el.querySelector('#dr-photos').files;
+      try {
+        await Api.create('dailyReports', {
+          date: el.querySelector('#dr-date').value,
+          weather: el.querySelector('#dr-weather').value || '—',
+          manpower: Number(el.querySelector('#dr-manpower').value) || 0,
+          equipment: el.querySelector('#dr-equipment').value || '—',
+          works: el.querySelector('#dr-works').value.split('\n').filter(Boolean),
+          photos: Array.prototype.map.call(files, function (f) { return f.name; }),
+          by: ctx.U.name
+        });
+        toast('✅ حُفظ التقرير اليومي');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  // ============ ممثل المالك: المشاريع والاستشاريين ============
+  function renderRepProjects(el, ctx) {
+    el.innerHTML =
+      '<div class="grid" style="grid-template-columns:1.2fr 1fr">' +
+      '<div class="card"><h3>🏗️ مشاريع المالك</h3>' +
+      ctx.S.projects.map(function (p) {
+        return '<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
+          '<div class="flex" style="justify-content:space-between"><b style="font-size:16px">' + esc(p.name) + '</b>' +
+          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div>' +
+          '<div class="small muted" style="margin:6px 0">' + esc(p.location) + ' · الميزانية ' + VS.millions(p.budgetPlanned) + '</div>' +
+          '<div class="small">👨‍💼 الاستشاري: <b>' + esc(p.consultantName || 'لم يعيّن') + '</b></div></div>';
+      }).join('') + '</div>' +
+
+      '<div class="card"><h3>➕ إضافة مشروع وتعيين استشاري</h3>' +
+      '<label class="fl">اسم المشروع</label><input class="inp" id="np-name" placeholder="برج / فيلا / مجمع...">' +
+      '<label class="fl">الموقع</label><input class="inp" id="np-loc" placeholder="المدينة - الحي">' +
+      '<div class="grid g2"><div><label class="fl">تاريخ البدء</label><input class="inp" id="np-start" type="date"></div>' +
+      '<div><label class="fl">تاريخ الانتهاء</label><input class="inp" id="np-end" type="date"></div></div>' +
+      '<label class="fl">الميزانية التقديرية (ر.س)</label><input class="inp num" id="np-budget" type="number" placeholder="10000000">' +
+      '<label class="fl">المكتب الاستشاري</label><input class="inp" id="np-cons" placeholder="اسم المكتب الهندسي">' +
+      '<div class="grid g2"><div><label class="fl">اسم مستخدم الاستشاري</label><input class="inp" id="np-user" placeholder="consult-x"></div>' +
+      '<div><label class="fl">كلمة المرور</label><input class="inp" id="np-pass" placeholder="تلقائية إن تُركت"></div></div>' +
+      '<div class="m-actions"><button class="btn block" id="np-save">إنشاء المشروع وحساب الاستشاري</button></div></div></div>';
+
+    el.querySelector('#np-save').addEventListener('click', async function () {
+      const name = el.querySelector('#np-name').value.trim();
+      if (!name) { toast('أدخل اسم المشروع', true); return; }
+      try {
+        const res = await Api.addProject({
+          name: name, location: el.querySelector('#np-loc').value,
+          startPlanned: el.querySelector('#np-start').value, endPlanned: el.querySelector('#np-end').value,
+          budgetPlanned: el.querySelector('#np-budget').value,
+          consultantName: el.querySelector('#np-cons').value,
+          consultantUsername: el.querySelector('#np-user').value.trim() || null,
+          consultantPassword: el.querySelector('#np-pass').value || null,
+          ownerName: ctx.S.projects[0].ownerName
+        });
+        if (res.account) {
+          modal('<h3>✅ أُنشئ المشروع وحساب الاستشاري</h3><div class="m-sub">بيانات دخول الاستشاري:</div>' +
+            '<div class="card" style="padding:16px"><div>👤 <b class="num">' + esc(res.account.username) + '</b></div>' +
+            '<div class="mt">🔑 <b class="num">' + esc(res.account.password) + '</b></div></div>' +
+            '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">تم</button></div>');
+        } else toast('✅ أُنشئ المشروع');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  // ============ إدارة المستخدمين ============
+  const ROLE_NAMES = {
+    admin: 'مدير النظام', owner: 'المالك', owner_rep: 'ممثل المالك',
+    consultant: 'الاستشاري', contractor: 'مقاول'
+  };
+
+  function renderUsers(el, ctx) {
+    const isAdmin = ctx.U.role === 'admin';
+    el.innerHTML =
+      '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
+      '<div class="card"><h3>👥 مستخدمو النظام</h3><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      '<th>الاسم</th><th>اسم المستخدم</th>' + (isAdmin ? '<th>كلمة المرور</th>' : '') + '<th>الدور</th><th></th></tr></thead><tbody>' +
+      (ctx.S.users || []).map(function (u) {
+        return '<tr><td><b>' + esc(u.name) + '</b></td><td class="num">' + esc(u.username) + '</td>' +
+          (isAdmin ? '<td class="num small muted">' + esc(u.password || '••••') + '</td>' : '') +
+          '<td><span class="pill p-info">' + esc(ROLE_NAMES[u.role] || u.role) + '</span></td>' +
+          '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">حذف</button>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div></div>' +
+
+      '<div class="card"><h3>➕ إضافة مستخدم</h3>' +
+      '<label class="fl">الاسم الكامل</label><input class="inp" id="nu-name">' +
+      '<label class="fl">اسم المستخدم</label><input class="inp" id="nu-user">' +
+      '<label class="fl">كلمة المرور</label><input class="inp" id="nu-pass">' +
+      '<label class="fl">الدور</label><select class="inp" id="nu-role">' +
+      Object.keys(ROLE_NAMES).map(function (r) { return '<option value="' + r + '">' + ROLE_NAMES[r] + '</option>'; }).join('') + '</select>' +
+      '<label class="fl">ربط بمقاول (لدور المقاول فقط)</label><select class="inp" id="nu-cont"><option value="">—</option>' +
+      ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>' +
+      '<div class="m-actions"><button class="btn block" id="nu-save">إنشاء المستخدم</button></div></div></div>';
+
+    el.querySelector('#nu-save').addEventListener('click', async function () {
+      try {
+        await Api.create('users', {
+          name: el.querySelector('#nu-name').value,
+          username: el.querySelector('#nu-user').value,
+          password: el.querySelector('#nu-pass').value,
+          role: el.querySelector('#nu-role').value,
+          contractorId: el.querySelector('#nu-cont').value || undefined
+        });
+        toast('✅ أُنشئ المستخدم');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+    el.querySelectorAll('[data-del]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        if (!confirm('حذف هذا المستخدم؟')) return;
+        try { await Api.remove('users', b.getAttribute('data-del')); toast('حُذف المستخدم'); ctx.refresh(); }
+        catch (e) { toast(e.message, true); }
+      });
+    });
+  }
+
+  // ============ رفع BIM وربط الكميات (الاستشاري) ============
+  function renderBimUpload(el, ctx) {
+    const P = ctx.S.projects[0];
+    el.innerHTML =
+      '<div class="grid g2">' +
+      '<div class="card"><h3>🏢 رفع نموذج BIM</h3>' +
+      '<div class="m-sub">ارفع نموذج المشروع (IFC / RVT / NWD) ليُعرض للمالك في صفحة "رؤية المشروع" مربوطاً بجدول الكميات.</div>' +
+      '<label class="fl">ملف النموذج</label><input class="inp" id="bim-file" type="file" accept=".ifc,.rvt,.nwd,.nwc">' +
+      '<label class="fl">إصدار النموذج</label><input class="inp" id="bim-rev" placeholder="Rev-04 - يوليو 2026" value="Rev-04 - يوليو 2026">' +
+      '<div class="m-actions"><button class="btn block" id="bim-up">رفع النموذج وربطه بجدول الكميات</button></div>' +
+      '<div class="sig">النموذج الحالي: BassirTower_Rev03.ifc · رُفع 2026-06-12 · مرتبط بـ <b class="num">' + ctx.S.boqItems.length + '</b> بند</div></div>' +
+
+      '<div class="card"><h3>🔗 حالة ربط جدول الكميات بالنموذج</h3>' +
+      P.disciplines.map(function (d) {
+        const n = ctx.S.boqItems.filter(function (b) { return b.discipline === d.id; }).length;
+        return '<div class="flex" style="justify-content:space-between;border-bottom:1px solid rgba(34,44,64,.5);padding:10px 2px">' +
+          '<span>' + d.icon + ' ' + esc(d.name) + '</span>' +
+          '<span class="small"><b class="num">' + n + '</b> بند مربوط <span class="pill p-ok">✓</span></span></div>';
+      }).join('') +
+      '<div class="small muted mt">💡 كل بند كميات مربوط بعناصر النموذج، فيتلوّن العنصر ساطعاً في عرض المالك عند اكتمال البند واعتماد مستخلصه.</div></div></div>';
+
+    el.querySelector('#bim-up').addEventListener('click', function () {
+      const f = el.querySelector('#bim-file').files[0];
+      if (!f) { toast('اختر ملف النموذج أولاً', true); return; }
+      toast('✅ رُفع النموذج "' + f.name + '" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع');
+    });
+  }
+
+  // ============ صفحات المقاول ============
+  const contState = { tab: 'shopDrawings' };
+
+  function renderContractorHome(el, ctx) {
+    const c = ctx.S.contractors[0];
+    if (!c) { el.innerHTML = '<div class="empty">لا يوجد عقد مرتبط بحسابك</div>'; return; }
+    const sums = VS.summarize(ctx)[0];
+    const d = discOf(ctx, c.type);
+    const pendingAll = APPROVAL_TABS.reduce(function (a, t) {
+      return a + (ctx.S[t.col] || []).filter(function (x) { return x.status === 'pending'; }).length;
+    }, 0);
+
+    el.innerHTML =
+      '<div class="grid g4 mb">' +
+      '<div class="card kpi"><div class="lbl">عقد ' + d.icon + ' ' + esc(d.name) + '</div><div class="val">' + VS.millions(c.contractValue) + '</div>' +
+      '<div class="sub num">' + esc(c.startDate) + ' ← ' + esc(c.endDate) + '</div></div>' +
+      '<div class="card kpi ' + (sums.delayed ? 'k-danger' : 'k-ok') + '"><div class="lbl">نسبة الإنجاز</div><div class="val num">' + sums.progress + '%</div>' +
+      '<div class="sub">المخطط <b class="num">' + sums.plannedProgress + '%</b>' + (sums.delayed ? ' · <span class="trend-down">متأخر</span>' : ' · <span class="trend-up">ضمن الجدول</span>') + '</div></div>' +
+      '<div class="card kpi k-info"><div class="lbl">المبالغ المستلمة</div><div class="val">' + VS.millions(c.amountReceived) + '</div>' +
+      '<div class="sub num">' + Math.round(c.amountReceived / c.contractValue * 100) + '% من قيمة العقد</div></div>' +
+      '<div class="card kpi k-warn"><div class="lbl">طلبات قيد المراجعة</div><div class="val num">' + pendingAll + '</div><div class="sub">لدى الاستشاري</div></div>' +
+      '</div>' +
+
+      '<div class="tabs">' + APPROVAL_TABS.map(function (t) {
+        const pending = (ctx.S[t.col] || []).filter(function (x) { return x.status === 'pending'; }).length;
+        return '<div class="tab ' + (contState.tab === t.col ? 'active' : '') + '" data-ctab="' + t.col + '">' + t.icon + ' ' + t.name +
+          (pending ? '<span class="n">' + pending + '</span>' : '') + '</div>';
+      }).join('') + '</div>' +
+
+      '<div class="card"><div class="flex" style="justify-content:space-between;margin-bottom:12px">' +
+      '<h3 style="margin:0">' + (APPROVAL_TABS.find(function (t) { return t.col === contState.tab; }) || {}).name + '</h3>' +
+      '<button class="btn sm" id="ct-new">➕ رفع طلب جديد</button></div>' +
+      renderContractorList(ctx) + '</div>';
+
+    el.querySelectorAll('[data-ctab]').forEach(function (t) {
+      t.addEventListener('click', function () { contState.tab = t.getAttribute('data-ctab'); renderContractorHome(el, ctx); });
+    });
+    el.querySelector('#ct-new').addEventListener('click', function () { openSubmitModal(ctx); });
+  }
+
+  function renderContractorList(ctx) {
+    const items = (ctx.S[contState.tab] || []).slice().reverse();
+    if (!items.length) return '<div class="empty"><div class="e-ico">📭</div>لا طلبات بعد — ارفع أول طلب</div>';
+    return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المرجع</th><th>العنوان</th>' +
+      (contState.tab === 'changeOrders' || contState.tab === 'payments' ? '<th>القيمة</th>' : '') +
+      '<th>التاريخ</th><th>الحالة</th><th>رد الاستشاري</th></tr></thead><tbody>' +
+      items.map(function (it) {
+        return '<tr><td class="num small"><b>' + esc(it.ref) + '</b></td><td>' + esc(it.title) + '</td>' +
+          (contState.tab === 'changeOrders' || contState.tab === 'payments' ? '<td>' + money(it.amount) + '</td>' : '') +
+          '<td class="small muted num">' + esc(it.date) + '</td><td>' + pill(it.status) + '</td>' +
+          '<td class="small" style="max-width:240px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
+          (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  function openSubmitModal(ctx) {
+    const tab = contState.tab;
+    const meta = APPROVAL_TABS.find(function (t) { return t.col === tab; });
+    const needAmount = tab === 'changeOrders' || tab === 'payments';
+    const isPayment = tab === 'payments';
+    const isWir = tab === 'wirs';
+    const myBoq = ctx.S.boqItems;
+
+    const m = modal(
+      '<h3>➕ رفع ' + meta.name + '</h3>' +
+      '<div class="m-sub">سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض</div>' +
+      '<label class="fl">رقم المرجع</label><input class="inp num" id="sb-ref" placeholder="REF-001">' +
+      '<label class="fl">العنوان / الوصف</label><input class="inp" id="sb-title">' +
+      (needAmount ? '<label class="fl">القيمة (ر.س)</label><input class="inp num" id="sb-amount" type="number">' : '') +
+      (tab === 'changeOrders' ? '<label class="fl">الأيام الإضافية المطلوبة</label><input class="inp num" id="sb-days" type="number" value="0">' : '') +
+      (isWir ? '<label class="fl">الموقع / الدور</label><select class="inp" id="sb-loc">' +
+        ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>' : '') +
+      (isPayment ?
+        '<label class="fl">بنود المستخلص (اختر البند والنسبة المنجزة الجديدة)</label><div id="sb-lines"></div>' +
+        '<button class="btn ghost sm" id="sb-addline">+ إضافة بند</button>' : '') +
+      '<label class="fl">المرفقات (المخطط / الداتا شيت / المستندات)</label><input class="inp" id="sb-file" type="file" multiple>' +
+      '<div class="m-actions"><button class="btn" id="sb-ok">إرسال للاستشاري</button><button class="btn mutedb" id="sb-cancel">إلغاء</button></div>'
+    );
+
+    if (isPayment) {
+      const wrap = m.querySelector('#sb-lines');
+      function addLine() {
+        const r = document.createElement('div');
+        r.className = 'grid'; r.style.cssText = 'grid-template-columns:2.2fr 1fr;gap:6px;margin-bottom:6px';
+        r.innerHTML = '<select class="inp" data-lf="boqItemId">' +
+          myBoq.map(function (b) { return '<option value="' + b.id + '">' + esc(b.description) + ' — ' + esc(b.floor) + ' (حالياً ' + b.progress + '%)</option>'; }).join('') +
+          '</select><input class="inp num" data-lf="progress" type="number" min="0" max="100" placeholder="% الجديدة">';
+        wrap.appendChild(r);
+      }
+      addLine();
+      m.querySelector('#sb-addline').addEventListener('click', addLine);
+    }
+
+    m.querySelector('#sb-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#sb-ok').addEventListener('click', async function () {
+      const data = {
+        ref: m.querySelector('#sb-ref').value || 'REF-' + Math.floor(Math.random() * 900 + 100),
+        title: m.querySelector('#sb-title').value
+      };
+      if (!data.title) { toast('أدخل عنوان الطلب', true); return; }
+      if (needAmount) data.amount = Number(m.querySelector('#sb-amount').value) || 0;
+      if (tab === 'changeOrders') data.days = Number(m.querySelector('#sb-days').value) || 0;
+      if (isWir) data.location = m.querySelector('#sb-loc').value;
+      const files = m.querySelector('#sb-file').files;
+      if (files.length) data.file = files[0].name;
+      if (isPayment) {
+        data.lines = Array.prototype.map.call(m.querySelector('#sb-lines').children, function (r) {
+          return {
+            boqItemId: r.querySelector('[data-lf="boqItemId"]').value,
+            progress: Number(r.querySelector('[data-lf="progress"]').value) || 0
+          };
+        }).filter(function (l) { return l.progress > 0; });
+      }
+      try {
+        await Api.create(tab, data);
+        m.remove();
+        toast('✅ أُرسل الطلب للاستشاري');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  window.ViewsRoles = {
+    renderApprovals: renderApprovals,
+    renderManageContractors: renderManageContractors,
+    renderBoq: renderBoq,
+    renderDailyReport: renderDailyReport,
+    renderRepProjects: renderRepProjects,
+    renderUsers: renderUsers,
+    renderBimUpload: renderBimUpload,
+    renderContractorHome: renderContractorHome
+  };
+})();
+
+
+/* ===== public/js/app.js ===== */
+/** بصير | التطبيق الرئيسي: الدخول، التوجيه، الهيكل */
+(function () {
+  'use strict';
+
+  const VS = window.ViewsShared, VR = window.ViewsRoles;
+  const esc = VS.esc;
+
+  const PAGES = [
+    { id: 'dashboard', title: 'لوحة القيادة', icon: '📊', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderDashboard },
+    { id: 'vision', title: 'رؤية المشروع', icon: '👁', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderVision },
+    { id: 'contractors', title: 'المقاولون والأداء', icon: '👷', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderContractors },
+    { id: 'ai', title: 'ذكاء بصير الاصطناعي', icon: '🤖', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderAi },
+    { id: 'reports', title: 'التقارير والإرسال', icon: '📨', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderReports },
+
+    { id: 'home', title: 'لوحة المقاول', icon: '🏗️', sec: 'أعمالي', roles: ['contractor'], render: VR.renderContractorHome },
+
+    { id: 'approvals', title: 'الاعتمادات', icon: '✍️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderApprovals, badge: badgePending },
+    { id: 'boq', title: 'جداول الكميات', icon: '📊', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBoq },
+    { id: 'manage-contractors', title: 'إدارة المقاولين', icon: '🧰', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderManageContractors },
+    { id: 'daily', title: 'التقارير اليومية', icon: '📝', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderDailyReport },
+    { id: 'bim-upload', title: 'رفع نموذج BIM', icon: '🏢', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBimUpload },
+
+    { id: 'rep-projects', title: 'المشاريع والاستشاريون', icon: '🗂️', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderRepProjects },
+    { id: 'users', title: 'المستخدمون', icon: '👥', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderUsers }
+  ];
+
+  const ROLE_NAMES = {
+    admin: 'مدير النظام', owner: 'المالك', owner_rep: 'ممثل المالك',
+    consultant: 'استشاري المشروع', contractor: 'مقاول'
+  };
+
+  function badgePending(S) {
+    return ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments']
+      .reduce(function (a, c) { return a + (S[c] || []).filter(function (x) { return x.status === 'pending'; }).length; }, 0);
+  }
+
+  const app = document.getElementById('app');
+  let ctx = null;
+
+  // ============ شاشة الدخول ============
+  function renderLogin(msg) {
+    app.innerHTML =
+      '<div class="login-wrap"><div class="login-card">' +
+      '<div class="login-logo">👁</div>' +
+      '<div class="login-title">بصير <small>BASSIR · OWNER EYES</small></div>' +
+      '<div class="login-sub">عينك على مشروعك — منصة الرؤية البصرية التي تربط المالك بالاستشاري والمقاول<br>وترى بها تقدم مشروعك كما لو كنت في الموقع</div>' +
+      (msg ? '<div class="pill p-danger" style="display:block;text-align:center;margin-bottom:12px;padding:10px">' + esc(msg) + '</div>' : '') +
+      '<label class="fl">اسم المستخدم</label><input class="inp num" id="lg-user" autocomplete="username">' +
+      '<label class="fl">كلمة المرور</label><input class="inp num" id="lg-pass" type="password" autocomplete="current-password">' +
+      '<div class="m-actions"><button class="btn block" id="lg-go">دخول</button></div>' +
+      '<div class="demo-accounts"><h4>حسابات تجريبية — اضغط للتعبئة:</h4>' +
+      [['owner', 'owner123', '👁 المالك'], ['rep', 'rep123', '🧑‍💼 ممثل المالك'], ['consultant', 'consult123', '📐 الاستشاري'],
+       ['cont-arch', 'cont123', '👷 مقاول معماري'], ['cont-str', 'cont123', '🏗️ مقاول إنشائي'], ['admin', 'admin123', '⚙️ الأدمن']]
+        .map(function (a) { return '<span class="demo-chip" data-u="' + a[0] + '" data-p="' + a[1] + '">' + a[2] + '</span>'; }).join('') +
+      '</div></div></div>';
+
+    app.querySelectorAll('.demo-chip').forEach(function (c) {
+      c.addEventListener('click', function () {
+        document.getElementById('lg-user').value = c.getAttribute('data-u');
+        document.getElementById('lg-pass').value = c.getAttribute('data-p');
+        doLogin();
+      });
+    });
+    document.getElementById('lg-go').addEventListener('click', doLogin);
+    document.getElementById('lg-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+  }
+
+  async function doLogin() {
+    const u = document.getElementById('lg-user').value.trim();
+    const p = document.getElementById('lg-pass').value;
+    try {
+      await Api.login(u, p);
+      await boot();
+    } catch (e) { renderLogin(e.message); }
+  }
+
+  // ============ الهيكل الرئيسي ============
+  async function boot() {
+    const user = Api.currentUser();
+    if (!user) { renderLogin(); return; }
+    let S;
+    try { S = await Api.state(); }
+    catch (e) { await Api.logout(); renderLogin(e.status === 401 ? null : e.message); return; }
+
+    const myPages = PAGES.filter(function (p) { return p.roles.indexOf(user.role) !== -1; });
+    let current = location.hash.replace('#', '') || myPages[0].id;
+    if (!myPages.some(function (p) { return p.id === current; })) current = myPages[0].id;
+
+    ctx = {
+      U: user, S: S,
+      nav: function (id) { current = id; location.hash = id; draw(); },
+      refresh: async function () { ctx.S = await Api.state(); S = ctx.S; draw(); },
+      refreshSilent: async function () { ctx.S = await Api.state(); S = ctx.S; drawSidebar(); }
+    };
+
+    function sidebarHtml() {
+      let html = '<div class="brand"><span class="eye">👁</span><div><b>بصير</b><small>OWNER EYES</small></div></div>';
+      let lastSec = '';
+      myPages.forEach(function (p) {
+        if (p.sec !== lastSec) { html += '<div class="nav-sec">' + esc(p.sec) + '</div>'; lastSec = p.sec; }
+        const badge = p.badge ? p.badge(S) : 0;
+        html += '<div class="nav-item ' + (current === p.id ? 'active' : '') + '" data-page="' + p.id + '">' +
+          '<span class="ico">' + p.icon + '</span>' + esc(p.title) +
+          (badge ? '<span class="badge">' + badge + '</span>' : '') + '</div>';
+      });
+      html += '<div class="side-user"><div class="who">' + esc(user.name) + '</div>' +
+        '<div class="role">' + esc(ROLE_NAMES[user.role] || user.role) + (Api.demo ? ' · وضع الديمو' : '') + '</div>' +
+        '<button class="btn mutedb sm block" id="btn-logout">تسجيل الخروج</button>' +
+        (Api.demo ? '<button class="btn ghost sm block" id="btn-reset" style="margin-top:8px">↺ إعادة ضبط بيانات الديمو</button>' : '') +
+        '</div>';
+      return html;
+    }
+
+    function drawSidebar() {
+      const sb = app.querySelector('.sidebar');
+      if (!sb) return;
+      sb.innerHTML = sidebarHtml();
+      wireSidebar(sb);
+    }
+
+    function wireSidebar(sb) {
+      sb.querySelectorAll('[data-page]').forEach(function (n) {
+        n.addEventListener('click', function () { ctx.nav(n.getAttribute('data-page')); });
+      });
+      sb.querySelector('#btn-logout').addEventListener('click', async function () {
+        await Api.logout(); location.hash = ''; renderLogin();
+      });
+      const rs = sb.querySelector('#btn-reset');
+      if (rs) rs.addEventListener('click', function () {
+        Api.resetDemo(); location.reload();
+      });
+    }
+
+    function draw() {
+      const page = myPages.find(function (p) { return p.id === current; }) || myPages[0];
+      app.innerHTML =
+        '<div class="app"><aside class="sidebar">' + sidebarHtml() + '</aside>' +
+        '<div class="main"><div class="topbar"><h1>' + page.icon + ' ' + esc(page.title) + '</h1>' +
+        '<span class="proj">🏗️ ' + esc(S.projects[0] ? S.projects[0].name : '') + ' · ' + esc(S.projects[0] ? S.projects[0].location : '') + '</span>' +
+        '<span class="spacer"></span>' +
+        '<span class="small muted num">' + new Date().toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
+        '</div><div class="content" id="page"></div></div></div>';
+      wireSidebar(app.querySelector('.sidebar'));
+      page.render(document.getElementById('page'), ctx);
+    }
+
+    draw();
+  }
+
+  window.addEventListener('hashchange', function () {
+    if (!ctx) return;
+    const id = location.hash.replace('#', '');
+    if (id) ctx.nav(id);
+  });
+
+  boot();
+})();
+
+</script>
