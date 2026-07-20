@@ -27,7 +27,7 @@ html, body {
   font-size: 15px;
 }
 
-body { direction: rtl; }
+/* الاتجاه (RTL/LTR) يُضبط ديناميكياً عبر [dir] على <html> ويُورَّث تلقائياً */
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: #2a3550; border-radius: 8px; }
@@ -73,7 +73,7 @@ body { direction: rtl; }
 .sidebar {
   width: 258px; flex-shrink: 0;
   background: linear-gradient(180deg, #101522, #0d111b);
-  border-left: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   padding: 20px 14px;
   display: flex; flex-direction: column;
   position: sticky; top: 0; height: 100vh; overflow-y: auto;
@@ -98,11 +98,23 @@ body { direction: rtl; }
   border-color: rgba(224, 164, 88, .35); color: var(--accent2); font-weight: 700;
 }
 .nav-item .ico { width: 22px; text-align: center; }
-.nav-item .badge { margin-right: auto; background: var(--danger); color: #fff; border-radius: 999px; font-size: 11px; padding: 1px 8px; }
+.nav-item .badge { margin-inline-start: auto; background: var(--danger); color: #fff; border-radius: 999px; font-size: 11px; padding: 1px 8px; }
 
 .side-user { margin-top: auto; border-top: 1px solid var(--border); padding-top: 14px; }
 .side-user .who { font-size: 13px; font-weight: 700; }
 .side-user .role { font-size: 11.5px; color: var(--accent); margin: 3px 0 10px; }
+
+/* ============ مبدّل اللغة ============ */
+.lang-switch { display: flex; gap: 6px; margin-bottom: 14px; }
+.lang-btn {
+  flex: 1; text-align: center; padding: 7px 8px; border-radius: 8px; cursor: pointer;
+  font-size: 12px; font-weight: 700; border: 1px solid var(--border); color: var(--muted);
+  background: var(--bg2); transition: .15s; font-family: inherit;
+}
+.lang-btn:hover { border-color: var(--accent); color: var(--text); }
+.lang-btn.active { background: rgba(224, 164, 88, .16); border-color: var(--accent); color: var(--accent2); }
+.login-lang-switch { position: absolute; top: 18px; inset-inline-end: 18px; }
+.login-wrap { position: relative; }
 
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
@@ -132,7 +144,7 @@ body { direction: rtl; }
   padding: 20px; box-shadow: 0 4px 18px rgba(0, 0, 0, .22);
 }
 .card h3 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-.card h3 .hint { font-size: 11.5px; color: var(--muted); font-weight: 400; margin-right: auto; }
+.card h3 .hint { font-size: 11.5px; color: var(--muted); font-weight: 400; margin-inline-start: auto; }
 
 .kpi { position: relative; overflow: hidden; }
 .kpi .lbl { color: var(--muted); font-size: 12.5px; }
@@ -141,13 +153,13 @@ body { direction: rtl; }
 .kpi .trend-up { color: var(--ok); } .kpi .trend-down { color: var(--danger); }
 .kpi::after {
   content: ''; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 4px;
-  background: var(--accent); opacity: .8; border-radius: 0 4px 4px 0;
+  background: var(--accent); opacity: .8; border-start-end-radius: 4px; border-end-end-radius: 4px;
 }
 .kpi.k-ok::after { background: var(--ok); } .kpi.k-warn::after { background: var(--warn); }
 .kpi.k-danger::after { background: var(--danger); } .kpi.k-info::after { background: var(--info); }
 
 table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-.tbl th { text-align: right; color: var(--muted); font-size: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tbl th { text-align: start; color: var(--muted); font-size: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .tbl td { padding: 11px 12px; border-bottom: 1px solid rgba(34, 44, 64, .55); vertical-align: middle; }
 .tbl tr:hover td { background: rgba(224, 164, 88, .04); }
 .tbl-wrap { overflow-x: auto; }
@@ -195,7 +207,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 }
 .tab:hover { border-color: var(--accent); }
 .tab.active { background: rgba(224, 164, 88, .15); border-color: var(--accent); color: var(--accent2); font-weight: 700; }
-.tab .n { background: var(--danger); color: #fff; border-radius: 99px; padding: 0 7px; font-size: 11px; margin-right: 6px; }
+.tab .n { background: var(--danger); color: #fff; border-radius: 99px; padding: 0 7px; font-size: 11px; margin-inline-end: 6px; }
 
 /* ============ رؤية المشروع (المخططات) ============ */
 .disc-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -214,7 +226,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .plan-stage svg { width: 100%; height: auto; display: block; }
 
 .legend { display: flex; gap: 18px; align-items: center; font-size: 12px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
-.legend .sw { display: inline-block; width: 26px; height: 12px; border-radius: 4px; vertical-align: middle; margin-left: 6px; }
+.legend .sw { display: inline-block; width: 26px; height: 12px; border-radius: 4px; vertical-align: middle; margin-inline-end: 6px; }
 
 .zone-panel { max-height: 560px; overflow-y: auto; }
 
@@ -284,7 +296,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .modal .m-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; }
 .m-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
 
-.toast-wrap { position: fixed; bottom: 24px; right: 24px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
+.toast-wrap { position: fixed; bottom: 24px; inset-inline-end: 24px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
 .toast { background: var(--panel2); border: 1px solid var(--border); border-inline-start: 4px solid var(--ok); border-radius: 12px; padding: 14px 18px; font-size: 13.5px; box-shadow: var(--shadow); animation: pop .25s; max-width: 380px; }
 .toast.t-err { border-inline-start-color: var(--danger); }
 @keyframes pop { from { transform: translateY(10px); opacity: 0; } }

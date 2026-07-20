@@ -4,6 +4,52 @@
 
   const VS = window.ViewsShared, VR = window.ViewsRoles;
   const esc = VS.esc;
+  const t = I18n.t;
+
+  I18n.registerDict({
+    'عين المالك': "Owner's Eye",
+    'لوحة القيادة': 'Dashboard',
+    'رؤية المشروع': 'Project Vision',
+    'كاميرات الموقع': 'Site Cameras',
+    'المقاولون والأداء': 'Contractors & Performance',
+    'ذكاء بصير الاصطناعي': 'Bassir AI',
+    'التقارير والإرسال': 'Reports & Sending',
+    'لوحة المقاول': 'Contractor Dashboard',
+    'الاعتمادات': 'Approvals',
+    'خدمات المكتب الفني': 'Technical Office Services',
+    'جداول الكميات': 'Bill of Quantities',
+    'إدارة المقاولين': 'Manage Contractors',
+    'إعداد التقارير': 'Report Builder',
+    'المخططات والنماذج': 'Drawings & Models',
+    'المشاريع والاستشاريون': 'Projects & Consultants',
+    'المستخدمون والصلاحيات': 'Users & Permissions',
+    'سجل النظام': 'System Log',
+    'التكامل والإعدادات': 'Integrations & Settings',
+    'المتابعة': 'Monitoring',
+    'أعمالي': 'My Work',
+    'المكتب الفني': 'Technical Office',
+    'الإدارة': 'Administration',
+    'مدير النظام': 'System Admin',
+    'المالك': 'Owner',
+    'ممثل المالك': "Owner's Representative",
+    'استشاري المشروع': 'Project Consultant',
+    'مقاول': 'Contractor',
+    'تسجيل الخروج': 'Logout',
+    'وضع الديمو': 'Demo mode',
+    '↺ إعادة ضبط بيانات الديمو': '↺ Reset demo data',
+    'اسم المستخدم': 'Username',
+    'كلمة المرور': 'Password',
+    'دخول': 'Login',
+    'حسابات تجريبية — اضغط للتعبئة:': 'Demo accounts — click to fill:',
+    '👁 المالك': '👁 Owner',
+    '🧑‍💼 ممثل المالك': "🧑‍💼 Owner's Rep",
+    '📐 الاستشاري': '📐 Consultant',
+    '👷 مقاول معماري': '👷 Architectural Contractor',
+    '🏗️ مقاول إنشائي': '🏗️ Structural Contractor',
+    '⚙️ الأدمن': '⚙️ Admin',
+    'عينك على مشروعك — منصة الرؤية البصرية التي تربط المالك بالاستشاري والمقاول<br>وترى بها تقدم مشروعك كما لو كنت في الموقع':
+      'Your eye on your project — a visual platform connecting the owner, consultant, and contractors<br>so you can see your project\'s progress as if you were on site'
+  });
 
   const PAGES = [
     { id: 'owner-eye', title: 'عين المالك', icon: '👁', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep'], render: VS.renderOwnerEye },
@@ -50,23 +96,44 @@
   const app = document.getElementById('app');
   let ctx = null;
 
+  // ============ مبدّل اللغة ============
+  function langSwitchHtml(extraClass) {
+    const lang = I18n.getLang();
+    return '<div class="lang-switch' + (extraClass ? ' ' + extraClass : '') + '">' +
+      '<span class="lang-btn' + (lang === 'ar' ? ' active' : '') + '" data-lang="ar">العربية</span>' +
+      '<span class="lang-btn' + (lang === 'en' ? ' active' : '') + '" data-lang="en">English</span>' +
+      '</div>';
+  }
+
+  function wireLangSwitch(root) {
+    root.querySelectorAll('[data-lang]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const l = b.getAttribute('data-lang');
+        if (l === I18n.getLang()) return;
+        I18n.setLang(l);
+        location.reload();
+      });
+    });
+  }
+
   // ============ شاشة الدخول ============
   function renderLogin(msg) {
     app.innerHTML =
-      '<div class="login-wrap"><div class="login-card">' +
+      '<div class="login-wrap">' + langSwitchHtml('login-lang-switch') + '<div class="login-card">' +
       '<div class="login-logo">👁</div>' +
       '<div class="login-title">بصير <small>BASSIR · OWNER EYES</small></div>' +
-      '<div class="login-sub">عينك على مشروعك — منصة الرؤية البصرية التي تربط المالك بالاستشاري والمقاول<br>وترى بها تقدم مشروعك كما لو كنت في الموقع</div>' +
+      '<div class="login-sub">' + t('عينك على مشروعك — منصة الرؤية البصرية التي تربط المالك بالاستشاري والمقاول<br>وترى بها تقدم مشروعك كما لو كنت في الموقع') + '</div>' +
       (msg ? '<div class="pill p-danger" style="display:block;text-align:center;margin-bottom:12px;padding:10px">' + esc(msg) + '</div>' : '') +
-      '<label class="fl">اسم المستخدم</label><input class="inp num" id="lg-user" autocomplete="username">' +
-      '<label class="fl">كلمة المرور</label><input class="inp num" id="lg-pass" type="password" autocomplete="current-password">' +
-      '<div class="m-actions"><button class="btn block" id="lg-go">دخول</button></div>' +
-      '<div class="demo-accounts"><h4>حسابات تجريبية — اضغط للتعبئة:</h4>' +
+      '<label class="fl">' + t('اسم المستخدم') + '</label><input class="inp num" id="lg-user" autocomplete="username">' +
+      '<label class="fl">' + t('كلمة المرور') + '</label><input class="inp num" id="lg-pass" type="password" autocomplete="current-password">' +
+      '<div class="m-actions"><button class="btn block" id="lg-go">' + t('دخول') + '</button></div>' +
+      '<div class="demo-accounts"><h4>' + t('حسابات تجريبية — اضغط للتعبئة:') + '</h4>' +
       [['owner', 'owner123', '👁 المالك'], ['rep', 'rep123', '🧑‍💼 ممثل المالك'], ['consultant', 'consult123', '📐 الاستشاري'],
        ['cont-arch', 'cont123', '👷 مقاول معماري'], ['cont-str', 'cont123', '🏗️ مقاول إنشائي'], ['admin', 'admin123', '⚙️ الأدمن']]
-        .map(function (a) { return '<span class="demo-chip" data-u="' + a[0] + '" data-p="' + a[1] + '">' + a[2] + '</span>'; }).join('') +
+        .map(function (a) { return '<span class="demo-chip" data-u="' + a[0] + '" data-p="' + a[1] + '">' + t(a[2]) + '</span>'; }).join('') +
       '</div></div></div>';
 
+    wireLangSwitch(app);
     app.querySelectorAll('.demo-chip').forEach(function (c) {
       c.addEventListener('click', function () {
         document.getElementById('lg-user').value = c.getAttribute('data-u');
@@ -108,18 +175,19 @@
 
     function sidebarHtml() {
       let html = '<div class="brand"><span class="eye">👁</span><div><b>بصير</b><small>OWNER EYES</small></div></div>';
+      html += langSwitchHtml();
       let lastSec = '';
       myPages.forEach(function (p) {
-        if (p.sec !== lastSec) { html += '<div class="nav-sec">' + esc(p.sec) + '</div>'; lastSec = p.sec; }
+        if (p.sec !== lastSec) { html += '<div class="nav-sec">' + esc(t(p.sec)) + '</div>'; lastSec = p.sec; }
         const badge = p.badge ? p.badge(S) : 0;
         html += '<div class="nav-item ' + (current === p.id ? 'active' : '') + '" data-page="' + p.id + '">' +
-          '<span class="ico">' + p.icon + '</span>' + esc(p.title) +
+          '<span class="ico">' + p.icon + '</span>' + esc(t(p.title)) +
           (badge ? '<span class="badge">' + badge + '</span>' : '') + '</div>';
       });
       html += '<div class="side-user"><div class="who">' + esc(user.name) + '</div>' +
-        '<div class="role">' + esc(ROLE_NAMES[user.role] || user.role) + (Api.demo ? ' · وضع الديمو' : '') + '</div>' +
-        '<button class="btn mutedb sm block" id="btn-logout">تسجيل الخروج</button>' +
-        (Api.demo ? '<button class="btn ghost sm block" id="btn-reset" style="margin-top:8px">↺ إعادة ضبط بيانات الديمو</button>' : '') +
+        '<div class="role">' + esc(t(ROLE_NAMES[user.role] || user.role)) + (Api.demo ? ' · ' + t('وضع الديمو') : '') + '</div>' +
+        '<button class="btn mutedb sm block" id="btn-logout">' + t('تسجيل الخروج') + '</button>' +
+        (Api.demo ? '<button class="btn ghost sm block" id="btn-reset" style="margin-top:8px">' + t('↺ إعادة ضبط بيانات الديمو') + '</button>' : '') +
         '</div>';
       return html;
     }
@@ -132,6 +200,7 @@
     }
 
     function wireSidebar(sb) {
+      wireLangSwitch(sb);
       sb.querySelectorAll('[data-page]').forEach(function (n) {
         n.addEventListener('click', function () { ctx.nav(n.getAttribute('data-page')); });
       });
@@ -148,10 +217,10 @@
       const page = myPages.find(function (p) { return p.id === current; }) || myPages[0];
       app.innerHTML =
         '<div class="app"><aside class="sidebar">' + sidebarHtml() + '</aside>' +
-        '<div class="main"><div class="topbar"><h1>' + page.icon + ' ' + esc(page.title) + '</h1>' +
+        '<div class="main"><div class="topbar"><h1>' + page.icon + ' ' + esc(t(page.title)) + '</h1>' +
         '<span class="proj">🏗️ ' + esc(S.projects[0] ? S.projects[0].name : '') + ' · ' + esc(S.projects[0] ? S.projects[0].location : '') + '</span>' +
         '<span class="spacer"></span>' +
-        '<span class="small muted num">' + new Date().toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
+        '<span class="small muted num">' + new Date().toLocaleDateString(I18n.locale(), { year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
         '</div><div class="content" id="page"></div></div></div>';
       wireSidebar(app.querySelector('.sidebar'));
       page.render(document.getElementById('page'), ctx);

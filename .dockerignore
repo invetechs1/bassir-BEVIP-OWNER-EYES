@@ -1,0 +1,12 @@
+node_modules
+data
+demo
+.git
+.gitignore
+.env
+.env.deploy
+*.log
+.DS_Store
+deploy.sh
+run.sh
+DEPLOYMENT.md

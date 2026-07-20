@@ -2,6 +2,9 @@
 (function () {
   'use strict';
 
+  const t = window.I18n.t;
+  I18n.registerDict({ 'المخطط': 'Planned', 'الفعلي': 'Actual', 'مخطط': 'planned' });
+
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   /** منحنى S: مخطط مقابل فعلي */
@@ -56,8 +59,8 @@
       '<path d="' + pathFor('actual') + '" fill="none" stroke="#e0a458" stroke-width="3"/>' +
       dots +
       '<g font-size="11">' +
-      '<rect x="' + (PL + 4) + '" y="' + (PT + 2) + '" width="12" height="4" rx="2" fill="#4cc9f0"/><text x="' + (PL + 22) + '" y="' + (PT + 8) + '" fill="#aab3c5">' + esc(opts.plannedLabel || 'المخطط') + '</text>' +
-      '<rect x="' + (PL + 84) + '" y="' + (PT + 2) + '" width="12" height="4" rx="2" fill="#e0a458"/><text x="' + (PL + 102) + '" y="' + (PT + 8) + '" fill="#aab3c5">' + esc(opts.actualLabel || 'الفعلي') + '</text>' +
+      '<rect x="' + (PL + 4) + '" y="' + (PT + 2) + '" width="12" height="4" rx="2" fill="#4cc9f0"/><text x="' + (PL + 22) + '" y="' + (PT + 8) + '" fill="#aab3c5">' + esc(opts.plannedLabel || t('المخطط')) + '</text>' +
+      '<rect x="' + (PL + 84) + '" y="' + (PT + 2) + '" width="12" height="4" rx="2" fill="#e0a458"/><text x="' + (PL + 102) + '" y="' + (PT + 8) + '" fill="#aab3c5">' + esc(opts.actualLabel || t('الفعلي')) + '</text>' +
       '</g></svg>';
   }
 
@@ -85,10 +88,10 @@
       html += '<div style="margin-bottom:14px">' +
         '<div class="flex" style="justify-content:space-between;font-size:12.5px;margin-bottom:5px">' +
         '<span>' + esc(r.label) + '</span>' +
-        '<span class="num ' + (behind ? '' : '') + '" style="color:' + (behind ? '#ef5d75' : '#2dd4a0') + '">' + a + '% <span class="muted">/ ' + p + '% مخطط</span></span></div>' +
+        '<span class="num ' + (behind ? '' : '') + '" style="color:' + (behind ? '#ef5d75' : '#2dd4a0') + '">' + a + '% <span class="muted">/ ' + p + '% ' + t('مخطط') + '</span></span></div>' +
         '<div style="position:relative;height:10px;background:#1a2234;border-radius:99px">' +
         '<i style="position:absolute;inset-inline-start:0;top:0;bottom:0;width:' + a + '%;border-radius:99px;background:linear-gradient(90deg,' + (behind ? '#d4405c,#ef5d75' : '#1fae85,#2dd4a0') + ')"></i>' +
-        '<i style="position:absolute;inset-inline-start:' + p + '%;top:-3px;bottom:-3px;width:2.5px;background:#4cc9f0;border-radius:2px" title="المخطط"></i>' +
+        '<i style="position:absolute;inset-inline-start:' + p + '%;top:-3px;bottom:-3px;width:2.5px;background:#4cc9f0;border-radius:2px" title="' + t('المخطط') + '"></i>' +
         '</div></div>';
     });
     return html + '</div>';
