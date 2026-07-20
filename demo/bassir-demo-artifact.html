@@ -468,31 +468,31 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     // ============ الجدول الزمني (منحنى S: مخطط vs فعلي) ============
     db.scheduleCurve = [
-      { month: '2025-03', planned: 2,  actual: 1 },  { month: '2025-05', planned: 8,  actual: 6 },
-      { month: '2025-07', planned: 15, actual: 12 }, { month: '2025-09', planned: 24, actual: 20 },
-      { month: '2025-11', planned: 33, actual: 28 }, { month: '2026-01', planned: 42, actual: 36 },
-      { month: '2026-03', planned: 50, actual: 44 }, { month: '2026-05', planned: 57, actual: 50 },
-      { month: '2026-07', planned: 62, actual: 54.5 }, { month: '2026-09', planned: 74, actual: null },
-      { month: '2026-11', planned: 88, actual: null }, { month: '2026-12', planned: 100, actual: null }
+      { projectId: 'P1', month: '2025-03', planned: 2,  actual: 1 },  { projectId: 'P1', month: '2025-05', planned: 8,  actual: 6 },
+      { projectId: 'P1', month: '2025-07', planned: 15, actual: 12 }, { projectId: 'P1', month: '2025-09', planned: 24, actual: 20 },
+      { projectId: 'P1', month: '2025-11', planned: 33, actual: 28 }, { projectId: 'P1', month: '2026-01', planned: 42, actual: 36 },
+      { projectId: 'P1', month: '2026-03', planned: 50, actual: 44 }, { projectId: 'P1', month: '2026-05', planned: 57, actual: 50 },
+      { projectId: 'P1', month: '2026-07', planned: 62, actual: 54.5 }, { projectId: 'P1', month: '2026-09', planned: 74, actual: null },
+      { projectId: 'P1', month: '2026-11', planned: 88, actual: null }, { projectId: 'P1', month: '2026-12', planned: 100, actual: null }
     ];
 
     db.scheduleTasks = [
-      { id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
-      { id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
-      { id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
-      { id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
-      { id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
-      { id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
-      { id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
-      { id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
+      { projectId: 'P1', id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
+      { projectId: 'P1', id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
+      { projectId: 'P1', id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
+      { projectId: 'P1', id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
+      { projectId: 'P1', id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
+      { projectId: 'P1', id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
+      { projectId: 'P1', id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
+      { projectId: 'P1', id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
     ];
 
     // ============ منحنى التكلفة ============
     db.costCurve = [
-      { month: '2025-05', planned: 2.5,  actual: 2.1 },  { month: '2025-08', planned: 7.0,  actual: 6.2 },
-      { month: '2025-11', planned: 13.5, actual: 12.8 }, { month: '2026-02', planned: 19.0, actual: 19.6 },
-      { month: '2026-05', planned: 24.0, actual: 26.3 }, { month: '2026-07', planned: 27.2, actual: 29.8 },
-      { month: '2026-10', planned: 38.0, actual: null }, { month: '2026-12', planned: 52.0, actual: null }
+      { projectId: 'P1', month: '2025-05', planned: 2.5,  actual: 2.1 },  { projectId: 'P1', month: '2025-08', planned: 7.0,  actual: 6.2 },
+      { projectId: 'P1', month: '2025-11', planned: 13.5, actual: 12.8 }, { projectId: 'P1', month: '2026-02', planned: 19.0, actual: 19.6 },
+      { projectId: 'P1', month: '2026-05', planned: 24.0, actual: 26.3 }, { projectId: 'P1', month: '2026-07', planned: 27.2, actual: 29.8 },
+      { projectId: 'P1', month: '2026-10', planned: 38.0, actual: null }, { projectId: 'P1', month: '2026-12', planned: 52.0, actual: null }
     ];
 
     // ============ المستخدمون ============
@@ -584,26 +584,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     // ============ رؤى الذكاء الاصطناعي ============
     db.aiInsights = [
-      { id: 'AI1', date: '2026-07-16', source: 'camera', area: 'الدور الرابع - سقف', detected: 78, reported: 78,
+      { projectId: 'P1', id: 'AI1', date: '2026-07-16', source: 'camera', area: 'الدور الرابع - سقف', detected: 78, reported: 78,
         note: 'تحليل بث الكاميرا رقم 3: صب السقف مكتمل بنسبة 78% ويطابق تقرير الموقع.', severity: 'ok' },
-      { id: 'AI2', date: '2026-07-15', source: 'photos', area: 'الدور الثاني - لياسة', detected: 49, reported: 55,
+      { projectId: 'P1', id: 'AI2', date: '2026-07-15', source: 'photos', area: 'الدور الثاني - لياسة', detected: 49, reported: 55,
         note: 'رصد النظام فرقاً 6% بين نسبة اللياسة المرصودة بصرياً (49%) والنسبة المرفوعة في التقرير (55%). يُنصح بالتحقق ميدانياً قبل اعتماد المستخلص القادم.', severity: 'warn' },
-      { id: 'AI3', date: '2026-07-14', source: 'camera', area: 'الميزانين - دكتات التكييف', detected: 38, reported: 40,
+      { projectId: 'P1', id: 'AI3', date: '2026-07-14', source: 'camera', area: 'الميزانين - دكتات التكييف', detected: 38, reported: 40,
         note: 'وتيرة تقدم أعمال الدكتات أبطأ من المخطط بـ 12 يوماً. عند استمرار الوتيرة الحالية سيتأخر تسليم الميزانين إلى نوفمبر.', severity: 'warn' },
-      { id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
+      { projectId: 'P1', id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
         note: 'تركيب مضخات الحريق يسير وفق الجدول. يُنصح بجدولة اختبار التشغيل خلال أسبوعين.', severity: 'ok' },
-      { id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
+      { projectId: 'P1', id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
         note: 'تنبيه سلامة: رصدت الكاميرا 2 عمالة دون أحزمة أمان على حافة الدور الثالث يوم 10 يوليو الساعة 10:42 صباحاً. تم إشعار مدير السلامة.', severity: 'alert' },
-      { id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
+      { projectId: 'P1', id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
         note: 'تنبيه مالي: مقاول الحريق (أنظمة الأمان) استلم 46% من قيمة العقد مقابل إنجاز فعلي 31%. يُنصح بمراجعة الدفعات القادمة وربطها بمستخلصات موثقة بصرياً.', severity: 'alert' }
     ];
 
     // ============ صور الموقع (مع تحليل AI محاكى) ============
     db.photos = [
-      { id: 'PH1', date: '2026-07-16', area: 'F4', title: 'صب سقف الدور الرابع', ai: 'خرسانة حديثة الصب - اكتشاف 4 عمال، معدات صب مكتملة', detected: 78 },
-      { id: 'PH2', date: '2026-07-15', area: 'GF', title: 'رخام البهو الرئيسي', ai: 'تقدم التبليط 62% من مساحة البهو', detected: 62 },
-      { id: 'PH3', date: '2026-07-14', area: 'F2', title: 'لياسة الجناح الغربي', ai: 'اللياسة المنجزة 49% من مساحة الجدران المرصودة', detected: 49 },
-      { id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
+      { projectId: 'P1', id: 'PH1', date: '2026-07-16', area: 'F4', title: 'صب سقف الدور الرابع', ai: 'خرسانة حديثة الصب - اكتشاف 4 عمال، معدات صب مكتملة', detected: 78 },
+      { projectId: 'P1', id: 'PH2', date: '2026-07-15', area: 'GF', title: 'رخام البهو الرئيسي', ai: 'تقدم التبليط 62% من مساحة البهو', detected: 62 },
+      { projectId: 'P1', id: 'PH3', date: '2026-07-14', area: 'F2', title: 'لياسة الجناح الغربي', ai: 'اللياسة المنجزة 49% من مساحة الجدران المرصودة', detected: 49 },
+      { projectId: 'P1', id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
     ];
 
     // ============ موديول المكتب الفني ============
@@ -782,7 +782,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 4 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 6 };
 
     return db;
   }
@@ -1602,9 +1602,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   function renderOwnerEye(el, ctx) {
-    const html = ctx.S.projects.map(function (P) {
+    const A = ctx.Sall || ctx.S; // كل مشاريع المستخدم
+    const html = A.projects.map(function (P) {
       const g = projectGlance(ctx, P);
-      const items = ctx.S.boqItems.filter(function (b) { return b.projectId === P.id; });
+      const items = A.boqItems.filter(function (b) { return b.projectId === P.id; });
       const floors = (P.floors || []);
 
       // شريط الأدوار: نظرة سريعة على إنجاز كل دور
@@ -1615,7 +1616,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
           const p = weightedProgress(items.filter(function (b) { return b.floor === f.id; }));
           if (p == null) return '';
           const t = 0.08 + (p / 100) * 0.84;
-          return '<div class="eye-floor" data-goflor="' + f.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
+          return '<div class="eye-floor" data-goflor="' + f.id + '" data-gopr="' + P.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
             (p >= 95 ? 'box-shadow:0 0 14px rgba(224,164,88,.65);' : '') + '">' +
             '<b class="num" style="color:' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '">' + p + '%</b>' +
             '<span style="color:' + (t > 0.5 ? '#233' : '#8b95a8') + '">' + esc(f.name) + '</span></div>';
@@ -1662,6 +1663,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         visionState.tab = '2d';
         visionState.floor = b.getAttribute('data-goflor');
         visionState.zone = null;
+        const pid = b.getAttribute('data-gopr');
+        if (pid && ctx.setProject && pid !== ctx.projectId) { sessionStorage.setItem('bassir-project', pid); ctx.setProject(pid); }
         ctx.nav('vision');
       });
     });
@@ -1760,15 +1763,17 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '</div>' +
 
       '<div class="grid g2 mb">' +
-      '<div class="card"><h3>📈 الجدول الزمني: المخطط مقابل الفعلي <span class="hint">منحنى S التراكمي</span></h3>' + Charts.sCurve(ctx.S.scheduleCurve) + '</div>' +
-      '<div class="card"><h3>💰 التكلفة: المخطط مقابل الفعلي <span class="hint">مليون ريال</span></h3>' + Charts.sCurve(ctx.S.costCurve, { maxY: 55, unit: 'م' }) + '</div>' +
+      '<div class="card"><h3>📈 الجدول الزمني: المخطط مقابل الفعلي <span class="hint">منحنى S التراكمي</span></h3>' +
+      (ctx.S.scheduleCurve.length > 1 ? Charts.sCurve(ctx.S.scheduleCurve) : '<div class="empty"><div class="e-ico">📈</div>لا بيانات جدول زمني لهذا المشروع بعد — يرفعها الاستشاري</div>') + '</div>' +
+      '<div class="card"><h3>💰 التكلفة: المخطط مقابل الفعلي <span class="hint">مليون ريال</span></h3>' +
+      (ctx.S.costCurve.length > 1 ? Charts.sCurve(ctx.S.costCurve, { maxY: 55, unit: 'م' }) : '<div class="empty"><div class="e-ico">💰</div>لا بيانات تكلفة لهذا المشروع بعد</div>') + '</div>' +
       '</div>' +
 
       '<div class="grid g2">' +
       '<div class="card"><h3>🗂️ مراحل المشروع</h3>' +
-      Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
+      (ctx.S.scheduleTasks.length ? Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
         return { label: t.name, actual: t.progress, planned: taskPlanned(t) };
-      })) + '</div>' +
+      })) : '<div class="empty"><div class="e-ico">🗂️</div>لم تُسجل مراحل لهذا المشروع بعد</div>') + '</div>' +
       '<div class="card"><h3>🔔 تنبيهات بصير الذكية <span class="hint">من تحليل الصور والكاميرات</span></h3>' +
       (alerts.length ? alerts.map(aiItemHtml).join('') : '<div class="empty"><div class="e-ico">✨</div>لا توجد تنبيهات حرجة</div>') +
       '<button class="btn ghost sm" data-nav="ai">فتح صفحة الذكاء الاصطناعي ←</button></div>' +
@@ -2695,12 +2700,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderRepProjects(el, ctx) {
     el.innerHTML =
       '<div class="grid" style="grid-template-columns:1.2fr 1fr">' +
-      '<div class="card"><h3>🏗️ مشاريع المالك</h3>' +
-      ctx.S.projects.map(function (p) {
-        return '<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
+      '<div class="card"><h3>🏗️ مشاريع المالك <span class="hint">اضغط "فتح" للتنقل بين المشاريع — أو استخدم مبدّل المشروع أعلى الشاشة</span></h3>' +
+      (ctx.Sall || ctx.S).projects.map(function (p) {
+        const active = ctx.projectId === p.id;
+        return '<div style="border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b style="font-size:16px">' + esc(p.name) + '</b>' +
-          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div>' +
-          '<div class="small muted" style="margin:6px 0">' + esc(p.location) + ' · الميزانية ' + VS.millions(p.budgetPlanned) + '</div>' +
+          '<div class="flex">' + (active ? '<span class="pill p-ok">المشروع الحالي</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">فتح المشروع ←</button>') +
+          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div></div>' +
+          '<div class="small muted" style="margin:6px 0">' + esc(p.location || '—') + ' · الميزانية ' + VS.millions(p.budgetPlanned || 0) + '</div>' +
           '<div class="small">👨‍💼 الاستشاري: <b>' + esc(p.consultantName || 'لم يعيّن') + '</b></div></div>';
       }).join('') + '</div>' +
 
@@ -2733,9 +2740,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<div class="card" style="padding:16px"><div>👤 <b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">🔑 <b class="num">' + esc(res.account.password) + '</b></div></div>' +
             '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">تم</button></div>');
-        } else toast('✅ أُنشئ المشروع');
+        } else toast('✅ أُنشئ المشروع — استخدم زر "فتح المشروع" أو المبدّل أعلى الشاشة للانتقال إليه');
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
+    });
+    el.querySelectorAll('[data-open-proj]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ctx.setProject(b.getAttribute('data-open-proj'));
+        ctx.nav('dashboard');
+      });
     });
   }
 
@@ -2781,7 +2794,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     }
     if (u.projectIds && u.projectIds.length) {
       return '🏗️ ' + u.projectIds.map(function (pid) {
-        const p = ctx.S.projects.find(function (x) { return x.id === pid; });
+        const p = (ctx.Sall || ctx.S).projects.find(function (x) { return x.id === pid; });
         return esc(p ? p.name : pid);
       }).join('، ');
     }
@@ -2836,9 +2849,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
           ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
       } else if (r === 'owner' || r === 'consultant') {
         scopeBox.innerHTML = '<label class="fl">' + (r === 'owner' ? 'مشروع المالك (يرى صفحة مشروعه فقط)' : 'المشاريع المسندة (اتركها كلها فارغة = جميع المشاريع)') + '</label>' +
-          ctx.S.projects.map(function (p) {
+          (ctx.Sall || ctx.S).projects.map(function (p) {
             return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="nu-proj" value="' + p.id + '"' +
-              (r === 'owner' && ctx.S.projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+              (r === 'owner' && (ctx.Sall || ctx.S).projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
           }).join('');
       } else {
         scopeBox.innerHTML = '';
@@ -3676,11 +3689,50 @@ textarea.inp { resize: vertical; min-height: 80px; }
     let current = location.hash.replace('#', '') || myPages[0].id;
     if (!myPages.some(function (p) { return p.id === current; })) current = myPages[0].id;
 
+    // ============ تعدد المشاريع: المشروع الحالي وترشيح بياناته ============
+    let rawS = S;
+    let currentProject = sessionStorage.getItem('bassir-project');
+    if (!rawS.projects.some(function (p) { return p.id === currentProject; })) {
+      currentProject = rawS.projects[0] ? rawS.projects[0].id : null;
+    }
+
+    /** يرشّح اللقطة لبيانات المشروع المحدد (كل عنصر يحمل projectId) */
+    function scopedState(full, pid) {
+      if (!pid || full.projects.length <= 1) return full;
+      const c = {};
+      Object.keys(full).forEach(function (k) {
+        c[k] = Array.isArray(full[k])
+          ? full[k].filter(function (x) { return !x || typeof x !== 'object' || !x.projectId || x.projectId === pid; })
+          : full[k];
+      });
+      c.projects = full.projects.filter(function (p) { return p.id === pid; });
+      if (!c.projects.length) c.projects = full.projects;
+      return c;
+    }
+
     ctx = {
-      U: user, S: S,
+      U: user,
+      S: scopedState(rawS, currentProject),
+      Sall: rawS, // اللقطة الكاملة (لصفحات عين المالك، المشاريع، المستخدمين)
+      projectId: currentProject,
       nav: function (id) { current = id; location.hash = id; draw(); },
-      refresh: async function () { ctx.S = await Api.state(); S = ctx.S; draw(); },
-      refreshSilent: async function () { ctx.S = await Api.state(); S = ctx.S; drawSidebar(); }
+      setProject: function (pid) {
+        currentProject = pid;
+        ctx.projectId = pid;
+        sessionStorage.setItem('bassir-project', pid);
+        ctx.S = scopedState(rawS, pid);
+        draw();
+      },
+      refresh: async function () {
+        rawS = await Api.state();
+        ctx.Sall = rawS; ctx.S = scopedState(rawS, currentProject); S = rawS;
+        draw();
+      },
+      refreshSilent: async function () {
+        rawS = await Api.state();
+        ctx.Sall = rawS; ctx.S = scopedState(rawS, currentProject); S = rawS;
+        drawSidebar();
+      }
     };
 
     function sidebarHtml() {
@@ -3723,14 +3775,25 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     function draw() {
       const page = myPages.find(function (p) { return p.id === current; }) || myPages[0];
+      const P = ctx.S.projects[0];
+      // مبدّل المشروع: يظهر عند وجود أكثر من مشروع في نطاق المستخدم
+      const projCtl = rawS.projects.length > 1
+        ? '<select class="inp" id="proj-switch" style="max-width:280px;padding:8px 12px;font-size:13px">' +
+          rawS.projects.map(function (pp) {
+            return '<option value="' + pp.id + '"' + (pp.id === currentProject ? ' selected' : '') + '>🏗️ ' + esc(pp.name) + '</option>';
+          }).join('') + '</select>'
+        : '<span class="proj">🏗️ ' + esc(P ? P.name : '') + ' · ' + esc(P ? P.location || '' : '') + '</span>';
+
       app.innerHTML =
         '<div class="app"><aside class="sidebar">' + sidebarHtml() + '</aside>' +
         '<div class="main"><div class="topbar"><h1>' + page.icon + ' ' + esc(page.title) + '</h1>' +
-        '<span class="proj">🏗️ ' + esc(S.projects[0] ? S.projects[0].name : '') + ' · ' + esc(S.projects[0] ? S.projects[0].location : '') + '</span>' +
+        projCtl +
         '<span class="spacer"></span>' +
         '<span class="small muted num">' + new Date().toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
         '</div><div class="content" id="page"></div></div></div>';
       wireSidebar(app.querySelector('.sidebar'));
+      const ps = app.querySelector('#proj-switch');
+      if (ps) ps.addEventListener('change', function () { ctx.setProject(ps.value); });
       page.render(document.getElementById('page'), ctx);
     }
 

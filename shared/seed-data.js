@@ -158,31 +158,31 @@
 
     // ============ الجدول الزمني (منحنى S: مخطط vs فعلي) ============
     db.scheduleCurve = [
-      { month: '2025-03', planned: 2,  actual: 1 },  { month: '2025-05', planned: 8,  actual: 6 },
-      { month: '2025-07', planned: 15, actual: 12 }, { month: '2025-09', planned: 24, actual: 20 },
-      { month: '2025-11', planned: 33, actual: 28 }, { month: '2026-01', planned: 42, actual: 36 },
-      { month: '2026-03', planned: 50, actual: 44 }, { month: '2026-05', planned: 57, actual: 50 },
-      { month: '2026-07', planned: 62, actual: 54.5 }, { month: '2026-09', planned: 74, actual: null },
-      { month: '2026-11', planned: 88, actual: null }, { month: '2026-12', planned: 100, actual: null }
+      { projectId: 'P1', month: '2025-03', planned: 2,  actual: 1 },  { projectId: 'P1', month: '2025-05', planned: 8,  actual: 6 },
+      { projectId: 'P1', month: '2025-07', planned: 15, actual: 12 }, { projectId: 'P1', month: '2025-09', planned: 24, actual: 20 },
+      { projectId: 'P1', month: '2025-11', planned: 33, actual: 28 }, { projectId: 'P1', month: '2026-01', planned: 42, actual: 36 },
+      { projectId: 'P1', month: '2026-03', planned: 50, actual: 44 }, { projectId: 'P1', month: '2026-05', planned: 57, actual: 50 },
+      { projectId: 'P1', month: '2026-07', planned: 62, actual: 54.5 }, { projectId: 'P1', month: '2026-09', planned: 74, actual: null },
+      { projectId: 'P1', month: '2026-11', planned: 88, actual: null }, { projectId: 'P1', month: '2026-12', planned: 100, actual: null }
     ];
 
     db.scheduleTasks = [
-      { id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
-      { id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
-      { id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
-      { id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
-      { id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
-      { id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
-      { id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
-      { id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
+      { projectId: 'P1', id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
+      { projectId: 'P1', id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
+      { projectId: 'P1', id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
+      { projectId: 'P1', id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
+      { projectId: 'P1', id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
+      { projectId: 'P1', id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
+      { projectId: 'P1', id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
+      { projectId: 'P1', id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
     ];
 
     // ============ منحنى التكلفة ============
     db.costCurve = [
-      { month: '2025-05', planned: 2.5,  actual: 2.1 },  { month: '2025-08', planned: 7.0,  actual: 6.2 },
-      { month: '2025-11', planned: 13.5, actual: 12.8 }, { month: '2026-02', planned: 19.0, actual: 19.6 },
-      { month: '2026-05', planned: 24.0, actual: 26.3 }, { month: '2026-07', planned: 27.2, actual: 29.8 },
-      { month: '2026-10', planned: 38.0, actual: null }, { month: '2026-12', planned: 52.0, actual: null }
+      { projectId: 'P1', month: '2025-05', planned: 2.5,  actual: 2.1 },  { projectId: 'P1', month: '2025-08', planned: 7.0,  actual: 6.2 },
+      { projectId: 'P1', month: '2025-11', planned: 13.5, actual: 12.8 }, { projectId: 'P1', month: '2026-02', planned: 19.0, actual: 19.6 },
+      { projectId: 'P1', month: '2026-05', planned: 24.0, actual: 26.3 }, { projectId: 'P1', month: '2026-07', planned: 27.2, actual: 29.8 },
+      { projectId: 'P1', month: '2026-10', planned: 38.0, actual: null }, { projectId: 'P1', month: '2026-12', planned: 52.0, actual: null }
     ];
 
     // ============ المستخدمون ============
@@ -274,26 +274,26 @@
 
     // ============ رؤى الذكاء الاصطناعي ============
     db.aiInsights = [
-      { id: 'AI1', date: '2026-07-16', source: 'camera', area: 'الدور الرابع - سقف', detected: 78, reported: 78,
+      { projectId: 'P1', id: 'AI1', date: '2026-07-16', source: 'camera', area: 'الدور الرابع - سقف', detected: 78, reported: 78,
         note: 'تحليل بث الكاميرا رقم 3: صب السقف مكتمل بنسبة 78% ويطابق تقرير الموقع.', severity: 'ok' },
-      { id: 'AI2', date: '2026-07-15', source: 'photos', area: 'الدور الثاني - لياسة', detected: 49, reported: 55,
+      { projectId: 'P1', id: 'AI2', date: '2026-07-15', source: 'photos', area: 'الدور الثاني - لياسة', detected: 49, reported: 55,
         note: 'رصد النظام فرقاً 6% بين نسبة اللياسة المرصودة بصرياً (49%) والنسبة المرفوعة في التقرير (55%). يُنصح بالتحقق ميدانياً قبل اعتماد المستخلص القادم.', severity: 'warn' },
-      { id: 'AI3', date: '2026-07-14', source: 'camera', area: 'الميزانين - دكتات التكييف', detected: 38, reported: 40,
+      { projectId: 'P1', id: 'AI3', date: '2026-07-14', source: 'camera', area: 'الميزانين - دكتات التكييف', detected: 38, reported: 40,
         note: 'وتيرة تقدم أعمال الدكتات أبطأ من المخطط بـ 12 يوماً. عند استمرار الوتيرة الحالية سيتأخر تسليم الميزانين إلى نوفمبر.', severity: 'warn' },
-      { id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
+      { projectId: 'P1', id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
         note: 'تركيب مضخات الحريق يسير وفق الجدول. يُنصح بجدولة اختبار التشغيل خلال أسبوعين.', severity: 'ok' },
-      { id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
+      { projectId: 'P1', id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
         note: 'تنبيه سلامة: رصدت الكاميرا 2 عمالة دون أحزمة أمان على حافة الدور الثالث يوم 10 يوليو الساعة 10:42 صباحاً. تم إشعار مدير السلامة.', severity: 'alert' },
-      { id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
+      { projectId: 'P1', id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
         note: 'تنبيه مالي: مقاول الحريق (أنظمة الأمان) استلم 46% من قيمة العقد مقابل إنجاز فعلي 31%. يُنصح بمراجعة الدفعات القادمة وربطها بمستخلصات موثقة بصرياً.', severity: 'alert' }
     ];
 
     // ============ صور الموقع (مع تحليل AI محاكى) ============
     db.photos = [
-      { id: 'PH1', date: '2026-07-16', area: 'F4', title: 'صب سقف الدور الرابع', ai: 'خرسانة حديثة الصب - اكتشاف 4 عمال، معدات صب مكتملة', detected: 78 },
-      { id: 'PH2', date: '2026-07-15', area: 'GF', title: 'رخام البهو الرئيسي', ai: 'تقدم التبليط 62% من مساحة البهو', detected: 62 },
-      { id: 'PH3', date: '2026-07-14', area: 'F2', title: 'لياسة الجناح الغربي', ai: 'اللياسة المنجزة 49% من مساحة الجدران المرصودة', detected: 49 },
-      { id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
+      { projectId: 'P1', id: 'PH1', date: '2026-07-16', area: 'F4', title: 'صب سقف الدور الرابع', ai: 'خرسانة حديثة الصب - اكتشاف 4 عمال، معدات صب مكتملة', detected: 78 },
+      { projectId: 'P1', id: 'PH2', date: '2026-07-15', area: 'GF', title: 'رخام البهو الرئيسي', ai: 'تقدم التبليط 62% من مساحة البهو', detected: 62 },
+      { projectId: 'P1', id: 'PH3', date: '2026-07-14', area: 'F2', title: 'لياسة الجناح الغربي', ai: 'اللياسة المنجزة 49% من مساحة الجدران المرصودة', detected: 49 },
+      { projectId: 'P1', id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
     ];
 
     // ============ موديول المكتب الفني ============
@@ -472,7 +472,7 @@
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 4 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 6 };
 
     return db;
   }

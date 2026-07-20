@@ -386,12 +386,14 @@
   function renderRepProjects(el, ctx) {
     el.innerHTML =
       '<div class="grid" style="grid-template-columns:1.2fr 1fr">' +
-      '<div class="card"><h3>🏗️ مشاريع المالك</h3>' +
-      ctx.S.projects.map(function (p) {
-        return '<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
+      '<div class="card"><h3>🏗️ مشاريع المالك <span class="hint">اضغط "فتح" للتنقل بين المشاريع — أو استخدم مبدّل المشروع أعلى الشاشة</span></h3>' +
+      (ctx.Sall || ctx.S).projects.map(function (p) {
+        const active = ctx.projectId === p.id;
+        return '<div style="border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b style="font-size:16px">' + esc(p.name) + '</b>' +
-          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div>' +
-          '<div class="small muted" style="margin:6px 0">' + esc(p.location) + ' · الميزانية ' + VS.millions(p.budgetPlanned) + '</div>' +
+          '<div class="flex">' + (active ? '<span class="pill p-ok">المشروع الحالي</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">فتح المشروع ←</button>') +
+          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div></div>' +
+          '<div class="small muted" style="margin:6px 0">' + esc(p.location || '—') + ' · الميزانية ' + VS.millions(p.budgetPlanned || 0) + '</div>' +
           '<div class="small">👨‍💼 الاستشاري: <b>' + esc(p.consultantName || 'لم يعيّن') + '</b></div></div>';
       }).join('') + '</div>' +
 
@@ -424,9 +426,15 @@
             '<div class="card" style="padding:16px"><div>👤 <b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">🔑 <b class="num">' + esc(res.account.password) + '</b></div></div>' +
             '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">تم</button></div>');
-        } else toast('✅ أُنشئ المشروع');
+        } else toast('✅ أُنشئ المشروع — استخدم زر "فتح المشروع" أو المبدّل أعلى الشاشة للانتقال إليه');
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
+    });
+    el.querySelectorAll('[data-open-proj]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ctx.setProject(b.getAttribute('data-open-proj'));
+        ctx.nav('dashboard');
+      });
     });
   }
 
@@ -472,7 +480,7 @@
     }
     if (u.projectIds && u.projectIds.length) {
       return '🏗️ ' + u.projectIds.map(function (pid) {
-        const p = ctx.S.projects.find(function (x) { return x.id === pid; });
+        const p = (ctx.Sall || ctx.S).projects.find(function (x) { return x.id === pid; });
         return esc(p ? p.name : pid);
       }).join('، ');
     }
@@ -527,9 +535,9 @@
           ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
       } else if (r === 'owner' || r === 'consultant') {
         scopeBox.innerHTML = '<label class="fl">' + (r === 'owner' ? 'مشروع المالك (يرى صفحة مشروعه فقط)' : 'المشاريع المسندة (اتركها كلها فارغة = جميع المشاريع)') + '</label>' +
-          ctx.S.projects.map(function (p) {
+          (ctx.Sall || ctx.S).projects.map(function (p) {
             return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="nu-proj" value="' + p.id + '"' +
-              (r === 'owner' && ctx.S.projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+              (r === 'owner' && (ctx.Sall || ctx.S).projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
           }).join('');
       } else {
         scopeBox.innerHTML = '';
