@@ -17,7 +17,11 @@ const integrations = require('./integrations.js');
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, '..');
 const DATA_DIR = storageModule.DATA_DIR;
-const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
+// مجلد الملفات المرفوعة: قابل للتوجيه لمسار خارجي (مثلاً تخزين مُخصص على الخادم) عبر UPLOADS_DIR،
+// وإلا يُستخدم data/uploads محلياً افتراضياً. المستندات والصور تُحفظ في مجلدين فرعيين منفصلين.
+const UPLOADS_DIR = process.env.UPLOADS_DIR ? path.resolve(process.env.UPLOADS_DIR) : path.join(DATA_DIR, 'uploads');
+const UPLOADS_IMAGES_DIR = path.join(UPLOADS_DIR, 'images');
+const UPLOADS_DOCS_DIR = path.join(UPLOADS_DIR, 'documents');
 
 // ============ قاعدة البيانات (SQLite افتراضياً) ============
 const storage = storageModule.createStorage();
@@ -73,6 +77,58 @@ persist();
 const core = coreModule.createCore(db, persist, {
   password: { hash: hashPassword, verify: verifyPassword }
 });
+
+// ============ إشعارات البريد التلقائية ============
+// أفضل جهد وغير معطِّل: لا تنتظرها الاستجابة، وفشلها لا يفشّل الطلب الأصلي.
+// إن لم يكن البريد مهيأً (لا RESEND_API_KEY ولا SENDGRID_API_KEY) تُتجاهل بصمت — بلا ضجيج في وضع المحاكاة.
+function consultantsForProject(projectId) {
+  return db.users.filter(function (u) {
+    return u.role === 'consultant' && (!u.projectIds || u.projectIds.indexOf(projectId) !== -1);
+  });
+}
+function contractorUsers(contractorId) {
+  return db.users.filter(function (u) { return u.role === 'contractor' && u.contractorId === contractorId; });
+}
+function notify(recipients, subject, bodyHtml) {
+  if (!integrations.emailProvider()) return;
+  recipients.filter(function (u) { return u && u.email; }).forEach(function (u) {
+    integrations.sendEmail(u.email, subject, '<div dir="rtl">' + bodyHtml + '</div>')
+      .catch(function (e) { console.error('فشل إرسال إشعار إلى ' + u.email + ': ' + e.message); });
+  });
+}
+function appUrl() { return process.env.APP_URL || ('http://localhost:' + PORT); }
+function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+
+/** إشعار تلقائي عند إنشاء عنصر: طلب اعتماد جديد يُشعِر الاستشاري، ورد جديد يُشعِر الطرف الآخر */
+function notifyOnCreate(collection, item, user) {
+  const link = '<p><a href="' + appUrl() + '">↗ فتح بصير</a></p>';
+
+  if (collection === 'comments') {
+    const parent = (db[item.collection] || []).find(function (x) { return x.id === item.itemId; });
+    const label = escHtml(parent ? core.labelOf(item.collection, parent) : item.collection);
+    const html = '<p>رد جديد من <b>' + escHtml(user.name) + '</b> على: ' + label + '</p>' +
+      '<blockquote style="color:#555;border-inline-start:3px solid #ccc;padding-inline-start:10px">' + escHtml(item.text) + '</blockquote>' + link;
+    const recipients = user.role === 'contractor' ? consultantsForProject(item.projectId) : contractorUsers(item.contractorId);
+    notify(recipients, 'رد جديد على ' + label, html);
+    return;
+  }
+
+  if (user.role === 'contractor' && core.APPROVAL_COLLECTIONS.indexOf(collection) !== -1) {
+    const label = escHtml(core.labelOf(collection, item));
+    const html = '<p>قدّم <b>' + escHtml(user.name) + '</b> طلباً جديداً بانتظار مراجعتك واعتمادك:</p><p><b>' + label + '</b></p>' + link;
+    notify(consultantsForProject(item.projectId), 'طلب جديد بانتظار المراجعة: ' + label, html);
+  }
+}
+
+/** إشعار تلقائي عند بتّ الاستشاري بقرار اعتماد/رفض — يصل للمقاول صاحب الطلب */
+function notifyOnReview(collection, item, user) {
+  const decisionAr = item.status === 'rejected' ? 'رَفَض' : item.status === 'approved_notes' ? 'اعتمد مع ملاحظات' : 'اعتمد';
+  const label = escHtml(core.labelOf(collection, item));
+  const html = '<p><b>' + escHtml(user.name) + '</b> ' + decisionAr + ' طلبك:</p><p><b>' + label + '</b></p>' +
+    (item.notes ? '<blockquote style="color:#555;border-inline-start:3px solid #ccc;padding-inline-start:10px">' + escHtml(item.notes) + '</blockquote>' : '') +
+    '<p><a href="' + appUrl() + '">↗ فتح بصير</a></p>';
+  notify(contractorUsers(item.contractorId), decisionAr + ': ' + label, html);
+}
 
 // ============ توكنات موقعة (JWT HS256) تبقى صالحة بعد إعادة التشغيل ============
 const SECRET_FILE = path.join(DATA_DIR, '.jwt-secret');
@@ -164,36 +220,51 @@ function readRawBody(req, maxBytes) {
   });
 }
 
-/** حفظ ملف مرفوع باسم عشوائي غير قابل للتخمين وإرجاع سجله */
+/** حفظ ملف مرفوع باسم عشوائي غير قابل للتخمين، في مجلد الصور أو المستندات حسب نوعه، وإرجاع سجله */
 function storeUpload(buffer, originalName, mime, byUser) {
-  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  const isImage = /^image\//.test(mime || '');
+  const sub = isImage ? 'images' : 'documents';
+  const dir = isImage ? UPLOADS_IMAGES_DIR : UPLOADS_DOCS_DIR;
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   const safe = path.basename(String(originalName || 'file')).replace(/[^\w.\-؀-ۿ]+/g, '_').slice(0, 80) || 'file';
   const stored = crypto.randomBytes(9).toString('hex') + '-' + safe;
-  fs.writeFileSync(path.join(UPLOADS_DIR, stored), buffer);
+  fs.writeFileSync(path.join(dir, stored), buffer);
   const rec = {
     id: 'F' + crypto.randomBytes(6).toString('hex'),
-    name: safe, stored: stored, url: '/uploads/' + stored,
+    name: safe, stored: stored, url: '/uploads/' + sub + '/' + stored,
     size: buffer.length, mime: mime || 'application/octet-stream',
     by: byUser || null, date: new Date().toISOString().slice(0, 10)
   };
   return rec;
 }
 
+/** يعدّ الملفات المرفوعة إجمالاً عبر مجلدي الصور والمستندات */
+function countUploads() {
+  return [UPLOADS_IMAGES_DIR, UPLOADS_DOCS_DIR].reduce(function (n, dir) {
+    try { return n + fs.readdirSync(dir).length; } catch (e) { return n; }
+  }, 0);
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json',
-  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon'
+  '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.ico': 'image/x-icon', '.gif': 'image/gif', '.webp': 'image/webp',
+  '.pdf': 'application/pdf', '.txt': 'text/plain; charset=utf-8'
 };
 
 function serveStatic(req, res) {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   if (urlPath === '/') urlPath = '/index.html';
-  let base;
-  if (urlPath.startsWith('/shared/')) base = ROOT;
-  else if (urlPath.startsWith('/uploads/')) { base = DATA_DIR; }
-  else base = path.join(ROOT, 'public');
-  const file = path.normalize(path.join(base, urlPath.startsWith('/uploads/') ? urlPath.replace('/uploads/', 'uploads/') : urlPath));
-  if (!file.startsWith(path.join(ROOT))) { json(res, 403, { error: 'forbidden' }); return; }
+  // كل نوع مسار له مجلد أساس خاص به وتحقق احتواء مستقل — يدعم ذلك أن UPLOADS_DIR
+  // قد يقع خارج ROOT كلياً (مسار تخزين خارجي مُوجَّه عبر متغير البيئة).
+  let base, rel;
+  if (urlPath.startsWith('/uploads/')) { base = UPLOADS_DIR; rel = urlPath.slice('/uploads/'.length); }
+  else if (urlPath.startsWith('/shared/')) { base = ROOT; rel = urlPath; }
+  else { base = path.join(ROOT, 'public'); rel = urlPath; }
+  const baseNorm = path.normalize(base);
+  const file = path.normalize(path.join(base, rel));
+  if (file !== baseNorm && !file.startsWith(baseNorm + path.sep)) { json(res, 403, { error: 'forbidden' }); return; }
   fs.readFile(file, function (e, buf) {
     if (e) { json(res, 404, { error: 'not found: ' + urlPath }); return; }
     res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
@@ -282,7 +353,9 @@ const server = http.createServer(async function (req, res) {
     let m = u.match(/^\/api\/collections\/(\w+)$/);
     if (m && req.method === 'POST') {
       const body = await readBody(req);
-      return json(res, 201, core.createItem(user, m[1], body));
+      const item = core.createItem(user, m[1], body);
+      notifyOnCreate(m[1], item, user);
+      return json(res, 201, item);
     }
     m = u.match(/^\/api\/collections\/(\w+)\/([\w-]+)$/);
     if (m && req.method === 'PUT') {
@@ -309,7 +382,8 @@ const server = http.createServer(async function (req, res) {
       if (['admin', 'consultant'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
       const s = integrations.status();
       s.storage = { kind: storage.kind, file: path.basename(storage.file) };
-      s.uploads = fs.existsSync(UPLOADS_DIR) ? fs.readdirSync(UPLOADS_DIR).length : 0;
+      s.uploads = countUploads();
+      s.uploadsDir = UPLOADS_DIR;
       return json(res, 200, s);
     }
 
@@ -350,7 +424,10 @@ const server = http.createServer(async function (req, res) {
 
     // إجراءات الأعمال
     if (u === '/api/actions/review' && req.method === 'POST') {
-      return json(res, 200, core.review(user, await readBody(req)));
+      const body = await readBody(req);
+      const item = core.review(user, body);
+      notifyOnReview(body.collection, item, user);
+      return json(res, 200, item);
     }
     if (u === '/api/actions/add-contractor' && req.method === 'POST') {
       return json(res, 201, core.addContractor(user, await readBody(req)));

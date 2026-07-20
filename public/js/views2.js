@@ -6,6 +6,20 @@
   const esc = VS.esc, pill = VS.pill, money = VS.money, toast = VS.toast, modal = VS.modal, discOf = VS.discOf;
 
   I18n.registerDict({
+    'لا يوجد ملف مرفوع فعلياً (بيانات تجريبية)': 'No file actually uploaded (demo data)',
+    '👁 فتح المستند': '👁 Open Document',
+    '💬 المناقشة': '💬 Discussion',
+    'لا توجد ردود بعد': 'No replies yet',
+    'اكتب رداً...': 'Write a reply...',
+    'إرسال الرد': 'Send Reply',
+    'اكتب نص الرد أولاً': 'Write the reply text first',
+    '✅ تم إرسال الرد': '✅ Reply sent',
+    'إغلاق': 'Close',
+    'لم يُرفع نموذج بعد': 'No model uploaded yet',
+    'اختر ملف المخطط أولاً': 'Choose a drawing file first',
+    'البريد الإلكتروني (لإشعارات الطلبات الجديدة والردود)': 'Email (for new-submission and reply notifications)',
+    'البريد الإلكتروني (لإشعارات الطلبات والردود)': 'Email (for request and reply notifications)',
+    'البريد الإلكتروني للاستشاري (لإشعارات الطلبات والردود)': "Consultant's email (for request and reply notifications)",
     'المخططات التنفيذية': 'Shop Drawings',
     'الجداول الزمنية': 'Schedules',
     'المواد والداتا شيت': 'Materials & Data Sheets',
@@ -256,6 +270,7 @@
     '📥 موجه إليك من المكتب الفني': '📥 Directed to You from the Technical Office',
     '➕ رفع ': '➕ Submit ',
     'سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض': 'The request will reach the consultant for review, approval, or rejection',
+    'سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض — يُعطى رقم مرجع تلقائياً': 'The request will reach the consultant for review, approval, or rejection — a reference number is assigned automatically',
     'رقم المرجع': 'Reference Number',
     'العنوان / الوصف': 'Title / Description',
     'نص الاستفسار الفني': 'Technical Inquiry Text',
@@ -502,12 +517,86 @@
     });
   }
 
+  /** بطاقة المرفق داخل نافذة المراجعة: معاينة صورة أو رابط فتح المستند، أو تنويه إن لم يكن هناك ملف مرفوع فعلياً */
+  function attachmentBlock(f) {
+    if (!f) return '';
+    const hasUrl = typeof f === 'object' && f.url;
+    const name = hasUrl ? f.name : (typeof f === 'string' ? f : (f.name || ''));
+    const isImage = hasUrl && /^image\//.test(f.mime || '');
+    return '<div class="card" style="padding:12px 16px;margin-bottom:14px">' +
+      '<div class="flex" style="justify-content:space-between;gap:12px;flex-wrap:wrap">' +
+      '<div class="flex" style="gap:10px"><span style="font-size:20px">📎</span>' +
+      '<div><div class="small" style="font-weight:700">' + esc(name) + '</div>' +
+      (hasUrl ? '' : '<div class="small muted">' + I18n.t('لا يوجد ملف مرفوع فعلياً (بيانات تجريبية)') + '</div>') +
+      '</div></div>' +
+      (hasUrl ? '<a class="btn sm" href="' + esc(f.url) + '" target="_blank" rel="noopener">' + I18n.t('👁 فتح المستند') + '</a>' : '') +
+      '</div>' +
+      (isImage ? '<a href="' + esc(f.url) + '" target="_blank" rel="noopener"><img src="' + esc(f.url) + '" alt="' + esc(name) + '" style="max-width:100%;max-height:220px;border-radius:10px;margin-top:12px;display:block"></a>' : '') +
+      '</div>';
+  }
+
+  /** ============ مناقشة/ردود داخل التطبيق (بديل البريد ثنائي الاتجاه) ============
+   * كل عنصر اعتماد له نقاش خاص به (تعليقات) بين المقاول والاستشاري — رد أي طرف
+   * يُرسل إشعار بريد تلقائي للطرف الآخر (server.js: notifyOnCreate). */
+  function commentsFor(ctx, collection, itemId) {
+    return (ctx.S.comments || []).filter(function (c) { return c.collection === collection && c.itemId === itemId; });
+  }
+
+  function threadInnerHtml(ctx, collection, it) {
+    const list = commentsFor(ctx, collection, it.id);
+    return '<b class="small">' + I18n.t('💬 المناقشة') + (list.length ? ' (' + list.length + ')' : '') + '</b>' +
+      '<div class="mt" style="max-height:200px;overflow-y:auto">' +
+      (list.length ? list.map(function (c) {
+        return '<div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--border)">' +
+          '<div class="small" style="font-weight:700">' + esc(c.byName) +
+          ' <span class="muted" style="font-weight:400">· ' + esc(c.date) + '</span></div>' +
+          '<div class="small" style="margin-top:3px;white-space:pre-wrap">' + esc(c.text) + '</div></div>';
+      }).join('') : '<div class="small muted">' + I18n.t('لا توجد ردود بعد') + '</div>') +
+      '</div>' +
+      '<textarea class="inp mt" id="th-text" rows="2" placeholder="' + I18n.t('اكتب رداً...') + '"></textarea>' +
+      '<button class="btn sm mt" id="th-send">' + I18n.t('إرسال الرد') + '</button>';
+  }
+
+  /** يرسم صندوق المناقشة ويربط زر الإرسال — يعيد رسم نفسه بعد كل رد بلا إغلاق النافذة */
+  function mountThread(container, ctx, collection, it) {
+    const box = container.querySelector('#thread-box');
+    if (!box) return;
+    box.innerHTML = threadInnerHtml(ctx, collection, it);
+    box.querySelector('#th-send').addEventListener('click', async function () {
+      const ta = box.querySelector('#th-text');
+      const text = ta.value.trim();
+      if (!text) { toast(I18n.t('اكتب نص الرد أولاً'), true); return; }
+      const btn = box.querySelector('#th-send');
+      btn.disabled = true;
+      try {
+        await Api.create('comments', { collection: collection, itemId: it.id, text: text });
+        await ctx.refreshSilent();
+        mountThread(container, ctx, collection, it);
+        toast(I18n.t('✅ تم إرسال الرد'));
+      } catch (e) { toast(e.message, true); btn.disabled = false; }
+    });
+  }
+
+  /** نافذة مناقشة مستقلة (تُستخدم من جهة المقاول على طلباته) */
+  function openThreadModal(ctx, collection, it) {
+    const m = modal(
+      '<h3>' + esc(it.title) + '</h3>' +
+      '<div class="m-sub">' + esc(it.ref) + '</div>' +
+      attachmentBlock(it.file) +
+      '<div class="card" id="thread-box" style="padding:12px 16px"></div>' +
+      '<div class="m-actions"><button class="btn mutedb" id="th-close">' + I18n.t('إغلاق') + '</button></div>'
+    );
+    m.querySelector('#th-close').addEventListener('click', function () { m.remove(); });
+    mountThread(m, ctx, collection, it);
+  }
+
   function openReviewModal(ctx, collection, it) {
     const isPayment = collection === 'payments';
     const m = modal(
       '<h3>' + I18n.t('مراجعة: ') + esc(it.title) + '</h3>' +
       '<div class="m-sub">' + esc(it.ref) + ' · ' + esc(contractorName(ctx, it.contractorId)) +
       (it.amount ? I18n.t(' · القيمة ') + money(it.amount) : '') + '</div>' +
+      attachmentBlock(it.file) +
       (isPayment && (it.lines || []).length ?
         '<div class="card" style="padding:12px;margin-bottom:10px"><b class="small">' + I18n.t('بنود جدول الكميات في هذا المستخلص:') + '</b>' +
         it.lines.map(function (l) {
@@ -515,6 +604,7 @@
           return '<div class="small muted" style="margin-top:6px">• ' + (bq ? esc(bq.description) + ' (' + esc(bq.floor) + ')' : l.boqItemId) + I18n.t(' ← إنجاز ') + '<b class="num" style="color:var(--ok)">' + l.progress + '%</b></div>';
         }).join('') +
         '<div class="small mt" style="color:var(--accent2)">' + I18n.t('💡 عند الاعتماد ستتحدث نسب هذه البنود تلقائياً وتتحول مناطقها في المخططات من داكنة إلى ساطعة.') + '</div></div>' : '') +
+      '<div class="card" id="thread-box" style="padding:12px 16px;margin-bottom:14px"></div>' +
       '<label class="fl">' + I18n.t('القرار') + '</label>' +
       '<select class="inp" id="rv-status">' +
       '<option value="approved">' + I18n.t('✅ اعتماد') + '</option>' +
@@ -524,6 +614,7 @@
       '<label class="fl flex" style="cursor:pointer"><input type="checkbox" id="rv-sign" checked> ' + I18n.t('توقيع إلكتروني باسم: ') + '<b style="color:var(--accent2)">' + esc(ctx.U.name) + '</b></label>' +
       '<div class="m-actions"><button class="btn" id="rv-ok">' + I18n.t('تأكيد القرار') + '</button><button class="btn mutedb" id="rv-cancel">' + I18n.t('إلغاء') + '</button></div>'
     );
+    mountThread(m, ctx, collection, it);
     m.querySelector('#rv-cancel').addEventListener('click', function () { m.remove(); });
     m.querySelector('#rv-ok').addEventListener('click', async function () {
       if (!m.querySelector('#rv-sign').checked) { toast(I18n.t('يلزم التوقيع الإلكتروني لتأكيد القرار'), true); return; }
@@ -569,6 +660,7 @@
       '<label class="fl">' + I18n.t('بنود جدول الكميات') + '</label><div id="nc-boq"></div>' +
       '<button class="btn ghost sm" id="nc-addrow">' + I18n.t('+ إضافة بند') + '</button>' +
       '<label class="fl">' + I18n.t('اسم مستخدم للمقاول (لإنشاء حساب دخول)') + '</label><input class="inp" id="nc-user" placeholder="cont-name">' +
+      '<label class="fl">' + I18n.t('البريد الإلكتروني (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="nc-email" type="email" placeholder="name@example.com" dir="ltr">' +
       '<label class="fl">' + I18n.t('كلمة المرور (اتركها فارغة للتوليد التلقائي)') + '</label><input class="inp" id="nc-pass" placeholder="••••••••">' +
       '<div class="m-actions"><button class="btn block" id="nc-save">' + I18n.t('حفظ المقاول وإنشاء الحساب') + '</button></div>' +
       '</div></div>';
@@ -603,6 +695,7 @@
           startDate: el.querySelector('#nc-start').value, endDate: el.querySelector('#nc-end').value,
           boqItems: boqItems,
           username: el.querySelector('#nc-user').value.trim() || null,
+          email: el.querySelector('#nc-email').value.trim() || null,
           password: el.querySelector('#nc-pass').value || null
         });
         if (res.account) {
@@ -835,6 +928,7 @@
       '<label class="fl">' + I18n.t('المكتب الاستشاري') + '</label><input class="inp" id="np-cons" placeholder="' + I18n.t('اسم المكتب الهندسي') + '">' +
       '<div class="grid g2"><div><label class="fl">' + I18n.t('اسم مستخدم الاستشاري') + '</label><input class="inp" id="np-user" placeholder="consult-x"></div>' +
       '<div><label class="fl">' + I18n.t('كلمة المرور') + '</label><input class="inp" id="np-pass" placeholder="' + I18n.t('تلقائية إن تُركت') + '"></div></div>' +
+      '<label class="fl">' + I18n.t('البريد الإلكتروني للاستشاري (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="np-email" type="email" placeholder="name@example.com" dir="ltr">' +
       '<div class="m-actions"><button class="btn block" id="np-save">' + I18n.t('إنشاء المشروع وحساب الاستشاري') + '</button></div></div></div>';
 
     el.querySelector('#np-save').addEventListener('click', async function () {
@@ -848,6 +942,7 @@
           consultantName: el.querySelector('#np-cons').value,
           consultantUsername: el.querySelector('#np-user').value.trim() || null,
           consultantPassword: el.querySelector('#np-pass').value || null,
+          consultantEmail: el.querySelector('#np-email').value.trim() || null,
           ownerName: ctx.S.projects[0].ownerName
         });
         if (res.account) {
@@ -942,6 +1037,7 @@
       '<div class="small muted" id="nu-desc" style="margin-top:8px;line-height:1.8"></div>' +
       '<label class="fl">' + I18n.t('الاسم الكامل') + '</label><input class="inp" id="nu-name" placeholder="' + I18n.t('م. فلان الفلاني') + '">' +
       '<label class="fl">' + I18n.t('اسم المستخدم') + '</label><input class="inp num" id="nu-user" placeholder="username" dir="ltr">' +
+      '<label class="fl">' + I18n.t('البريد الإلكتروني (لإشعارات الطلبات الجديدة والردود)') + '</label><input class="inp num" id="nu-email" type="email" placeholder="name@example.com" dir="ltr">' +
       '<label class="fl">' + I18n.t('كلمة المرور (اتركها فارغة للتوليد التلقائي)') + '</label><input class="inp num" id="nu-pass" placeholder="••••••••" dir="ltr">' +
       '<div id="nu-scope"></div>' +
       '<div class="m-actions"><button class="btn block" id="nu-save">' + I18n.t('إنشاء المستخدم وتسليم بياناته') + '</button></div></div></div>';
@@ -977,7 +1073,7 @@
       const data = {
         name: name, username: username,
         password: el.querySelector('#nu-pass').value || Math.random().toString(36).slice(2, 10),
-        role: role
+        role: role, email: el.querySelector('#nu-email').value.trim() || undefined
       };
       const contSel = el.querySelector('#nu-cont');
       if (contSel) data.contractorId = contSel.value;
@@ -1070,7 +1166,10 @@
       '<label class="fl">' + I18n.t('ملف النموذج') + '</label><input class="inp" id="bim-file" type="file" accept=".ifc,.rvt,.nwd,.nwc">' +
       '<label class="fl">' + I18n.t('إصدار النموذج') + '</label><input class="inp" id="bim-rev" placeholder="Rev-04 - يوليو 2026" value="Rev-04 - يوليو 2026">' +
       '<div class="m-actions"><button class="btn block" id="bim-up">' + I18n.t('رفع النموذج وربطه بجدول الكميات') + '</button></div>' +
-      '<div class="sig">' + I18n.t('النموذج الحالي: BassirTower_Rev03.ifc · رُفع 2026-06-12 · مرتبط بـ ') + '<b class="num">' + ctx.S.boqItems.length + '</b>' + I18n.t(' بند') + '</div></div>' +
+      (P.bimModel ?
+        '<div class="mt">' + attachmentBlock(P.bimModel.file) + '<div class="small muted">' + I18n.t('الإصدار: ') + esc(P.bimModel.rev) + ' · ' + esc(P.bimModel.uploadedAt) + I18n.t(' · مرتبط بـ ') + '<b class="num">' + ctx.S.boqItems.length + '</b>' + I18n.t(' بند') + '</div></div>' :
+        '<div class="empty small mt">' + I18n.t('لم يُرفع نموذج بعد') + '</div>') +
+      '</div>' +
 
       '<div class="card"><h3>' + I18n.t('🔗 حالة ربط جدول الكميات بالنموذج') + '</h3>' +
       P.disciplines.map(function (d) {
@@ -1082,9 +1181,8 @@
       '<div class="small muted mt">' + I18n.t('💡 كل بند كميات مربوط بعناصر النموذج، فيتلوّن العنصر ساطعاً في عرض المالك عند اكتمال البند واعتماد مستخلصه.') + '</div></div></div>' +
 
       '<div class="card mt"><h3>' + I18n.t('📐 سجل مخططات المشروع ') + '<span class="hint">' + I18n.t('كل مخطط يرتبط بدور وتخصص وجدول كمياته — فيظهر داكناً/ساطعاً للمالك حسب التنفيذ') + '</span></h3>' +
-      '<div class="grid" style="grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:14px">' +
-      '<div><label class="fl">' + I18n.t('المرجع') + '</label><input class="inp num" id="pd-ref" placeholder="A-103"></div>' +
-      '<div style="grid-column:span 2"><label class="fl">' + I18n.t('اسم المخطط') + '</label><input class="inp" id="pd-title" placeholder="' + I18n.t('المسقط المعماري - ...') + '"></div>' +
+      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px">' +
+      '<div><label class="fl">' + I18n.t('اسم المخطط') + '</label><input class="inp" id="pd-title" placeholder="' + I18n.t('المسقط المعماري - ...') + '"></div>' +
       '<div><label class="fl">' + I18n.t('الدور') + '</label><select class="inp" id="pd-floor">' +
       P.floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') +
       '<option value="ELEV">' + I18n.t('الواجهات') + '</option></select></div>' +
@@ -1096,34 +1194,46 @@
       '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('المخطط') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الربط') + '</th></tr></thead><tbody>' +
       (ctx.S.planDrawings || []).map(function (dr) {
         const d = discOf(ctx, dr.discipline);
-        return '<tr><td class="num small"><b>' + esc(dr.ref) + '</b></td><td>' + esc(dr.title) + '<div class="small muted">📎 ' + esc(dr.file || '') + '</div></td>' +
+        return '<tr><td class="num small"><b>' + esc(dr.ref) + '</b></td><td>' + esc(dr.title) + '<div class="small muted">📎 ' + VS.att(dr.file) + '</div></td>' +
           '<td class="small">' + (dr.floor === 'ELEV' ? I18n.t('الواجهات') : esc(VS.floorName(ctx, dr.floor))) + '</td>' +
           '<td class="small">' + d.icon + ' ' + esc(d.name) + '</td>' +
           '<td class="small muted num">' + esc(dr.date || '') + '</td>' +
           '<td><span class="pill p-ok">' + I18n.t('مربوط بجدول الكميات ✓') + '</span></td></tr>';
       }).join('') + '</tbody></table></div></div>';
 
-    el.querySelector('#bim-up').addEventListener('click', function () {
+    el.querySelector('#bim-up').addEventListener('click', async function () {
       const f = el.querySelector('#bim-file').files[0];
       if (!f) { toast(I18n.t('اختر ملف النموذج أولاً'), true); return; }
-      toast(I18n.t('✅ رُفع النموذج "') + f.name + I18n.t('" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع'));
+      const btn = el.querySelector('#bim-up');
+      btn.disabled = true;
+      try {
+        const fileRec = await Api.upload(f);
+        await Api.update('projects', P.id, {
+          bimModel: { file: fileRec, rev: el.querySelector('#bim-rev').value || '', uploadedAt: new Date().toISOString().slice(0, 10), uploadedBy: ctx.U.name }
+        });
+        toast(I18n.t('✅ رُفع النموذج "') + f.name + I18n.t('" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع'));
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); btn.disabled = false; }
     });
 
     el.querySelector('#pd-add').addEventListener('click', async function () {
       const title = el.querySelector('#pd-title').value.trim();
       if (!title) { toast(I18n.t('أدخل اسم المخطط'), true); return; }
       const f = el.querySelector('#pd-file').files[0];
+      if (!f) { toast(I18n.t('اختر ملف المخطط أولاً'), true); return; }
+      const btn = el.querySelector('#pd-add');
+      btn.disabled = true;
       try {
+        const fileRec = await Api.upload(f);
         await Api.create('planDrawings', {
-          ref: el.querySelector('#pd-ref').value || 'DWG-' + Math.floor(Math.random() * 900 + 100),
           title: title,
           floor: el.querySelector('#pd-floor').value,
           discipline: el.querySelector('#pd-disc').value,
-          file: f ? f.name : '', by: ctx.U.name
+          file: fileRec, by: ctx.U.name
         });
         toast(I18n.t('✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر للمالك في رؤية المشروع'));
         ctx.refresh();
-      } catch (e) { toast(e.message, true); }
+      } catch (e) { toast(e.message, true); btn.disabled = false; }
     });
   }
 
@@ -1172,6 +1282,13 @@
       t.addEventListener('click', function () { contState.tab = t.getAttribute('data-ctab'); renderContractorHome(el, ctx); });
     });
     el.querySelector('#ct-new').addEventListener('click', function () { openSubmitModal(ctx); });
+    el.querySelectorAll('[data-thread]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const parts = b.getAttribute('data-thread').split('|');
+        const it = (ctx.S[parts[0]] || []).find(function (x) { return x.id === parts[1]; });
+        if (it) openThreadModal(ctx, parts[0], it);
+      });
+    });
   }
 
   function renderContractorList(ctx) {
@@ -1181,9 +1298,10 @@
     const hasAmount = tab === 'changeOrders' || tab === 'payments' || tab === 'claims';
     return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('العنوان') + '</th>' +
       (hasAmount ? '<th>' + I18n.t('القيمة') + '</th>' : '') +
-      '<th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الحالة') + '</th><th>' + I18n.t('رد الاستشاري') + '</th></tr></thead><tbody>' +
+      '<th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الحالة') + '</th><th>' + I18n.t('رد الاستشاري') + '</th><th></th></tr></thead><tbody>' +
       items.map(function (it) {
         const reply = tab === 'rfis' ? it.answer : it.notes;
+        const nComments = commentsFor(ctx, tab, it.id).length;
         return '<tr><td class="num small"><b>' + esc(it.ref) + '</b></td>' +
           '<td>' + esc(it.title) +
           (it.question ? '<div class="small muted" style="max-width:300px">' + esc(it.question) + '</div>' : '') +
@@ -1192,7 +1310,8 @@
           (hasAmount ? '<td>' + money(it.amount) + '</td>' : '') +
           '<td class="small muted num">' + esc(it.date) + '</td><td>' + pill(it.status) + '</td>' +
           '<td class="small" style="max-width:240px">' + (reply ? esc(reply) : '<span class="muted">—</span>') +
-          (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td></tr>';
+          (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
+          '<td><button class="btn ghost sm" data-thread="' + tab + '|' + esc(it.id) + '">💬' + (nComments ? ' ' + nComments : '') + '</button></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
 
@@ -1228,8 +1347,7 @@
 
     const m = modal(
       '<h3>' + I18n.t('➕ رفع ') + I18n.t(meta.name) + '</h3>' +
-      '<div class="m-sub">' + I18n.t('سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض') + '</div>' +
-      '<label class="fl">' + I18n.t('رقم المرجع') + '</label><input class="inp num" id="sb-ref" placeholder="REF-001">' +
+      '<div class="m-sub">' + I18n.t('سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض — يُعطى رقم مرجع تلقائياً') + '</div>' +
       '<label class="fl">' + I18n.t('العنوان / الوصف') + '</label><input class="inp" id="sb-title">' +
       (tab === 'rfis' ? '<label class="fl">' + I18n.t('نص الاستفسار الفني') + '</label><textarea class="inp" id="sb-question" rows="3" placeholder="' + I18n.t('اشرح التعارض أو المعلومة المطلوبة مع ذكر رقم المخطط...') + '"></textarea>' : '') +
       (tab === 'methodStatements' ? '<label class="fl">' + I18n.t('النوع') + '</label><select class="inp" id="sb-kind"><option value="ms">' + I18n.t('أسلوب تنفيذ MS') + '</option><option value="itp">' + I18n.t('خطة فحص ITP') + '</option></select>' : '') +
@@ -1262,7 +1380,6 @@
     m.querySelector('#sb-cancel').addEventListener('click', function () { m.remove(); });
     m.querySelector('#sb-ok').addEventListener('click', async function () {
       const data = {
-        ref: m.querySelector('#sb-ref').value || 'REF-' + Math.floor(Math.random() * 900 + 100),
         title: m.querySelector('#sb-title').value
       };
       if (!data.title) { toast(I18n.t('أدخل عنوان الطلب'), true); return; }
@@ -1506,9 +1623,11 @@
       '<div class="m-sub">' + esc(it.ref) + ' · ' + esc(contractorName(ctx, it.contractorId)) + '</div>' +
       (it.question ? '<div class="card" style="padding:12px;margin-bottom:6px"><div class="small">' + esc(it.question) + '</div></div>' : '') +
       (it.description ? '<div class="card" style="padding:12px;margin-bottom:6px"><div class="small">' + esc(it.description) + '</div></div>' : '') +
+      '<div class="card" id="thread-box" style="padding:12px 16px;margin-bottom:10px"></div>' +
       '<label class="fl">' + esc(label) + '</label><textarea class="inp" id="am-text" rows="4"></textarea>' +
       '<div class="m-actions"><button class="btn" id="am-ok">' + I18n.t('اعتماد وتوقيع') + '</button><button class="btn mutedb" id="am-cancel">' + I18n.t('إلغاء') + '</button></div>'
     );
+    mountThread(m, ctx, col, it);
     m.querySelector('#am-cancel').addEventListener('click', function () { m.remove(); });
     m.querySelector('#am-ok').addEventListener('click', function () {
       const txt = m.querySelector('#am-text').value.trim();
@@ -1527,6 +1646,7 @@
     const m = modal(
       '<h3>' + I18n.t('➕ إضافة: ') + esc(I18n.t(tabDef.name)) + '</h3>' +
       tabDef.fields.map(function (f) {
+        if (f.k === 'ref') return ''; // رقم المرجع يُولَّد تلقائياً من الخادم دائماً
         const id = 'tf-' + f.k;
         if (f.type === 'contractor') return '<label class="fl">' + esc(I18n.t(f.label)) + '</label><select class="inp" id="' + id + '">' +
           ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
@@ -1545,6 +1665,7 @@
     m.querySelector('#tf-ok').addEventListener('click', function () {
       const data = {};
       tabDef.fields.forEach(function (f) {
+        if (f.k === 'ref') return; // لا حقل DOM له — يُولَّد المرجع من الخادم
         const v = m.querySelector('#tf-' + f.k).value;
         if (f.type === 'lines') data[f.k] = v.split('\n').filter(Boolean);
         else if (f.type === 'number') data[f.k] = Number(v) || 0;

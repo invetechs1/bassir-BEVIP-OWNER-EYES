@@ -18,7 +18,18 @@
   const TECH_FILTERED = ['rfis', 'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests'];
   // مجموعات مكتب فني عامة لا تُعرض للمقاول
   const TECH_INTERNAL = ['meetings', 'correspondence'];
-  const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS.concat(TECH_FILTERED); // المقاول يرى ضمنها ما يخصه فقط
+  // الردود/المناقشة على أي طلب — تخص المقاول صاحب الطلب فقط (تُرشَّح مثل بقية مجموعاته)
+  const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS.concat(TECH_FILTERED, ['comments']);
+
+  // بادئة الترقيم التلقائي لكل مجموعة تحمل رقم مرجع — يُولَّد دائماً من الخادم
+  // لضمان عدم التكرار، ولا يُعتمد على أي قيمة يرسلها العميل لهذا الحقل مطلقاً.
+  const REF_PREFIX = {
+    shopDrawings: 'SD', materials: 'MT', scheduleSubmittals: 'SCH', wirs: 'WIR',
+    changeOrders: 'CO', payments: 'PAY', methodStatements: 'MS', claims: 'CLM',
+    valueEngineering: 'VE', handoverDocs: 'HND', planDrawings: 'DWG',
+    rfis: 'RFI', ncrs: 'NCR', siteInstructions: 'SI', snags: 'SNG',
+    hseReports: 'HSE', materialTests: 'MTT', meetings: 'MOM', correspondence: 'COR'
+  };
 
   // الحالة الابتدائية الافتراضية لكل مجموعة
   const DEFAULT_STATUS = {
@@ -36,7 +47,7 @@
     materialTests: 'اختبار مواد', meetings: 'محضر اجتماع', correspondence: 'خطاب',
     dailyReports: 'تقرير يومي', weeklyReports: 'تقرير أسبوعي', monthlyReports: 'تقرير شهري',
     boqItems: 'بند كميات', planDrawings: 'مخطط مشروع', cameras: 'كاميرا',
-    users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة'
+    users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة', comments: 'رد'
   };
 
   function labelOf(collection, item) {
@@ -75,7 +86,8 @@
     hseReports: ['consultant', 'admin'],
     materialTests: ['consultant', 'admin'],
     meetings: ['consultant', 'admin'],
-    correspondence: ['consultant', 'admin']
+    correspondence: ['consultant', 'admin'],
+    comments: ['contractor', 'consultant', 'admin']
   };
 
   function createCore(db, persist, opts) {
@@ -90,6 +102,15 @@
     function nextId(prefix) {
       db.meta.seq = (db.meta.seq || 1000) + 1;
       return prefix + db.meta.seq;
+    }
+
+    /** رقم مرجع فريد يولّده الخادم دائماً (SD-0001, RFI-0002...) — لا يُعتمد أبداً على مُدخل العميل */
+    function nextRef(collection) {
+      const prefix = REF_PREFIX[collection];
+      if (!prefix) return null;
+      db.meta.refSeq = db.meta.refSeq || {};
+      db.meta.refSeq[collection] = (db.meta.refSeq[collection] || 0) + 1;
+      return prefix + '-' + String(db.meta.refSeq[collection]).padStart(4, '0');
     }
 
     function err(message, code) {
@@ -157,7 +178,7 @@
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
-      APPROVAL_COLLECTIONS.concat(TECH_FILTERED, TECH_INTERNAL).forEach(function (c) { s[c] = db[c] || []; });
+      APPROVAL_COLLECTIONS.concat(TECH_FILTERED, TECH_INTERNAL, ['comments']).forEach(function (c) { s[c] = db[c] || []; });
 
       if (role === 'contractor') {
         const cid = user.contractorId;
@@ -198,11 +219,41 @@
       if (allowed.indexOf(user.role) === -1) throw err('لا تملك صلاحية الإضافة هنا', 403);
     }
 
+    /** يجد العنصر الأصل الذي يخص هذا التعليق، ويتحقق من صلاحية المستخدم للتعليق عليه */
+    function resolveCommentParent(user, data) {
+      const col = data.collection;
+      const list = col && db[col];
+      if (!list) throw err('مجموعة غير معروفة للتعليق: ' + col, 400);
+      const parent = list.find(function (x) { return x.id === data.itemId; });
+      if (!parent) throw err('العنصر المطلوب التعليق عليه غير موجود', 404);
+      if (user.role === 'contractor' && parent.contractorId !== user.contractorId) {
+        throw err('لا تملك صلاحية التعليق على هذا الطلب', 403);
+      }
+      return parent;
+    }
+
     function createItem(user, collection, data) {
       assertCanCreate(user, collection);
       const item = Object.assign({}, data);
       item.id = nextId(collection.substring(0, 2).toUpperCase());
+
+      if (collection === 'comments') {
+        const parent = resolveCommentParent(user, item);
+        item.contractorId = parent.contractorId || null;
+        item.projectId = parent.projectId || 'P1';
+        item.byUserId = user.id;
+        item.byName = user.name;
+        item.byRole = user.role;
+        item.date = nowStr();
+        db.comments = db.comments || [];
+        db.comments.push(item);
+        audit(user, 'create', 'رد على ' + labelOf(data.collection, parent));
+        persist();
+        return item;
+      }
+
       item.projectId = item.projectId || 'P1';
+      if (REF_PREFIX[collection]) item.ref = nextRef(collection); // يتجاهل أي ref مُرسَل من العميل عمداً
       if (user.role === 'contractor') {
         item.contractorId = user.contractorId; // المقاول لا يُنشئ باسم غيره
         if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
@@ -311,7 +362,7 @@
       let account = null;
       if (payload.username) {
         account = storeAccount(
-          { id: nextId('U'), username: payload.username, name: c.name, role: 'contractor', contractorId: c.id },
+          { id: nextId('U'), username: payload.username, name: c.name, role: 'contractor', contractorId: c.id, email: payload.email || undefined },
           payload.password || genPassword()
         );
       }
@@ -347,7 +398,7 @@
       if (payload.consultantUsername) {
         account = storeAccount(
           { id: nextId('U'), username: payload.consultantUsername,
-            name: payload.consultantName || 'استشاري ' + p.name, role: 'consultant' },
+            name: payload.consultantName || 'استشاري ' + p.name, role: 'consultant', email: payload.consultantEmail || undefined },
           payload.consultantPassword || genPassword()
         );
       }
@@ -430,6 +481,7 @@
       sendReport: sendReport,
       contractorSummary: contractorSummary,
       floorDisciplineProgress: floorDisciplineProgress,
+      labelOf: labelOf,
       APPROVAL_COLLECTIONS: APPROVAL_COLLECTIONS
     };
   }
