@@ -280,6 +280,48 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .eye-floor:hover { transform: translateY(-3px); filter: brightness(1.2); }
 .eye-floor b { font-size: 15px; }
 
+/* ============ عارض المخططات مع الترميز ============ */
+.dv-wrap {
+  width: min(1200px, 96vw); max-height: 94vh; overflow-y: auto;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px;
+}
+.dv-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dv-tools {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px;
+}
+.dv-tool {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.dv-tool.active { border-color: var(--accent); color: var(--accent2); background: rgba(224, 164, 88, .12); font-weight: 700; }
+.dv-color { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.dv-color.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+.dv-stage-wrap { background: #0a0d13; border: 1px solid var(--border); border-radius: 12px; padding: 8px; overflow: auto; max-height: 58vh; }
+.dv-stage { position: relative; display: inline-block; min-width: 100%; }
+.dv-stage img { display: block; width: 100%; user-select: none; border-radius: 6px; }
+.dv-stage canvas { position: absolute; inset: 0; touch-action: none; }
+.dv-sheet {
+  min-height: 480px; background:
+    linear-gradient(#e9e5da 1px, transparent 1px), linear-gradient(90deg, #e9e5da 1px, transparent 1px),
+    #f5f2ea;
+  background-size: 28px 28px; border: 10px solid #fff; outline: 2px solid #c9c2b2;
+  border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+}
+.dv-sheet-title { color: #333; font-weight: 800; font-size: 20px; }
+.dv-sheet-sub { color: #666; font-size: 13px; direction: ltr; }
+.dv-sheet-note { color: #999; font-size: 11px; }
+.dv-side { display: flex; flex-direction: column; gap: 10px; }
+.dv-pins { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.dv-pin-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.dv-pin-n {
+  min-width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  color: #10151f; font-weight: 800; font-size: 12px;
+}
+.dv-review { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+
 /* ============ نوافذ ورسائل ============ */
 .modal-back { position: fixed; inset: 0; background: rgba(5, 8, 14, .7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
 .modal { width: 560px; max-width: 100%; max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--border); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }
@@ -511,7 +553,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'SD1', projectId: 'P1', contractorId: 'C2', ref: 'SD-ARC-014', title: 'مخطط تفاصيل الواجهة الشمالية', date: '2026-07-02', status: 'pending', notes: '', file: 'SD-ARC-014.pdf' },
       { id: 'SD2', projectId: 'P1', contractorId: 'C3', ref: 'SD-ELE-009', title: 'مخطط لوحات التوزيع - الدور الثاني', date: '2026-07-05', status: 'pending', notes: '', file: 'SD-ELE-009.pdf' },
       { id: 'SD3', projectId: 'P1', contractorId: 'C2', ref: 'SD-ARC-012', title: 'تفاصيل الأسقف المستعارة - الأرضي', date: '2026-06-20', status: 'approved', notes: 'اعتمد مع الالتزام بمناسيب التكييف', signature: 'م. خالد العمران', signDate: '2026-06-24', file: 'SD-ARC-012.pdf' },
-      { id: 'SD4', projectId: 'P1', contractorId: 'C4', ref: 'SD-HVC-006', title: 'مسارات الدكتات - الميزانين', date: '2026-06-15', status: 'rejected', notes: 'تعارض مع كمرة ساقطة محور 5-C، يعاد التنسيق', signature: 'م. خالد العمران', signDate: '2026-06-18', file: 'SD-HVC-006.pdf' },
+      { id: 'SD4', projectId: 'P1', contractorId: 'C4', ref: 'SD-HVC-006', title: 'مسارات الدكتات - الميزانين', date: '2026-06-15', status: 'rejected', notes: 'تعارض مع كمرة ساقطة محور 5-C، يعاد التنسيق', signature: 'م. خالد العمران', signDate: '2026-06-18', file: 'SD-HVC-006.pdf',
+        markupBy: 'م. خالد العمران', markupDate: '2026-06-18',
+        annotations: [
+          { type: 'rect', from: [0.3, 0.3], to: [0.62, 0.55], color: '#ff3b30' },
+          { type: 'arrow', from: [0.75, 0.22], to: [0.6, 0.36], color: '#ff3b30' },
+          { type: 'pin', at: [0.46, 0.42], n: 1, text: 'الدكت يتعارض مع الكمرة الساقطة محور 5-C — يخفض المنسوب 15سم', color: '#ffcc00' },
+          { type: 'text', at: [0.64, 0.2], text: 'يعدل المسار', color: '#ff3b30' }
+        ] },
       { id: 'SD5', projectId: 'P1', contractorId: 'C1', ref: 'SD-STR-021', title: 'تفاصيل خزان المياه العلوي', date: '2026-06-28', status: 'approved_notes', notes: 'اعتمد مع ملاحظات: زيادة سماكة العزل', signature: 'م. خالد العمران', signDate: '2026-07-01', file: 'SD-STR-021.pdf' }
     ];
 
@@ -782,7 +831,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 6 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 7 };
 
     return db;
   }
@@ -1471,6 +1520,281 @@ textarea.inp { resize: vertical; min-height: 80px; }
 })();
 
 
+/* ===== public/js/viewer.js ===== */
+/**
+ * بصير | عارض المخططات مع الترميز (Markup)
+ * فتح المخطط المرفوع، الكتابة عليه (قلم، مستطيل، سهم، نص، دبابيس ملاحظات مرقمة)،
+ * حفظ الملاحظات، ثم الاعتماد أو الإرجاع للمقاول من داخل العارض.
+ * الإحداثيات تُخزن منسوبة (0..1) فتبقى صحيحة مع أي مقاس عرض.
+ */
+(function () {
+  'use strict';
+
+  const esc = Charts.esc;
+  const APPROVAL_COLS = ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs'];
+  const COLORS = ['#ff3b30', '#ffcc00', '#2dd4a0', '#4cc9f0', '#ffffff'];
+  const IMG_EXT = /\.(png|jpe?g|webp|gif|bmp)$/i;
+
+  function fileOf(item) {
+    const f = item.file;
+    if (!f) return { name: '', url: '', isImage: false };
+    if (typeof f === 'string') return { name: f, url: '', isImage: false };
+    return { name: f.name || '', url: f.url || '', isImage: !!f.url && IMG_EXT.test(f.name || f.url) };
+  }
+
+  /**
+   * فتح العارض.
+   * opts: { canEdit (يرسم ويحفظ), canReview (أزرار الاعتماد/الإرجاع), onDone }
+   */
+  function openDrawingViewer(ctx, collection, item, opts) {
+    opts = opts || {};
+    const VS = window.ViewsShared;
+    const f = fileOf(item);
+    const canEdit = !!opts.canEdit;
+    const canReview = !!opts.canReview && APPROVAL_COLS.indexOf(collection) !== -1 && item.status === 'pending';
+    let anns = JSON.parse(JSON.stringify(item.annotations || []));
+    let tool = 'pen', color = COLORS[0], current = null, dirty = false;
+
+    const back = document.createElement('div');
+    back.className = 'modal-back';
+    back.innerHTML =
+      '<div class="dv-wrap">' +
+      '<div class="dv-head">' +
+      '<div><b>🖊 ' + esc(item.title || f.name) + '</b>' +
+      '<div class="small muted">' + esc(item.ref || '') + (f.name ? ' · 📎 ' + esc(f.name) : '') +
+      (item.markupBy ? ' · آخر ترميز: ' + esc(item.markupBy) + ' (' + esc(item.markupDate || '') + ')' : '') + '</div></div>' +
+      '<span class="spacer"></span>' + VS.pill(item.status || '') +
+      (f.url ? '<a class="btn ghost sm" href="' + esc(f.url) + '" target="_blank">⬇ الملف الأصلي</a>' : '') +
+      '<button class="btn mutedb sm" id="dv-close">✕ إغلاق</button></div>' +
+
+      (canEdit ?
+        '<div class="dv-tools">' +
+        '<span class="small muted">الأداة:</span>' +
+        [['pen', '✏️ قلم'], ['rect', '⬜ مستطيل'], ['arrow', '↗ سهم'], ['text', '🅰 نص'], ['pin', '📍 ملاحظة مرقمة']].map(function (t) {
+          return '<button class="dv-tool' + (t[0] === 'pen' ? ' active' : '') + '" data-tool="' + t[0] + '">' + t[1] + '</button>';
+        }).join('') +
+        '<span class="small muted" style="margin-inline-start:10px">اللون:</span>' +
+        COLORS.map(function (c, i) {
+          return '<button class="dv-color' + (i === 0 ? ' active' : '') + '" data-color="' + c + '" style="background:' + c + '"></button>';
+        }).join('') +
+        '<span class="spacer"></span>' +
+        '<button class="btn mutedb sm" id="dv-undo">↩ تراجع</button>' +
+        '<button class="btn mutedb sm" id="dv-clearall">🗑 مسح الكل</button>' +
+        '<button class="btn sm" id="dv-save">💾 حفظ الترميز</button>' +
+        '</div>' : '') +
+
+      '<div class="dv-stage-wrap"><div class="dv-stage" id="dv-stage">' +
+      (f.isImage
+        ? '<img id="dv-img" src="' + esc(f.url) + '" alt="" draggable="false">'
+        : '<div class="dv-sheet" id="dv-sheet"><div class="dv-sheet-title">📐 ' + esc(item.title || 'المخطط') + '</div>' +
+          '<div class="dv-sheet-sub">' + esc(item.ref || '') + (f.name ? ' · ' + esc(f.name) : '') + '</div>' +
+          '<div class="dv-sheet-note">ورقة ترميز — الملف الأصلي بصيغة غير قابلة للمعاينة داخل المتصفح' + (f.url ? ' (حمّله من الزر أعلاه)' : '') + '</div></div>') +
+      '<canvas id="dv-canvas"></canvas>' +
+      '</div></div>' +
+
+      '<div class="dv-side">' +
+      '<div class="dv-pins" id="dv-pins"></div>' +
+      (canReview ?
+        '<div class="dv-review"><label class="fl">ملاحظات القرار (تصل للمقاول مع الترميز)</label>' +
+        '<textarea class="inp" id="dv-notes" rows="2" placeholder="اكتب ملاحظاتك..."></textarea>' +
+        '<div class="m-actions">' +
+        '<button class="btn ok" id="dv-approve">✅ اعتماد</button>' +
+        '<button class="btn" id="dv-approve-notes">📝 اعتماد مع ملاحظات</button>' +
+        '<button class="btn danger" id="dv-reject">↩ إرجاع للمقاول لعمل اللازم</button>' +
+        '</div></div>'
+        : (item.notes || item.signature ?
+          '<div class="dv-review"><b class="small">قرار الاستشاري:</b><div class="small" style="margin-top:6px">' + esc(item.notes || '—') + '</div>' +
+          (item.signature ? '<div class="sig">✍️ ' + esc(item.signature) + ' · ' + esc(item.signDate || '') + '</div>' : '') + '</div>' : '')) +
+      '</div></div>';
+
+    document.body.appendChild(back);
+
+    const stage = back.querySelector('#dv-stage');
+    const canvas = back.querySelector('#dv-canvas');
+    const cx2 = canvas.getContext('2d');
+    const img = back.querySelector('#dv-img');
+
+    function fit() {
+      const base = img || back.querySelector('#dv-sheet');
+      const w = base.clientWidth, h = base.clientHeight;
+      if (!w || !h) return;
+      canvas.width = w * devicePixelRatio; canvas.height = h * devicePixelRatio;
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      cx2.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      redraw();
+    }
+
+    function W() { return canvas.clientWidth; }
+    function H() { return canvas.clientHeight; }
+
+    function drawArrow(a) {
+      const x1 = a.from[0] * W(), y1 = a.from[1] * H(), x2 = a.to[0] * W(), y2 = a.to[1] * H();
+      cx2.beginPath(); cx2.moveTo(x1, y1); cx2.lineTo(x2, y2); cx2.stroke();
+      const ang = Math.atan2(y2 - y1, x2 - x1);
+      cx2.beginPath();
+      cx2.moveTo(x2, y2);
+      cx2.lineTo(x2 - 14 * Math.cos(ang - 0.45), y2 - 14 * Math.sin(ang - 0.45));
+      cx2.lineTo(x2 - 14 * Math.cos(ang + 0.45), y2 - 14 * Math.sin(ang + 0.45));
+      cx2.closePath(); cx2.fillStyle = cx2.strokeStyle; cx2.fill();
+    }
+
+    function drawAnn(a) {
+      cx2.strokeStyle = a.color; cx2.fillStyle = a.color; cx2.lineWidth = 2.5; cx2.lineJoin = 'round'; cx2.lineCap = 'round';
+      if (a.type === 'pen') {
+        cx2.beginPath();
+        a.points.forEach(function (pt, i) { i ? cx2.lineTo(pt[0] * W(), pt[1] * H()) : cx2.moveTo(pt[0] * W(), pt[1] * H()); });
+        cx2.stroke();
+      } else if (a.type === 'rect') {
+        cx2.strokeRect(a.from[0] * W(), a.from[1] * H(), (a.to[0] - a.from[0]) * W(), (a.to[1] - a.from[1]) * H());
+      } else if (a.type === 'arrow') {
+        drawArrow(a);
+      } else if (a.type === 'text') {
+        cx2.font = '700 15px Tahoma'; cx2.direction = 'rtl';
+        cx2.fillText(a.text, a.at[0] * W(), a.at[1] * H());
+      } else if (a.type === 'pin') {
+        const x = a.at[0] * W(), y = a.at[1] * H();
+        cx2.beginPath(); cx2.arc(x, y, 12, 0, 7); cx2.fill();
+        cx2.fillStyle = '#10151f'; cx2.font = '800 12px Tahoma'; cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
+        cx2.fillText(String(a.n), x, y + 1);
+        cx2.textAlign = 'start'; cx2.textBaseline = 'alphabetic';
+      }
+    }
+
+    function redraw() {
+      cx2.clearRect(0, 0, W(), H());
+      anns.forEach(drawAnn);
+      if (current) drawAnn(current);
+      drawPinsList();
+    }
+
+    function drawPinsList() {
+      const pins = anns.filter(function (a) { return a.type === 'pin'; });
+      const texts = anns.filter(function (a) { return a.type === 'text'; });
+      back.querySelector('#dv-pins').innerHTML =
+        (pins.length || texts.length ?
+          '<b class="small">📍 الملاحظات على المخطط:</b>' +
+          pins.map(function (p) {
+            return '<div class="dv-pin-row"><span class="dv-pin-n" style="background:' + p.color + '">' + p.n + '</span><span class="small">' + esc(p.text) + '</span></div>';
+          }).join('') +
+          texts.map(function (t) {
+            return '<div class="dv-pin-row"><span class="dv-pin-n" style="background:' + t.color + '">🅰</span><span class="small">' + esc(t.text) + '</span></div>';
+          }).join('')
+          : '<div class="small muted">' + (canEdit ? 'ارسم على المخطط أو أضف ملاحظات مرقمة 📍 بالنقر على الموضع' : 'لا توجد ملاحظات مرسومة على هذا المخطط') + '</div>');
+    }
+
+    function pos(ev) {
+      const r = canvas.getBoundingClientRect();
+      return [(ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height];
+    }
+
+    if (canEdit) {
+      canvas.style.cursor = 'crosshair';
+      canvas.addEventListener('pointerdown', function (ev) {
+        const p = pos(ev);
+        if (tool === 'text' || tool === 'pin') {
+          const txt = prompt(tool === 'pin' ? 'نص الملاحظة المرقمة:' : 'النص الذي سيكتب على المخطط:');
+          if (txt) {
+            if (tool === 'pin') {
+              const n = anns.filter(function (a) { return a.type === 'pin'; }).length + 1;
+              anns.push({ type: 'pin', at: p, text: txt, color: color, n: n });
+            } else {
+              anns.push({ type: 'text', at: p, text: txt, color: color });
+            }
+            dirty = true; redraw();
+          }
+          return;
+        }
+        canvas.setPointerCapture(ev.pointerId);
+        current = tool === 'pen'
+          ? { type: 'pen', points: [p], color: color }
+          : { type: tool, from: p, to: p, color: color };
+      });
+      canvas.addEventListener('pointermove', function (ev) {
+        if (!current) return;
+        const p = pos(ev);
+        if (current.type === 'pen') current.points.push(p); else current.to = p;
+        redraw();
+      });
+      canvas.addEventListener('pointerup', function () {
+        if (!current) return;
+        anns.push(current); current = null; dirty = true; redraw();
+      });
+
+      back.querySelectorAll('.dv-tool').forEach(function (b) {
+        b.addEventListener('click', function () {
+          tool = b.getAttribute('data-tool');
+          back.querySelectorAll('.dv-tool').forEach(function (x) { x.classList.toggle('active', x === b); });
+        });
+      });
+      back.querySelectorAll('.dv-color').forEach(function (b) {
+        b.addEventListener('click', function () {
+          color = b.getAttribute('data-color');
+          back.querySelectorAll('.dv-color').forEach(function (x) { x.classList.toggle('active', x === b); });
+        });
+      });
+      back.querySelector('#dv-undo').addEventListener('click', function () { anns.pop(); dirty = true; redraw(); });
+      back.querySelector('#dv-clearall').addEventListener('click', function () {
+        if (anns.length && confirm('مسح كل الترميز عن المخطط؟')) { anns = []; dirty = true; redraw(); }
+      });
+      back.querySelector('#dv-save').addEventListener('click', function () { saveAnns(true); });
+    }
+
+    async function saveAnns(showToast) {
+      try {
+        await Api.update(collection, item.id, {
+          annotations: anns,
+          markupBy: ctx.U.name,
+          markupDate: new Date().toISOString().slice(0, 10)
+        });
+        item.annotations = anns; dirty = false;
+        if (showToast) VS.toast('💾 حُفظ الترميز على المخطط');
+      } catch (e) { VS.toast(e.message, true); }
+    }
+
+    async function decide(status) {
+      try {
+        if (dirty || anns.length !== (item.annotations || []).length) await saveAnns(false);
+        await Api.review({
+          collection: collection, id: item.id, status: status,
+          notes: back.querySelector('#dv-notes').value ||
+            (status === 'rejected' ? 'مرجع للمقاول لعمل اللازم — راجع الترميز على المخطط' : '')
+        });
+        back.remove();
+        VS.toast(status === 'rejected' ? '↩ أُرجع المخطط للمقاول مع الترميز والملاحظات' : '✅ اعتُمد المخطط بتوقيعك');
+        if (opts.onDone) opts.onDone(); else ctx.refresh();
+      } catch (e) { VS.toast(e.message, true); }
+    }
+
+    if (canReview) {
+      back.querySelector('#dv-approve').addEventListener('click', function () { decide('approved'); });
+      back.querySelector('#dv-approve-notes').addEventListener('click', function () { decide('approved_notes'); });
+      back.querySelector('#dv-reject').addEventListener('click', function () { decide('rejected'); });
+    }
+
+    back.querySelector('#dv-close').addEventListener('click', function () {
+      if (dirty && canEdit && confirm('لديك ترميز غير محفوظ — حفظه قبل الإغلاق؟')) { saveAnns(true).then(function () { back.remove(); }); return; }
+      back.remove();
+    });
+    back.addEventListener('click', function (e) { if (e.target === back && !dirty) back.remove(); });
+
+    if (img) { img.addEventListener('load', fit); if (img.complete) fit(); }
+    else setTimeout(fit, 30);
+    window.addEventListener('resize', fit);
+  }
+
+  /** زر فتح العارض لعنصر فيه ملف أو ترميز */
+  function viewerBtn(item, extra) {
+    if (!item.file && !(item.annotations || []).length) return '';
+    const n = (item.annotations || []).length;
+    return '<button class="btn ghost sm" data-dview="' + item.id + '"' + (extra || '') + '>🖊 المخطط' +
+      (n ? ' <span class="pill p-warn" style="font-size:10px;padding:1px 7px">' + n + '</span>' : '') + '</button>';
+  }
+
+  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn };
+})();
+
+
 /* ===== public/js/views.js ===== */
 /** بصير | الصفحات المشتركة: لوحة القيادة، رؤية المشروع، المقاولون، الذكاء الاصطناعي، التقارير */
 (function () {
@@ -1983,6 +2307,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
     el.querySelectorAll('[data-bimfloor]').forEach(function (z) {
       z.addEventListener('click', function () { st.bimFloor = z.getAttribute('data-bimfloor'); renderVision(el, ctx); });
     });
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: canEdit, canReview: false });
+      });
+    });
     // من الواجهة: الضغط على أي دور يفتحه تلقائياً في عرض المخططات مع تفصيل تخصصاته
     el.querySelectorAll('[data-elevfloor]').forEach(function (z) {
       z.addEventListener('click', function () {
@@ -2077,8 +2408,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div style="border-top:1px dashed var(--border);margin-top:12px;padding-top:10px">' +
       '<b class="small">📐 المخططات المرتبطة بهذا الدور:</b>' +
       floorDrawings.map(function (dr) {
-        return '<div class="small muted" style="margin-top:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
-          ' <span class="pill p-ok" style="font-size:10px">مربوط بجدول الكميات ✓</span></div>';
+        return '<div class="small muted flex" style="margin-top:6px;gap:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
+          ' <span class="pill p-ok" style="font-size:10px">مربوط بجدول الكميات ✓</span> ' + window.DrawingViewer.btn(dr) + '</div>';
       }).join('') + '</div>' : '';
 
     // لوحة البنود الجانبية
@@ -2368,7 +2699,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:220px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
             (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-            '<td>' + (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">مراجعة وقرار</button>' : '') + '</td>' +
+            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
+            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">مراجعة وقرار</button>' : '') + '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>لا توجد طلبات في هذا القسم</div>') +
@@ -2381,6 +2713,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-review'); });
         openReviewModal(ctx, tab, it);
+      });
+    });
+    // فتح المخطط للترميز والاعتماد/الإرجاع من داخل العارض
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        window.DrawingViewer.open(ctx, tab, it, { canEdit: true, canReview: it.status === 'pending' });
       });
     });
   }
@@ -3000,6 +3339,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
       toast('✅ رُفع النموذج "' + f.name + '" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع');
     });
 
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false });
+      });
+    });
     el.querySelector('#pd-add').addEventListener('click', async function () {
       const title = el.querySelector('#pd-title').value.trim();
       if (!title) { toast('أدخل اسم المخطط', true); return; }
@@ -3063,6 +3408,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       t.addEventListener('click', function () { contState.tab = t.getAttribute('data-ctab'); renderContractorHome(el, ctx); });
     });
     el.querySelector('#ct-new').addEventListener('click', function () { openSubmitModal(ctx); });
+    // المقاول يفتح المخطط ويرى ترميز الاستشاري وملاحظاته (قراءة فقط)
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = (ctx.S[contState.tab] || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        if (it) window.DrawingViewer.open(ctx, contState.tab, it, { canEdit: false, canReview: false });
+      });
+    });
   }
 
   function renderContractorList(ctx) {
@@ -3076,7 +3428,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       items.map(function (it) {
         const reply = tab === 'rfis' ? it.answer : it.notes;
         return '<tr><td class="num small"><b>' + esc(it.ref) + '</b></td>' +
-          '<td>' + esc(it.title) +
+          '<td>' + esc(it.title) + ' ' + window.DrawingViewer.btn(it) +
           (it.question ? '<div class="small muted" style="max-width:300px">' + esc(it.question) + '</div>' : '') +
           (it.kind === 'eot' ? '<div class="small muted num">تمديد +' + (it.days || 0) + ' يوم</div>' : '') +
           (it.kind === 'itp' ? '<div class="small muted">خطة فحص ITP</div>' : '') + '</td>' +

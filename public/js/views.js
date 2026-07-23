@@ -509,6 +509,13 @@
     el.querySelectorAll('[data-bimfloor]').forEach(function (z) {
       z.addEventListener('click', function () { st.bimFloor = z.getAttribute('data-bimfloor'); renderVision(el, ctx); });
     });
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: canEdit, canReview: false });
+      });
+    });
     // من الواجهة: الضغط على أي دور يفتحه تلقائياً في عرض المخططات مع تفصيل تخصصاته
     el.querySelectorAll('[data-elevfloor]').forEach(function (z) {
       z.addEventListener('click', function () {
@@ -603,8 +610,8 @@
       '<div style="border-top:1px dashed var(--border);margin-top:12px;padding-top:10px">' +
       '<b class="small">📐 المخططات المرتبطة بهذا الدور:</b>' +
       floorDrawings.map(function (dr) {
-        return '<div class="small muted" style="margin-top:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
-          ' <span class="pill p-ok" style="font-size:10px">مربوط بجدول الكميات ✓</span></div>';
+        return '<div class="small muted flex" style="margin-top:6px;gap:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
+          ' <span class="pill p-ok" style="font-size:10px">مربوط بجدول الكميات ✓</span> ' + window.DrawingViewer.btn(dr) + '</div>';
       }).join('') + '</div>' : '';
 
     // لوحة البنود الجانبية

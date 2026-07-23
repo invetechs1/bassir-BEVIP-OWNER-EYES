@@ -54,7 +54,8 @@
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:220px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
             (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-            '<td>' + (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">مراجعة وقرار</button>' : '') + '</td>' +
+            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
+            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">مراجعة وقرار</button>' : '') + '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>لا توجد طلبات في هذا القسم</div>') +
@@ -67,6 +68,13 @@
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-review'); });
         openReviewModal(ctx, tab, it);
+      });
+    });
+    // فتح المخطط للترميز والاعتماد/الإرجاع من داخل العارض
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        window.DrawingViewer.open(ctx, tab, it, { canEdit: true, canReview: it.status === 'pending' });
       });
     });
   }
@@ -686,6 +694,12 @@
       toast('✅ رُفع النموذج "' + f.name + '" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع');
     });
 
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false });
+      });
+    });
     el.querySelector('#pd-add').addEventListener('click', async function () {
       const title = el.querySelector('#pd-title').value.trim();
       if (!title) { toast('أدخل اسم المخطط', true); return; }
@@ -749,6 +763,13 @@
       t.addEventListener('click', function () { contState.tab = t.getAttribute('data-ctab'); renderContractorHome(el, ctx); });
     });
     el.querySelector('#ct-new').addEventListener('click', function () { openSubmitModal(ctx); });
+    // المقاول يفتح المخطط ويرى ترميز الاستشاري وملاحظاته (قراءة فقط)
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = (ctx.S[contState.tab] || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        if (it) window.DrawingViewer.open(ctx, contState.tab, it, { canEdit: false, canReview: false });
+      });
+    });
   }
 
   function renderContractorList(ctx) {
@@ -762,7 +783,7 @@
       items.map(function (it) {
         const reply = tab === 'rfis' ? it.answer : it.notes;
         return '<tr><td class="num small"><b>' + esc(it.ref) + '</b></td>' +
-          '<td>' + esc(it.title) +
+          '<td>' + esc(it.title) + ' ' + window.DrawingViewer.btn(it) +
           (it.question ? '<div class="small muted" style="max-width:300px">' + esc(it.question) + '</div>' : '') +
           (it.kind === 'eot' ? '<div class="small muted num">تمديد +' + (it.days || 0) + ' يوم</div>' : '') +
           (it.kind === 'itp' ? '<div class="small muted">خطة فحص ITP</div>' : '') + '</td>' +

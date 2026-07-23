@@ -201,7 +201,14 @@
       { id: 'SD1', projectId: 'P1', contractorId: 'C2', ref: 'SD-ARC-014', title: 'مخطط تفاصيل الواجهة الشمالية', date: '2026-07-02', status: 'pending', notes: '', file: 'SD-ARC-014.pdf' },
       { id: 'SD2', projectId: 'P1', contractorId: 'C3', ref: 'SD-ELE-009', title: 'مخطط لوحات التوزيع - الدور الثاني', date: '2026-07-05', status: 'pending', notes: '', file: 'SD-ELE-009.pdf' },
       { id: 'SD3', projectId: 'P1', contractorId: 'C2', ref: 'SD-ARC-012', title: 'تفاصيل الأسقف المستعارة - الأرضي', date: '2026-06-20', status: 'approved', notes: 'اعتمد مع الالتزام بمناسيب التكييف', signature: 'م. خالد العمران', signDate: '2026-06-24', file: 'SD-ARC-012.pdf' },
-      { id: 'SD4', projectId: 'P1', contractorId: 'C4', ref: 'SD-HVC-006', title: 'مسارات الدكتات - الميزانين', date: '2026-06-15', status: 'rejected', notes: 'تعارض مع كمرة ساقطة محور 5-C، يعاد التنسيق', signature: 'م. خالد العمران', signDate: '2026-06-18', file: 'SD-HVC-006.pdf' },
+      { id: 'SD4', projectId: 'P1', contractorId: 'C4', ref: 'SD-HVC-006', title: 'مسارات الدكتات - الميزانين', date: '2026-06-15', status: 'rejected', notes: 'تعارض مع كمرة ساقطة محور 5-C، يعاد التنسيق', signature: 'م. خالد العمران', signDate: '2026-06-18', file: 'SD-HVC-006.pdf',
+        markupBy: 'م. خالد العمران', markupDate: '2026-06-18',
+        annotations: [
+          { type: 'rect', from: [0.3, 0.3], to: [0.62, 0.55], color: '#ff3b30' },
+          { type: 'arrow', from: [0.75, 0.22], to: [0.6, 0.36], color: '#ff3b30' },
+          { type: 'pin', at: [0.46, 0.42], n: 1, text: 'الدكت يتعارض مع الكمرة الساقطة محور 5-C — يخفض المنسوب 15سم', color: '#ffcc00' },
+          { type: 'text', at: [0.64, 0.2], text: 'يعدل المسار', color: '#ff3b30' }
+        ] },
       { id: 'SD5', projectId: 'P1', contractorId: 'C1', ref: 'SD-STR-021', title: 'تفاصيل خزان المياه العلوي', date: '2026-06-28', status: 'approved_notes', notes: 'اعتمد مع ملاحظات: زيادة سماكة العزل', signature: 'م. خالد العمران', signDate: '2026-07-01', file: 'SD-STR-021.pdf' }
     ];
 
@@ -472,7 +479,7 @@
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 6 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 7 };
 
     return db;
   }
