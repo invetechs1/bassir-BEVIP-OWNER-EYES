@@ -478,8 +478,29 @@
       { id: 'AL2', time: '2026-07-17 14:02', userName: 'مؤسسة البناء المعماري', role: 'contractor', action: 'create', target: 'رفع طلب استلام WIR-ARC-087' },
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
+    db.files = [];
+
+    // ============ تكويد كل المستندات (حتمي حسب تاريخ كل مستند) ============
+    const DOC_TYPES = {
+      shopDrawings: 'SD', materials: 'MAT', scheduleSubmittals: 'SCH', wirs: 'WIR',
+      changeOrders: 'CO', payments: 'IPC', methodStatements: 'MS', claims: 'CLM',
+      valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
+      siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
+      meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
+      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT'
+    };
+    const docSeq = {};
+    Object.keys(DOC_TYPES).forEach(function (col) {
+      (db[col] || []).forEach(function (it) {
+        const y = String(it.date || it.month || it.weekOf || '2026').slice(0, 4);
+        const key = (it.projectId || 'P1') + '-' + DOC_TYPES[col] + '-' + y;
+        docSeq[key] = (docSeq[key] || 0) + 1;
+        it.docCode = 'BSR-' + key + '-' + String(docSeq[key]).padStart(4, '0');
+      });
+    });
+
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 7 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 8, docSeq: docSeq };
 
     return db;
   }

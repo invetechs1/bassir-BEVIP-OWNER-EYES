@@ -216,6 +216,9 @@ const server = http.createServer(async function (req, res) {
       if (!cam) return json(res, 404, { error: 'كاميرا غير معروفة' });
       const buf = await readRawBody(req);
       const rec = storeUpload(buf, cam.id + '-snapshot.jpg', req.headers['content-type'] || 'image/jpeg', cam.name);
+      rec.docCode = core.docCode('files', db.projects[0] ? db.projects[0].id : 'P1');
+      if (!db.files) db.files = [];
+      db.files.unshift(rec);
       const photo = {
         id: 'PH' + Date.now(), projectId: db.projects[0] ? db.projects[0].id : 'P1',
         date: new Date().toISOString().slice(0, 10),
@@ -300,7 +303,10 @@ const server = http.createServer(async function (req, res) {
       if (!buf.length) return json(res, 400, { error: 'لا يوجد محتوى' });
       const name = decodeURIComponent(req.headers['x-filename'] || 'file');
       const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
-      core.audit(user, 'upload', 'رفع ملف: ' + rec.name);
+      rec.docCode = core.docCode('files', db.projects[0] ? db.projects[0].id : 'P1');
+      if (!db.files) db.files = [];
+      db.files.unshift(rec);
+      core.audit(user, 'upload', 'رفع ملف: ' + rec.name + ' (' + rec.docCode + ')');
       persist();
       return json(res, 201, rec);
     }
