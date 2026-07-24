@@ -284,6 +284,48 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .eye-floor:hover { transform: translateY(-3px); filter: brightness(1.2); }
 .eye-floor b { font-size: 15px; }
 
+/* ============ عارض المخططات مع الترميز ============ */
+.dv-wrap {
+  width: min(1200px, 96vw); max-height: 94vh; overflow-y: auto;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px;
+}
+.dv-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dv-tools {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px;
+}
+.dv-tool {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.dv-tool.active { border-color: var(--accent); color: var(--accent2); background: rgba(224, 164, 88, .12); font-weight: 700; }
+.dv-color { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.dv-color.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+.dv-stage-wrap { background: #0a0d13; border: 1px solid var(--border); border-radius: 12px; padding: 8px; overflow: auto; max-height: 58vh; }
+.dv-stage { position: relative; display: inline-block; min-width: 100%; }
+.dv-stage img { display: block; width: 100%; user-select: none; border-radius: 6px; }
+.dv-stage canvas { position: absolute; inset: 0; touch-action: none; }
+.dv-sheet {
+  min-height: 480px; background:
+    linear-gradient(#e9e5da 1px, transparent 1px), linear-gradient(90deg, #e9e5da 1px, transparent 1px),
+    #f5f2ea;
+  background-size: 28px 28px; border: 10px solid #fff; outline: 2px solid #c9c2b2;
+  border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+}
+.dv-sheet-title { color: #333; font-weight: 800; font-size: 20px; }
+.dv-sheet-sub { color: #666; font-size: 13px; direction: ltr; }
+.dv-sheet-note { color: #999; font-size: 11px; }
+.dv-side { display: flex; flex-direction: column; gap: 10px; }
+.dv-pins { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.dv-pin-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.dv-pin-n {
+  min-width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  color: #10151f; font-weight: 800; font-size: 12px;
+}
+.dv-review { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+
 /* ============ نوافذ ورسائل ============ */
 .modal-back { position: fixed; inset: 0; background: rgba(5, 8, 14, .7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
 .modal { width: 560px; max-width: 100%; max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--border); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }
@@ -474,31 +516,31 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     // ============ الجدول الزمني (منحنى S: مخطط vs فعلي) ============
     db.scheduleCurve = [
-      { month: '2025-03', planned: 2,  actual: 1 },  { month: '2025-05', planned: 8,  actual: 6 },
-      { month: '2025-07', planned: 15, actual: 12 }, { month: '2025-09', planned: 24, actual: 20 },
-      { month: '2025-11', planned: 33, actual: 28 }, { month: '2026-01', planned: 42, actual: 36 },
-      { month: '2026-03', planned: 50, actual: 44 }, { month: '2026-05', planned: 57, actual: 50 },
-      { month: '2026-07', planned: 62, actual: 54.5 }, { month: '2026-09', planned: 74, actual: null },
-      { month: '2026-11', planned: 88, actual: null }, { month: '2026-12', planned: 100, actual: null }
+      { projectId: 'P1', month: '2025-03', planned: 2,  actual: 1 },  { projectId: 'P1', month: '2025-05', planned: 8,  actual: 6 },
+      { projectId: 'P1', month: '2025-07', planned: 15, actual: 12 }, { projectId: 'P1', month: '2025-09', planned: 24, actual: 20 },
+      { projectId: 'P1', month: '2025-11', planned: 33, actual: 28 }, { projectId: 'P1', month: '2026-01', planned: 42, actual: 36 },
+      { projectId: 'P1', month: '2026-03', planned: 50, actual: 44 }, { projectId: 'P1', month: '2026-05', planned: 57, actual: 50 },
+      { projectId: 'P1', month: '2026-07', planned: 62, actual: 54.5 }, { projectId: 'P1', month: '2026-09', planned: 74, actual: null },
+      { projectId: 'P1', month: '2026-11', planned: 88, actual: null }, { projectId: 'P1', month: '2026-12', planned: 100, actual: null }
     ];
 
     db.scheduleTasks = [
-      { id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
-      { id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
-      { id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
-      { id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
-      { id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
-      { id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
-      { id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
-      { id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
+      { projectId: 'P1', id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
+      { projectId: 'P1', id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
+      { projectId: 'P1', id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
+      { projectId: 'P1', id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
+      { projectId: 'P1', id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
+      { projectId: 'P1', id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
+      { projectId: 'P1', id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
+      { projectId: 'P1', id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
     ];
 
     // ============ منحنى التكلفة ============
     db.costCurve = [
-      { month: '2025-05', planned: 2.5,  actual: 2.1 },  { month: '2025-08', planned: 7.0,  actual: 6.2 },
-      { month: '2025-11', planned: 13.5, actual: 12.8 }, { month: '2026-02', planned: 19.0, actual: 19.6 },
-      { month: '2026-05', planned: 24.0, actual: 26.3 }, { month: '2026-07', planned: 27.2, actual: 29.8 },
-      { month: '2026-10', planned: 38.0, actual: null }, { month: '2026-12', planned: 52.0, actual: null }
+      { projectId: 'P1', month: '2025-05', planned: 2.5,  actual: 2.1 },  { projectId: 'P1', month: '2025-08', planned: 7.0,  actual: 6.2 },
+      { projectId: 'P1', month: '2025-11', planned: 13.5, actual: 12.8 }, { projectId: 'P1', month: '2026-02', planned: 19.0, actual: 19.6 },
+      { projectId: 'P1', month: '2026-05', planned: 24.0, actual: 26.3 }, { projectId: 'P1', month: '2026-07', planned: 27.2, actual: 29.8 },
+      { projectId: 'P1', month: '2026-10', planned: 38.0, actual: null }, { projectId: 'P1', month: '2026-12', planned: 52.0, actual: null }
     ];
 
     // ============ المستخدمون ============
@@ -517,7 +559,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'SD1', projectId: 'P1', contractorId: 'C2', ref: 'SD-ARC-014', title: 'مخطط تفاصيل الواجهة الشمالية', date: '2026-07-02', status: 'pending', notes: '', file: 'SD-ARC-014.pdf' },
       { id: 'SD2', projectId: 'P1', contractorId: 'C3', ref: 'SD-ELE-009', title: 'مخطط لوحات التوزيع - الدور الثاني', date: '2026-07-05', status: 'pending', notes: '', file: 'SD-ELE-009.pdf' },
       { id: 'SD3', projectId: 'P1', contractorId: 'C2', ref: 'SD-ARC-012', title: 'تفاصيل الأسقف المستعارة - الأرضي', date: '2026-06-20', status: 'approved', notes: 'اعتمد مع الالتزام بمناسيب التكييف', signature: 'م. خالد العمران', signDate: '2026-06-24', file: 'SD-ARC-012.pdf' },
-      { id: 'SD4', projectId: 'P1', contractorId: 'C4', ref: 'SD-HVC-006', title: 'مسارات الدكتات - الميزانين', date: '2026-06-15', status: 'rejected', notes: 'تعارض مع كمرة ساقطة محور 5-C، يعاد التنسيق', signature: 'م. خالد العمران', signDate: '2026-06-18', file: 'SD-HVC-006.pdf' },
+      { id: 'SD4', projectId: 'P1', contractorId: 'C4', ref: 'SD-HVC-006', title: 'مسارات الدكتات - الميزانين', date: '2026-06-15', status: 'rejected', notes: 'تعارض مع كمرة ساقطة محور 5-C، يعاد التنسيق', signature: 'م. خالد العمران', signDate: '2026-06-18', file: 'SD-HVC-006.pdf',
+        markupBy: 'م. خالد العمران', markupDate: '2026-06-18',
+        annotations: [
+          { type: 'rect', from: [0.3, 0.3], to: [0.62, 0.55], color: '#ff3b30' },
+          { type: 'arrow', from: [0.75, 0.22], to: [0.6, 0.36], color: '#ff3b30' },
+          { type: 'pin', at: [0.46, 0.42], n: 1, text: 'الدكت يتعارض مع الكمرة الساقطة محور 5-C — يخفض المنسوب 15سم', color: '#ffcc00' },
+          { type: 'text', at: [0.64, 0.2], text: 'يعدل المسار', color: '#ff3b30' }
+        ] },
       { id: 'SD5', projectId: 'P1', contractorId: 'C1', ref: 'SD-STR-021', title: 'تفاصيل خزان المياه العلوي', date: '2026-06-28', status: 'approved_notes', notes: 'اعتمد مع ملاحظات: زيادة سماكة العزل', signature: 'م. خالد العمران', signDate: '2026-07-01', file: 'SD-STR-021.pdf' }
     ];
 
@@ -590,26 +639,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     // ============ رؤى الذكاء الاصطناعي ============
     db.aiInsights = [
-      { id: 'AI1', date: '2026-07-16', source: 'camera', area: 'الدور الرابع - سقف', detected: 78, reported: 78,
+      { projectId: 'P1', id: 'AI1', date: '2026-07-16', source: 'camera', area: 'الدور الرابع - سقف', detected: 78, reported: 78,
         note: 'تحليل بث الكاميرا رقم 3: صب السقف مكتمل بنسبة 78% ويطابق تقرير الموقع.', severity: 'ok' },
-      { id: 'AI2', date: '2026-07-15', source: 'photos', area: 'الدور الثاني - لياسة', detected: 49, reported: 55,
+      { projectId: 'P1', id: 'AI2', date: '2026-07-15', source: 'photos', area: 'الدور الثاني - لياسة', detected: 49, reported: 55,
         note: 'رصد النظام فرقاً 6% بين نسبة اللياسة المرصودة بصرياً (49%) والنسبة المرفوعة في التقرير (55%). يُنصح بالتحقق ميدانياً قبل اعتماد المستخلص القادم.', severity: 'warn' },
-      { id: 'AI3', date: '2026-07-14', source: 'camera', area: 'الميزانين - دكتات التكييف', detected: 38, reported: 40,
+      { projectId: 'P1', id: 'AI3', date: '2026-07-14', source: 'camera', area: 'الميزانين - دكتات التكييف', detected: 38, reported: 40,
         note: 'وتيرة تقدم أعمال الدكتات أبطأ من المخطط بـ 12 يوماً. عند استمرار الوتيرة الحالية سيتأخر تسليم الميزانين إلى نوفمبر.', severity: 'warn' },
-      { id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
+      { projectId: 'P1', id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
         note: 'تركيب مضخات الحريق يسير وفق الجدول. يُنصح بجدولة اختبار التشغيل خلال أسبوعين.', severity: 'ok' },
-      { id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
+      { projectId: 'P1', id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
         note: 'تنبيه سلامة: رصدت الكاميرا 2 عمالة دون أحزمة أمان على حافة الدور الثالث يوم 10 يوليو الساعة 10:42 صباحاً. تم إشعار مدير السلامة.', severity: 'alert' },
-      { id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
+      { projectId: 'P1', id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
         note: 'تنبيه مالي: مقاول الحريق (أنظمة الأمان) استلم 46% من قيمة العقد مقابل إنجاز فعلي 31%. يُنصح بمراجعة الدفعات القادمة وربطها بمستخلصات موثقة بصرياً.', severity: 'alert' }
     ];
 
     // ============ صور الموقع (مع تحليل AI محاكى) ============
     db.photos = [
-      { id: 'PH1', date: '2026-07-16', area: 'F4', title: 'صب سقف الدور الرابع', ai: 'خرسانة حديثة الصب - اكتشاف 4 عمال، معدات صب مكتملة', detected: 78 },
-      { id: 'PH2', date: '2026-07-15', area: 'GF', title: 'رخام البهو الرئيسي', ai: 'تقدم التبليط 62% من مساحة البهو', detected: 62 },
-      { id: 'PH3', date: '2026-07-14', area: 'F2', title: 'لياسة الجناح الغربي', ai: 'اللياسة المنجزة 49% من مساحة الجدران المرصودة', detected: 49 },
-      { id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
+      { projectId: 'P1', id: 'PH1', date: '2026-07-16', area: 'F4', title: 'صب سقف الدور الرابع', ai: 'خرسانة حديثة الصب - اكتشاف 4 عمال، معدات صب مكتملة', detected: 78 },
+      { projectId: 'P1', id: 'PH2', date: '2026-07-15', area: 'GF', title: 'رخام البهو الرئيسي', ai: 'تقدم التبليط 62% من مساحة البهو', detected: 62 },
+      { projectId: 'P1', id: 'PH3', date: '2026-07-14', area: 'F2', title: 'لياسة الجناح الغربي', ai: 'اللياسة المنجزة 49% من مساحة الجدران المرصودة', detected: 49 },
+      { projectId: 'P1', id: 'PH4', date: '2026-07-12', area: 'B1', title: 'غرفة مضخات الحريق', ai: 'مضختان مركبتان - التوصيلات 70%', detected: 70 }
     ];
 
     // ============ موديول المكتب الفني ============
@@ -787,8 +836,29 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'AL2', time: '2026-07-17 14:02', userName: 'مؤسسة البناء المعماري', role: 'contractor', action: 'create', target: 'رفع طلب استلام WIR-ARC-087' },
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
+    db.files = [];
+
+    // ============ تكويد كل المستندات (حتمي حسب تاريخ كل مستند) ============
+    const DOC_TYPES = {
+      shopDrawings: 'SD', materials: 'MAT', scheduleSubmittals: 'SCH', wirs: 'WIR',
+      changeOrders: 'CO', payments: 'IPC', methodStatements: 'MS', claims: 'CLM',
+      valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
+      siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
+      meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
+      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT'
+    };
+    const docSeq = {};
+    Object.keys(DOC_TYPES).forEach(function (col) {
+      (db[col] || []).forEach(function (it) {
+        const y = String(it.date || it.month || it.weekOf || '2026').slice(0, 4);
+        const key = (it.projectId || 'P1') + '-' + DOC_TYPES[col] + '-' + y;
+        docSeq[key] = (docSeq[key] || 0) + 1;
+        it.docCode = 'BSR-' + key + '-' + String(docSeq[key]).padStart(4, '0');
+      });
+    });
+
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 4 };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 8, docSeq: docSeq };
 
     return db;
   }
@@ -844,6 +914,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
       (item && (item.title || item.name || item.description || item.ref || item.username || item.id) || '');
   }
 
+  // رموز أنواع المستندات في نظام التكويد: BSR-المشروع-النوع-السنة-التسلسل
+  const DOC_TYPE_CODES = {
+    shopDrawings: 'SD', materials: 'MAT', scheduleSubmittals: 'SCH', wirs: 'WIR',
+    changeOrders: 'CO', payments: 'IPC', methodStatements: 'MS', claims: 'CLM',
+    valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
+    siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
+    meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
+    monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', files: 'FIL'
+  };
+
   // من يستطيع إنشاء عناصر في كل مجموعة
   const CREATE_RULES = {
     shopDrawings: ['contractor', 'consultant', 'admin'],
@@ -896,6 +976,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const e = new Error(message);
       e.status = code || 400;
       return e;
+    }
+
+    /**
+     * تكويد المستندات: كود فريد متسلسل لكل مستند/اعتماد/ملف
+     * الصيغة: BSR-<المشروع>-<النوع>-<السنة>-<تسلسل 4 خانات>
+     */
+    function docCode(collection, projectId, year) {
+      const t = DOC_TYPE_CODES[collection];
+      if (!t) return null;
+      const y = year || String(new Date().getFullYear());
+      const key = (projectId || 'P1') + '-' + t + '-' + y;
+      if (!db.meta.docSeq) db.meta.docSeq = {};
+      db.meta.docSeq[key] = (db.meta.docSeq[key] || 0) + 1;
+      return 'BSR-' + key + '-' + String(db.meta.docSeq[key]).padStart(4, '0');
     }
 
     /** سجل النظام: توثيق كل عملية (من، متى، ماذا) — يحتفظ بآخر 800 حدث */
@@ -954,6 +1048,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       s.monthlyReports = db.monthlyReports;
       s.cameras = db.cameras || [];
       s.planDrawings = db.planDrawings || [];
+      s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant') ? (db.files || []) : [];
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
@@ -1012,6 +1107,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         if (DEFAULT_STATUS[collection]) item.status = DEFAULT_STATUS[collection];
         else if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
       }
+      if (!item.docCode) item.docCode = docCode(collection, item.projectId);
       if (collection === 'users' && item.password && pwd.hash) {
         const plain = item.password;
         delete item.password;
@@ -1219,6 +1315,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return {
       db: db,
       audit: audit,
+      docCode: docCode,
       login: login,
       getState: getState,
       createItem: createItem,
@@ -1477,6 +1574,281 @@ textarea.inp { resize: vertical; min-height: 80px; }
 })();
 
 
+/* ===== public/js/viewer.js ===== */
+/**
+ * بصير | عارض المخططات مع الترميز (Markup)
+ * فتح المخطط المرفوع، الكتابة عليه (قلم، مستطيل، سهم، نص، دبابيس ملاحظات مرقمة)،
+ * حفظ الملاحظات، ثم الاعتماد أو الإرجاع للمقاول من داخل العارض.
+ * الإحداثيات تُخزن منسوبة (0..1) فتبقى صحيحة مع أي مقاس عرض.
+ */
+(function () {
+  'use strict';
+
+  const esc = Charts.esc;
+  const APPROVAL_COLS = ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs'];
+  const COLORS = ['#ff3b30', '#ffcc00', '#2dd4a0', '#4cc9f0', '#ffffff'];
+  const IMG_EXT = /\.(png|jpe?g|webp|gif|bmp)$/i;
+
+  function fileOf(item) {
+    const f = item.file;
+    if (!f) return { name: '', url: '', isImage: false };
+    if (typeof f === 'string') return { name: f, url: '', isImage: false };
+    return { name: f.name || '', url: f.url || '', isImage: !!f.url && IMG_EXT.test(f.name || f.url) };
+  }
+
+  /**
+   * فتح العارض.
+   * opts: { canEdit (يرسم ويحفظ), canReview (أزرار الاعتماد/الإرجاع), onDone }
+   */
+  function openDrawingViewer(ctx, collection, item, opts) {
+    opts = opts || {};
+    const VS = window.ViewsShared;
+    const f = fileOf(item);
+    const canEdit = !!opts.canEdit;
+    const canReview = !!opts.canReview && APPROVAL_COLS.indexOf(collection) !== -1 && item.status === 'pending';
+    let anns = JSON.parse(JSON.stringify(item.annotations || []));
+    let tool = 'pen', color = COLORS[0], current = null, dirty = false;
+
+    const back = document.createElement('div');
+    back.className = 'modal-back';
+    back.innerHTML =
+      '<div class="dv-wrap">' +
+      '<div class="dv-head">' +
+      '<div><b>🖊 ' + esc(item.title || f.name) + '</b>' +
+      '<div class="small muted">' + esc(item.ref || '') + (f.name ? ' · 📎 ' + esc(f.name) : '') +
+      (item.markupBy ? ' · آخر ترميز: ' + esc(item.markupBy) + ' (' + esc(item.markupDate || '') + ')' : '') + '</div></div>' +
+      '<span class="spacer"></span>' + VS.pill(item.status || '') +
+      (f.url ? '<a class="btn ghost sm" href="' + esc(f.url) + '" target="_blank">⬇ الملف الأصلي</a>' : '') +
+      '<button class="btn mutedb sm" id="dv-close">✕ إغلاق</button></div>' +
+
+      (canEdit ?
+        '<div class="dv-tools">' +
+        '<span class="small muted">الأداة:</span>' +
+        [['pen', '✏️ قلم'], ['rect', '⬜ مستطيل'], ['arrow', '↗ سهم'], ['text', '🅰 نص'], ['pin', '📍 ملاحظة مرقمة']].map(function (t) {
+          return '<button class="dv-tool' + (t[0] === 'pen' ? ' active' : '') + '" data-tool="' + t[0] + '">' + t[1] + '</button>';
+        }).join('') +
+        '<span class="small muted" style="margin-inline-start:10px">اللون:</span>' +
+        COLORS.map(function (c, i) {
+          return '<button class="dv-color' + (i === 0 ? ' active' : '') + '" data-color="' + c + '" style="background:' + c + '"></button>';
+        }).join('') +
+        '<span class="spacer"></span>' +
+        '<button class="btn mutedb sm" id="dv-undo">↩ تراجع</button>' +
+        '<button class="btn mutedb sm" id="dv-clearall">🗑 مسح الكل</button>' +
+        '<button class="btn sm" id="dv-save">💾 حفظ الترميز</button>' +
+        '</div>' : '') +
+
+      '<div class="dv-stage-wrap"><div class="dv-stage" id="dv-stage">' +
+      (f.isImage
+        ? '<img id="dv-img" src="' + esc(f.url) + '" alt="" draggable="false">'
+        : '<div class="dv-sheet" id="dv-sheet"><div class="dv-sheet-title">📐 ' + esc(item.title || 'المخطط') + '</div>' +
+          '<div class="dv-sheet-sub">' + esc(item.ref || '') + (f.name ? ' · ' + esc(f.name) : '') + '</div>' +
+          '<div class="dv-sheet-note">ورقة ترميز — الملف الأصلي بصيغة غير قابلة للمعاينة داخل المتصفح' + (f.url ? ' (حمّله من الزر أعلاه)' : '') + '</div></div>') +
+      '<canvas id="dv-canvas"></canvas>' +
+      '</div></div>' +
+
+      '<div class="dv-side">' +
+      '<div class="dv-pins" id="dv-pins"></div>' +
+      (canReview ?
+        '<div class="dv-review"><label class="fl">ملاحظات القرار (تصل للمقاول مع الترميز)</label>' +
+        '<textarea class="inp" id="dv-notes" rows="2" placeholder="اكتب ملاحظاتك..."></textarea>' +
+        '<div class="m-actions">' +
+        '<button class="btn ok" id="dv-approve">✅ اعتماد</button>' +
+        '<button class="btn" id="dv-approve-notes">📝 اعتماد مع ملاحظات</button>' +
+        '<button class="btn danger" id="dv-reject">↩ إرجاع للمقاول لعمل اللازم</button>' +
+        '</div></div>'
+        : (item.notes || item.signature ?
+          '<div class="dv-review"><b class="small">قرار الاستشاري:</b><div class="small" style="margin-top:6px">' + esc(item.notes || '—') + '</div>' +
+          (item.signature ? '<div class="sig">✍️ ' + esc(item.signature) + ' · ' + esc(item.signDate || '') + '</div>' : '') + '</div>' : '')) +
+      '</div></div>';
+
+    document.body.appendChild(back);
+
+    const stage = back.querySelector('#dv-stage');
+    const canvas = back.querySelector('#dv-canvas');
+    const cx2 = canvas.getContext('2d');
+    const img = back.querySelector('#dv-img');
+
+    function fit() {
+      const base = img || back.querySelector('#dv-sheet');
+      const w = base.clientWidth, h = base.clientHeight;
+      if (!w || !h) return;
+      canvas.width = w * devicePixelRatio; canvas.height = h * devicePixelRatio;
+      canvas.style.width = w + 'px'; canvas.style.height = h + 'px';
+      cx2.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      redraw();
+    }
+
+    function W() { return canvas.clientWidth; }
+    function H() { return canvas.clientHeight; }
+
+    function drawArrow(a) {
+      const x1 = a.from[0] * W(), y1 = a.from[1] * H(), x2 = a.to[0] * W(), y2 = a.to[1] * H();
+      cx2.beginPath(); cx2.moveTo(x1, y1); cx2.lineTo(x2, y2); cx2.stroke();
+      const ang = Math.atan2(y2 - y1, x2 - x1);
+      cx2.beginPath();
+      cx2.moveTo(x2, y2);
+      cx2.lineTo(x2 - 14 * Math.cos(ang - 0.45), y2 - 14 * Math.sin(ang - 0.45));
+      cx2.lineTo(x2 - 14 * Math.cos(ang + 0.45), y2 - 14 * Math.sin(ang + 0.45));
+      cx2.closePath(); cx2.fillStyle = cx2.strokeStyle; cx2.fill();
+    }
+
+    function drawAnn(a) {
+      cx2.strokeStyle = a.color; cx2.fillStyle = a.color; cx2.lineWidth = 2.5; cx2.lineJoin = 'round'; cx2.lineCap = 'round';
+      if (a.type === 'pen') {
+        cx2.beginPath();
+        a.points.forEach(function (pt, i) { i ? cx2.lineTo(pt[0] * W(), pt[1] * H()) : cx2.moveTo(pt[0] * W(), pt[1] * H()); });
+        cx2.stroke();
+      } else if (a.type === 'rect') {
+        cx2.strokeRect(a.from[0] * W(), a.from[1] * H(), (a.to[0] - a.from[0]) * W(), (a.to[1] - a.from[1]) * H());
+      } else if (a.type === 'arrow') {
+        drawArrow(a);
+      } else if (a.type === 'text') {
+        cx2.font = '700 15px Tahoma'; cx2.direction = 'rtl';
+        cx2.fillText(a.text, a.at[0] * W(), a.at[1] * H());
+      } else if (a.type === 'pin') {
+        const x = a.at[0] * W(), y = a.at[1] * H();
+        cx2.beginPath(); cx2.arc(x, y, 12, 0, 7); cx2.fill();
+        cx2.fillStyle = '#10151f'; cx2.font = '800 12px Tahoma'; cx2.textAlign = 'center'; cx2.textBaseline = 'middle';
+        cx2.fillText(String(a.n), x, y + 1);
+        cx2.textAlign = 'start'; cx2.textBaseline = 'alphabetic';
+      }
+    }
+
+    function redraw() {
+      cx2.clearRect(0, 0, W(), H());
+      anns.forEach(drawAnn);
+      if (current) drawAnn(current);
+      drawPinsList();
+    }
+
+    function drawPinsList() {
+      const pins = anns.filter(function (a) { return a.type === 'pin'; });
+      const texts = anns.filter(function (a) { return a.type === 'text'; });
+      back.querySelector('#dv-pins').innerHTML =
+        (pins.length || texts.length ?
+          '<b class="small">📍 الملاحظات على المخطط:</b>' +
+          pins.map(function (p) {
+            return '<div class="dv-pin-row"><span class="dv-pin-n" style="background:' + p.color + '">' + p.n + '</span><span class="small">' + esc(p.text) + '</span></div>';
+          }).join('') +
+          texts.map(function (t) {
+            return '<div class="dv-pin-row"><span class="dv-pin-n" style="background:' + t.color + '">🅰</span><span class="small">' + esc(t.text) + '</span></div>';
+          }).join('')
+          : '<div class="small muted">' + (canEdit ? 'ارسم على المخطط أو أضف ملاحظات مرقمة 📍 بالنقر على الموضع' : 'لا توجد ملاحظات مرسومة على هذا المخطط') + '</div>');
+    }
+
+    function pos(ev) {
+      const r = canvas.getBoundingClientRect();
+      return [(ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height];
+    }
+
+    if (canEdit) {
+      canvas.style.cursor = 'crosshair';
+      canvas.addEventListener('pointerdown', function (ev) {
+        const p = pos(ev);
+        if (tool === 'text' || tool === 'pin') {
+          const txt = prompt(tool === 'pin' ? 'نص الملاحظة المرقمة:' : 'النص الذي سيكتب على المخطط:');
+          if (txt) {
+            if (tool === 'pin') {
+              const n = anns.filter(function (a) { return a.type === 'pin'; }).length + 1;
+              anns.push({ type: 'pin', at: p, text: txt, color: color, n: n });
+            } else {
+              anns.push({ type: 'text', at: p, text: txt, color: color });
+            }
+            dirty = true; redraw();
+          }
+          return;
+        }
+        canvas.setPointerCapture(ev.pointerId);
+        current = tool === 'pen'
+          ? { type: 'pen', points: [p], color: color }
+          : { type: tool, from: p, to: p, color: color };
+      });
+      canvas.addEventListener('pointermove', function (ev) {
+        if (!current) return;
+        const p = pos(ev);
+        if (current.type === 'pen') current.points.push(p); else current.to = p;
+        redraw();
+      });
+      canvas.addEventListener('pointerup', function () {
+        if (!current) return;
+        anns.push(current); current = null; dirty = true; redraw();
+      });
+
+      back.querySelectorAll('.dv-tool').forEach(function (b) {
+        b.addEventListener('click', function () {
+          tool = b.getAttribute('data-tool');
+          back.querySelectorAll('.dv-tool').forEach(function (x) { x.classList.toggle('active', x === b); });
+        });
+      });
+      back.querySelectorAll('.dv-color').forEach(function (b) {
+        b.addEventListener('click', function () {
+          color = b.getAttribute('data-color');
+          back.querySelectorAll('.dv-color').forEach(function (x) { x.classList.toggle('active', x === b); });
+        });
+      });
+      back.querySelector('#dv-undo').addEventListener('click', function () { anns.pop(); dirty = true; redraw(); });
+      back.querySelector('#dv-clearall').addEventListener('click', function () {
+        if (anns.length && confirm('مسح كل الترميز عن المخطط؟')) { anns = []; dirty = true; redraw(); }
+      });
+      back.querySelector('#dv-save').addEventListener('click', function () { saveAnns(true); });
+    }
+
+    async function saveAnns(showToast) {
+      try {
+        await Api.update(collection, item.id, {
+          annotations: anns,
+          markupBy: ctx.U.name,
+          markupDate: new Date().toISOString().slice(0, 10)
+        });
+        item.annotations = anns; dirty = false;
+        if (showToast) VS.toast('💾 حُفظ الترميز على المخطط');
+      } catch (e) { VS.toast(e.message, true); }
+    }
+
+    async function decide(status) {
+      try {
+        if (dirty || anns.length !== (item.annotations || []).length) await saveAnns(false);
+        await Api.review({
+          collection: collection, id: item.id, status: status,
+          notes: back.querySelector('#dv-notes').value ||
+            (status === 'rejected' ? 'مرجع للمقاول لعمل اللازم — راجع الترميز على المخطط' : '')
+        });
+        back.remove();
+        VS.toast(status === 'rejected' ? '↩ أُرجع المخطط للمقاول مع الترميز والملاحظات' : '✅ اعتُمد المخطط بتوقيعك');
+        if (opts.onDone) opts.onDone(); else ctx.refresh();
+      } catch (e) { VS.toast(e.message, true); }
+    }
+
+    if (canReview) {
+      back.querySelector('#dv-approve').addEventListener('click', function () { decide('approved'); });
+      back.querySelector('#dv-approve-notes').addEventListener('click', function () { decide('approved_notes'); });
+      back.querySelector('#dv-reject').addEventListener('click', function () { decide('rejected'); });
+    }
+
+    back.querySelector('#dv-close').addEventListener('click', function () {
+      if (dirty && canEdit && confirm('لديك ترميز غير محفوظ — حفظه قبل الإغلاق؟')) { saveAnns(true).then(function () { back.remove(); }); return; }
+      back.remove();
+    });
+    back.addEventListener('click', function (e) { if (e.target === back && !dirty) back.remove(); });
+
+    if (img) { img.addEventListener('load', fit); if (img.complete) fit(); }
+    else setTimeout(fit, 30);
+    window.addEventListener('resize', fit);
+  }
+
+  /** زر فتح العارض لعنصر فيه ملف أو ترميز */
+  function viewerBtn(item, extra) {
+    if (!item.file && !(item.annotations || []).length) return '';
+    const n = (item.annotations || []).length;
+    return '<button class="btn ghost sm" data-dview="' + item.id + '"' + (extra || '') + '>🖊 المخطط' +
+      (n ? ' <span class="pill p-warn" style="font-size:10px;padding:1px 7px">' + n + '</span>' : '') + '</button>';
+  }
+
+  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn };
+})();
+
+
 /* ===== public/js/views.js ===== */
 /** بصير | الصفحات المشتركة: لوحة القيادة، رؤية المشروع، المقاولون، الذكاء الاصطناعي، التقارير */
 (function () {
@@ -1608,9 +1980,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   function renderOwnerEye(el, ctx) {
-    const html = ctx.S.projects.map(function (P) {
+    const A = ctx.Sall || ctx.S; // كل مشاريع المستخدم
+    const html = A.projects.map(function (P) {
       const g = projectGlance(ctx, P);
-      const items = ctx.S.boqItems.filter(function (b) { return b.projectId === P.id; });
+      const items = A.boqItems.filter(function (b) { return b.projectId === P.id; });
       const floors = (P.floors || []);
 
       // شريط الأدوار: نظرة سريعة على إنجاز كل دور
@@ -1621,7 +1994,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
           const p = weightedProgress(items.filter(function (b) { return b.floor === f.id; }));
           if (p == null) return '';
           const t = 0.08 + (p / 100) * 0.84;
-          return '<div class="eye-floor" data-goflor="' + f.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
+          return '<div class="eye-floor" data-goflor="' + f.id + '" data-gopr="' + P.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
             (p >= 95 ? 'box-shadow:0 0 14px rgba(224,164,88,.65);' : '') + '">' +
             '<b class="num" style="color:' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '">' + p + '%</b>' +
             '<span style="color:' + (t > 0.5 ? '#233' : '#8b95a8') + '">' + esc(f.name) + '</span></div>';
@@ -1668,6 +2041,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         visionState.tab = '2d';
         visionState.floor = b.getAttribute('data-goflor');
         visionState.zone = null;
+        const pid = b.getAttribute('data-gopr');
+        if (pid && ctx.setProject && pid !== ctx.projectId) { sessionStorage.setItem('bassir-project', pid); ctx.setProject(pid); }
         ctx.nav('vision');
       });
     });
@@ -1766,15 +2141,17 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '</div>' +
 
       '<div class="grid g2 mb">' +
-      '<div class="card"><h3>📈 الجدول الزمني: المخطط مقابل الفعلي <span class="hint">منحنى S التراكمي</span></h3>' + Charts.sCurve(ctx.S.scheduleCurve) + '</div>' +
-      '<div class="card"><h3>💰 التكلفة: المخطط مقابل الفعلي <span class="hint">مليون ريال</span></h3>' + Charts.sCurve(ctx.S.costCurve, { maxY: 55, unit: 'م' }) + '</div>' +
+      '<div class="card"><h3>📈 الجدول الزمني: المخطط مقابل الفعلي <span class="hint">منحنى S التراكمي</span></h3>' +
+      (ctx.S.scheduleCurve.length > 1 ? Charts.sCurve(ctx.S.scheduleCurve) : '<div class="empty"><div class="e-ico">📈</div>لا بيانات جدول زمني لهذا المشروع بعد — يرفعها الاستشاري</div>') + '</div>' +
+      '<div class="card"><h3>💰 التكلفة: المخطط مقابل الفعلي <span class="hint">مليون ريال</span></h3>' +
+      (ctx.S.costCurve.length > 1 ? Charts.sCurve(ctx.S.costCurve, { maxY: 55, unit: 'م' }) : '<div class="empty"><div class="e-ico">💰</div>لا بيانات تكلفة لهذا المشروع بعد</div>') + '</div>' +
       '</div>' +
 
       '<div class="grid g2">' +
       '<div class="card"><h3>🗂️ مراحل المشروع</h3>' +
-      Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
+      (ctx.S.scheduleTasks.length ? Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
         return { label: t.name, actual: t.progress, planned: taskPlanned(t) };
-      })) + '</div>' +
+      })) : '<div class="empty"><div class="e-ico">🗂️</div>لم تُسجل مراحل لهذا المشروع بعد</div>') + '</div>' +
       '<div class="card"><h3>🔔 تنبيهات بصير الذكية <span class="hint">من تحليل الصور والكاميرات</span></h3>' +
       (alerts.length ? alerts.map(aiItemHtml).join('') : '<div class="empty"><div class="e-ico">✨</div>لا توجد تنبيهات حرجة</div>') +
       '<button class="btn ghost sm" data-nav="ai">فتح صفحة الذكاء الاصطناعي ←</button></div>' +
@@ -1984,6 +2361,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
     el.querySelectorAll('[data-bimfloor]').forEach(function (z) {
       z.addEventListener('click', function () { st.bimFloor = z.getAttribute('data-bimfloor'); renderVision(el, ctx); });
     });
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: canEdit, canReview: false });
+      });
+    });
     // من الواجهة: الضغط على أي دور يفتحه تلقائياً في عرض المخططات مع تفصيل تخصصاته
     el.querySelectorAll('[data-elevfloor]').forEach(function (z) {
       z.addEventListener('click', function () {
@@ -2078,8 +2462,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div style="border-top:1px dashed var(--border);margin-top:12px;padding-top:10px">' +
       '<b class="small">📐 المخططات المرتبطة بهذا الدور:</b>' +
       floorDrawings.map(function (dr) {
-        return '<div class="small muted" style="margin-top:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
-          ' <span class="pill p-ok" style="font-size:10px">مربوط بجدول الكميات ✓</span></div>';
+        return '<div class="small muted flex" style="margin-top:6px;gap:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
+          ' <span class="pill p-ok" style="font-size:10px">مربوط بجدول الكميات ✓</span> ' + window.DrawingViewer.btn(dr) + '</div>';
       }).join('') + '</div>' : '';
 
     // لوحة البنود الجانبية
@@ -2360,7 +2744,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<th>التاريخ</th><th>الحالة</th><th>الملاحظات / التوقيع</th><th></th></tr></thead><tbody>' +
         items.map(function (it) {
           return '<tr>' +
-            '<td class="num small"><b>' + esc(it.ref) + '</b>' + (it.file ? '<br><span class="muted">📎 ' + VS.att(it.file) + '</span>' : '') + '</td>' +
+            '<td class="num small"><b>' + esc(it.ref) + '</b>' +
+            (it.docCode ? '<div class="muted" style="font-size:10px;color:var(--accent2)">' + esc(it.docCode) + '</div>' : '') +
+            (it.file ? '<br><span class="muted">📎 ' + VS.att(it.file) + '</span>' : '') + '</td>' +
             '<td>' + esc(it.title) + (it.location ? '<div class="small muted">الموقع: ' + esc(VS.floorName(ctx, it.location)) + '</div>' : '') + '</td>' +
             '<td class="small">' + esc(contractorName(ctx, it.contractorId)) + '</td>' +
             (tab === 'changeOrders' ? '<td>' + money(it.amount) + '<div class="small muted num">+' + (it.days || 0) + ' يوم</div></td>' : '') +
@@ -2369,7 +2755,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:220px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
             (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-            '<td>' + (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">مراجعة وقرار</button>' : '') + '</td>' +
+            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
+            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">مراجعة وقرار</button>' : '') + '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>لا توجد طلبات في هذا القسم</div>') +
@@ -2382,6 +2769,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-review'); });
         openReviewModal(ctx, tab, it);
+      });
+    });
+    // فتح المخطط للترميز والاعتماد/الإرجاع من داخل العارض
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        window.DrawingViewer.open(ctx, tab, it, { canEdit: true, canReview: it.status === 'pending' });
       });
     });
   }
@@ -2701,12 +3095,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderRepProjects(el, ctx) {
     el.innerHTML =
       '<div class="grid" style="grid-template-columns:1.2fr 1fr">' +
-      '<div class="card"><h3>🏗️ مشاريع المالك</h3>' +
-      ctx.S.projects.map(function (p) {
-        return '<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
+      '<div class="card"><h3>🏗️ مشاريع المالك <span class="hint">اضغط "فتح" للتنقل بين المشاريع — أو استخدم مبدّل المشروع أعلى الشاشة</span></h3>' +
+      (ctx.Sall || ctx.S).projects.map(function (p) {
+        const active = ctx.projectId === p.id;
+        return '<div style="border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b style="font-size:16px">' + esc(p.name) + '</b>' +
-          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div>' +
-          '<div class="small muted" style="margin:6px 0">' + esc(p.location) + ' · الميزانية ' + VS.millions(p.budgetPlanned) + '</div>' +
+          '<div class="flex">' + (active ? '<span class="pill p-ok">المشروع الحالي</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">فتح المشروع ←</button>') +
+          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div></div>' +
+          '<div class="small muted" style="margin:6px 0">' + esc(p.location || '—') + ' · الميزانية ' + VS.millions(p.budgetPlanned || 0) + '</div>' +
           '<div class="small">👨‍💼 الاستشاري: <b>' + esc(p.consultantName || 'لم يعيّن') + '</b></div></div>';
       }).join('') + '</div>' +
 
@@ -2739,9 +3135,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<div class="card" style="padding:16px"><div>👤 <b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">🔑 <b class="num">' + esc(res.account.password) + '</b></div></div>' +
             '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">تم</button></div>');
-        } else toast('✅ أُنشئ المشروع');
+        } else toast('✅ أُنشئ المشروع — استخدم زر "فتح المشروع" أو المبدّل أعلى الشاشة للانتقال إليه');
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
+    });
+    el.querySelectorAll('[data-open-proj]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ctx.setProject(b.getAttribute('data-open-proj'));
+        ctx.nav('dashboard');
+      });
     });
   }
 
@@ -2787,7 +3189,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     }
     if (u.projectIds && u.projectIds.length) {
       return '🏗️ ' + u.projectIds.map(function (pid) {
-        const p = ctx.S.projects.find(function (x) { return x.id === pid; });
+        const p = (ctx.Sall || ctx.S).projects.find(function (x) { return x.id === pid; });
         return esc(p ? p.name : pid);
       }).join('، ');
     }
@@ -2842,9 +3244,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
           ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
       } else if (r === 'owner' || r === 'consultant') {
         scopeBox.innerHTML = '<label class="fl">' + (r === 'owner' ? 'مشروع المالك (يرى صفحة مشروعه فقط)' : 'المشاريع المسندة (اتركها كلها فارغة = جميع المشاريع)') + '</label>' +
-          ctx.S.projects.map(function (p) {
+          (ctx.Sall || ctx.S).projects.map(function (p) {
             return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="nu-proj" value="' + p.id + '"' +
-              (r === 'owner' && ctx.S.projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+              (r === 'owner' && (ctx.Sall || ctx.S).projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
           }).join('');
       } else {
         scopeBox.innerHTML = '';
@@ -2993,6 +3395,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
       toast('✅ رُفع النموذج "' + f.name + '" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع');
     });
 
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false });
+      });
+    });
     el.querySelector('#pd-add').addEventListener('click', async function () {
       const title = el.querySelector('#pd-title').value.trim();
       if (!title) { toast('أدخل اسم المخطط', true); return; }
@@ -3056,6 +3464,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       t.addEventListener('click', function () { contState.tab = t.getAttribute('data-ctab'); renderContractorHome(el, ctx); });
     });
     el.querySelector('#ct-new').addEventListener('click', function () { openSubmitModal(ctx); });
+    // المقاول يفتح المخطط ويرى ترميز الاستشاري وملاحظاته (قراءة فقط)
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = (ctx.S[contState.tab] || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        if (it) window.DrawingViewer.open(ctx, contState.tab, it, { canEdit: false, canReview: false });
+      });
+    });
   }
 
   function renderContractorList(ctx) {
@@ -3068,8 +3483,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<th>التاريخ</th><th>الحالة</th><th>رد الاستشاري</th></tr></thead><tbody>' +
       items.map(function (it) {
         const reply = tab === 'rfis' ? it.answer : it.notes;
-        return '<tr><td class="num small"><b>' + esc(it.ref) + '</b></td>' +
-          '<td>' + esc(it.title) +
+        return '<tr><td class="num small"><b>' + esc(it.ref) + '</b>' +
+          (it.docCode ? '<div class="muted" style="font-size:10px;color:var(--accent2)">' + esc(it.docCode) + '</div>' : '') + '</td>' +
+          '<td>' + esc(it.title) + ' ' + window.DrawingViewer.btn(it) +
           (it.question ? '<div class="small muted" style="max-width:300px">' + esc(it.question) + '</div>' : '') +
           (it.kind === 'eot' ? '<div class="small muted num">تمديد +' + (it.days || 0) + ' يوم</div>' : '') +
           (it.kind === 'itp' ? '<div class="small muted">خطة فحص ITP</div>' : '') + '</td>' +
@@ -3564,10 +3980,155 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
   }
 
+  // ============ الأرشيف المركزي: كل مستند مُكوَّد وقابل للاسترجاع ============
+  const ARCHIVE_TYPES = [
+    ['shopDrawings', '📐 مخطط تنفيذي', 'SD'], ['materials', '🧱 اعتماد مواد', 'MAT'],
+    ['scheduleSubmittals', '🗓️ جدول زمني', 'SCH'], ['wirs', '✅ طلب استلام', 'WIR'],
+    ['changeOrders', '🔁 أمر تغيير', 'CO'], ['payments', '💰 مستخلص', 'IPC'],
+    ['methodStatements', '🧾 أسلوب تنفيذ/ITP', 'MS'], ['claims', '⚖️ مطالبة/EOT', 'CLM'],
+    ['valueEngineering', '💡 هندسة قيمية', 'VE'], ['handoverDocs', '📦 مستند تسليم', 'HOD'],
+    ['rfis', '❓ استفسار RFI', 'RFI'], ['ncrs', '🚫 عدم مطابقة', 'NCR'],
+    ['siteInstructions', '📢 تعليمات موقعية', 'SI'], ['snags', '📌 ملاحظة تسليم', 'SNG'],
+    ['hseReports', '🦺 سلامة', 'HSE'], ['materialTests', '🧪 اختبار مواد', 'TST'],
+    ['meetings', '🤝 محضر اجتماع', 'MOM'], ['correspondence', '📮 خطاب', 'COR'],
+    ['dailyReports', '📝 تقرير يومي', 'DDR'], ['weeklyReports', '🗓️ تقرير أسبوعي', 'WKR'],
+    ['monthlyReports', '📊 تقرير شهري', 'MOR'], ['planDrawings', '🏢 مخطط مشروع', 'DRW'],
+    ['files', '📎 ملف مرفوع', 'FIL']
+  ];
+  const DONE_STATES = ['approved', 'approved_notes', 'answered', 'done', 'closed', 'pass'];
+  const archState = { q: '', type: 'all', status: 'all', year: 'all' };
+
+  function archiveRows(ctx) {
+    const rows = [];
+    ARCHIVE_TYPES.forEach(function (t) {
+      (ctx.S[t[0]] || []).forEach(function (it) {
+        rows.push({
+          col: t[0], typeName: t[1], item: it,
+          docCode: it.docCode || '', ref: it.ref || '', title: it.title || it.name || '',
+          date: it.date || it.month || it.weekOf || '',
+          status: it.status || it.result || '',
+          contractor: it.contractorId ? contractorName(ctx, it.contractorId) : (it.by || '—')
+        });
+      });
+    });
+    rows.sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); });
+    return rows;
+  }
+
+  function openArchiveDetails(ctx, row) {
+    const it = row.item;
+    const hasDrawing = it.file || (it.annotations || []).length;
+    const m = modal(
+      '<h3>' + row.typeName + '</h3>' +
+      '<div class="m-sub num">' + esc(row.docCode) + (row.ref ? ' · ' + esc(row.ref) : '') + '</div>' +
+      '<div class="card" style="padding:14px">' +
+      '<div><b>' + esc(row.title || '—') + '</b></div>' +
+      (it.description || it.question || it.details || it.summary ?
+        '<div class="small" style="margin-top:8px;line-height:1.9;color:#c6cdda">' + esc(it.description || it.question || it.details || it.summary) + '</div>' : '') +
+      '<div class="small muted" style="margin-top:10px">التاريخ: <b class="num">' + esc(row.date) + '</b>' +
+      (row.contractor !== '—' ? ' · الجهة: <b>' + esc(row.contractor) + '</b>' : '') +
+      (it.amount ? ' · القيمة: ' + money(it.amount) : '') + '</div>' +
+      (row.status ? '<div style="margin-top:8px">' + pill(row.status) + '</div>' : '') +
+      (it.notes ? '<div class="small mt">📝 ' + esc(it.notes) + '</div>' : '') +
+      (it.answer ? '<div class="small mt" style="color:var(--ok)">↩ ' + esc(it.answer) + '</div>' : '') +
+      (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate || '') + '</div>' : '') +
+      (it.file && typeof it.file === 'object' && it.file.url ? '<div class="mt"><a class="btn ghost sm" href="' + esc(it.file.url) + '" target="_blank">⬇ تحميل المرفق</a></div>' : '') +
+      (it.url ? '<div class="mt"><a class="btn ghost sm" href="' + esc(it.url) + '" target="_blank">⬇ فتح الملف</a></div>' : '') +
+      '</div>' +
+      '<div class="m-actions">' +
+      (hasDrawing ? '<button class="btn" id="ad-view">🖊 فتح المخطط' + ((it.annotations || []).length ? ' (' + it.annotations.length + ' ترميز)' : '') + '</button>' : '') +
+      '<button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">إغلاق</button></div>'
+    );
+    const v = m.querySelector('#ad-view');
+    if (v) v.addEventListener('click', function () {
+      m.remove();
+      const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
+      window.DrawingViewer.open(ctx, row.col, it, { canEdit: canEdit, canReview: canEdit && it.status === 'pending' });
+    });
+  }
+
+  function renderArchive(el, ctx) {
+    const all = archiveRows(ctx);
+    const years = {};
+    all.forEach(function (r) { const y = String(r.date).slice(0, 4); if (y) years[y] = 1; });
+
+    const rows = all.filter(function (r) {
+      if (archState.type !== 'all' && r.col !== archState.type) return false;
+      if (archState.year !== 'all' && String(r.date).slice(0, 4) !== archState.year) return false;
+      if (archState.status === 'active' && (DONE_STATES.indexOf(r.status) !== -1 || r.status === 'rejected' || r.status === 'fail')) return false;
+      if (archState.status === 'done' && DONE_STATES.indexOf(r.status) === -1) return false;
+      if (archState.status === 'rejected' && r.status !== 'rejected' && r.status !== 'fail') return false;
+      if (archState.q) {
+        const hay = (r.docCode + ' ' + r.ref + ' ' + r.title + ' ' + r.contractor).toLowerCase();
+        if (hay.indexOf(archState.q.toLowerCase()) === -1) return false;
+      }
+      return true;
+    });
+
+    el.innerHTML =
+      '<div class="card">' +
+      '<div class="flex" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:12px">' +
+      '<h3 style="margin:0">📚 أرشيف المستندات <span class="hint">كل مستند مُكوَّد بصيغة BSR-المشروع-النوع-السنة-التسلسل — ' + all.length + ' مستند مؤرشف</span></h3></div>' +
+      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">' +
+      '<input class="inp" id="ar-q" placeholder="🔍 بحث بالكود (BSR-...) أو المرجع أو العنوان أو الجهة..." value="' + esc(archState.q) + '">' +
+      '<select class="inp" id="ar-type"><option value="all">كل الأنواع</option>' +
+      ARCHIVE_TYPES.map(function (t) {
+        const n = (ctx.S[t[0]] || []).length;
+        return n ? '<option value="' + t[0] + '"' + (archState.type === t[0] ? ' selected' : '') + '>' + t[1] + ' (' + n + ')</option>' : '';
+      }).join('') + '</select>' +
+      '<select class="inp" id="ar-status">' +
+      [['all', 'كل الحالات'], ['active', 'قيد الإجراء'], ['done', 'معتمد / مغلق'], ['rejected', 'مرفوض / راسب']].map(function (o) {
+        return '<option value="' + o[0] + '"' + (archState.status === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+      }).join('') + '</select>' +
+      '<select class="inp" id="ar-year"><option value="all">كل السنوات</option>' +
+      Object.keys(years).sort().reverse().map(function (y) {
+        return '<option value="' + y + '"' + (archState.year === y ? ' selected' : '') + '>' + y + '</option>';
+      }).join('') + '</select>' +
+      '</div>' +
+      (rows.length ?
+        '<div class="tbl-wrap" style="max-height:62vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
+        '<th>كود المستند</th><th>النوع</th><th>العنوان</th><th>الجهة</th><th>التاريخ</th><th>الحالة</th><th></th></tr></thead><tbody>' +
+        rows.slice(0, 400).map(function (r, i) {
+          return '<tr>' +
+            '<td class="num small" style="white-space:nowrap"><b style="color:var(--accent2)">' + esc(r.docCode || '—') + '</b>' +
+            (r.ref ? '<div class="muted">' + esc(r.ref) + '</div>' : '') + '</td>' +
+            '<td class="small">' + r.typeName + '</td>' +
+            '<td class="small" style="max-width:300px">' + esc(r.title) + '</td>' +
+            '<td class="small">' + esc(r.contractor) + '</td>' +
+            '<td class="small muted num">' + esc(r.date) + '</td>' +
+            '<td>' + (r.status ? pill(r.status) : '<span class="muted small">—</span>') + '</td>' +
+            '<td><button class="btn ghost sm" data-arow="' + i + '">فتح 📂</button></td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        (rows.length > 400 ? '<div class="small muted mt">يعرض أول 400 نتيجة — ضيّق البحث للوصول لبقية المستندات</div>' : '')
+        : '<div class="empty"><div class="e-ico">📚</div>لا مستندات مطابقة للبحث</div>') +
+      '</div>';
+
+    function rewire(keepFocus) {
+      ['ar-type', 'ar-status', 'ar-year'].forEach(function (id) {
+        el.querySelector('#' + id).addEventListener('change', function (e) {
+          archState[id.replace('ar-', '') === 'type' ? 'type' : id === 'ar-status' ? 'status' : 'year'] = e.target.value;
+          renderArchive(el, ctx);
+        });
+      });
+      const q = el.querySelector('#ar-q');
+      q.addEventListener('input', function () {
+        archState.q = q.value;
+        renderArchive(el, ctx);
+        const q2 = el.querySelector('#ar-q');
+        q2.focus(); q2.setSelectionRange(q2.value.length, q2.value.length);
+      });
+      el.querySelectorAll('[data-arow]').forEach(function (b) {
+        b.addEventListener('click', function () { openArchiveDetails(ctx, rows[Number(b.getAttribute('data-arow'))]); });
+      });
+    }
+    rewire();
+  }
+
   window.ViewsRoles = {
     renderApprovals: renderApprovals,
     renderTechOffice: renderTechOffice,
     renderSystem: renderSystem,
+    renderArchive: renderArchive,
     renderManageContractors: renderManageContractors,
     renderBoq: renderBoq,
     renderDailyReport: renderDailyReport,
@@ -3596,8 +4157,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
     { id: 'contractors', title: 'المقاولون والأداء', icon: '👷', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderContractors },
     { id: 'ai', title: 'ذكاء بصير الاصطناعي', icon: '🤖', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderAi },
     { id: 'reports', title: 'التقارير والإرسال', icon: '📨', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderReports },
+    { id: 'archive', title: 'أرشيف المستندات', icon: '📚', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VR.renderArchive },
 
     { id: 'home', title: 'لوحة المقاول', icon: '🏗️', sec: 'أعمالي', roles: ['contractor'], render: VR.renderContractorHome },
+    { id: 'archive-c', title: 'أرشيف مستنداتي', icon: '📚', sec: 'أعمالي', roles: ['contractor'], render: VR.renderArchive },
 
     { id: 'approvals', title: 'الاعتمادات', icon: '✍️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderApprovals, badge: badgePending },
     { id: 'tech-office', title: 'خدمات المكتب الفني', icon: '🏛️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderTechOffice, badge: badgeTech },
@@ -3682,11 +4245,50 @@ textarea.inp { resize: vertical; min-height: 80px; }
     let current = location.hash.replace('#', '') || myPages[0].id;
     if (!myPages.some(function (p) { return p.id === current; })) current = myPages[0].id;
 
+    // ============ تعدد المشاريع: المشروع الحالي وترشيح بياناته ============
+    let rawS = S;
+    let currentProject = sessionStorage.getItem('bassir-project');
+    if (!rawS.projects.some(function (p) { return p.id === currentProject; })) {
+      currentProject = rawS.projects[0] ? rawS.projects[0].id : null;
+    }
+
+    /** يرشّح اللقطة لبيانات المشروع المحدد (كل عنصر يحمل projectId) */
+    function scopedState(full, pid) {
+      if (!pid || full.projects.length <= 1) return full;
+      const c = {};
+      Object.keys(full).forEach(function (k) {
+        c[k] = Array.isArray(full[k])
+          ? full[k].filter(function (x) { return !x || typeof x !== 'object' || !x.projectId || x.projectId === pid; })
+          : full[k];
+      });
+      c.projects = full.projects.filter(function (p) { return p.id === pid; });
+      if (!c.projects.length) c.projects = full.projects;
+      return c;
+    }
+
     ctx = {
-      U: user, S: S,
+      U: user,
+      S: scopedState(rawS, currentProject),
+      Sall: rawS, // اللقطة الكاملة (لصفحات عين المالك، المشاريع، المستخدمين)
+      projectId: currentProject,
       nav: function (id) { current = id; location.hash = id; draw(); },
-      refresh: async function () { ctx.S = await Api.state(); S = ctx.S; draw(); },
-      refreshSilent: async function () { ctx.S = await Api.state(); S = ctx.S; drawSidebar(); }
+      setProject: function (pid) {
+        currentProject = pid;
+        ctx.projectId = pid;
+        sessionStorage.setItem('bassir-project', pid);
+        ctx.S = scopedState(rawS, pid);
+        draw();
+      },
+      refresh: async function () {
+        rawS = await Api.state();
+        ctx.Sall = rawS; ctx.S = scopedState(rawS, currentProject); S = rawS;
+        draw();
+      },
+      refreshSilent: async function () {
+        rawS = await Api.state();
+        ctx.Sall = rawS; ctx.S = scopedState(rawS, currentProject); S = rawS;
+        drawSidebar();
+      }
     };
 
     function sidebarHtml() {
@@ -3729,14 +4331,25 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     function draw() {
       const page = myPages.find(function (p) { return p.id === current; }) || myPages[0];
+      const P = ctx.S.projects[0];
+      // مبدّل المشروع: يظهر عند وجود أكثر من مشروع في نطاق المستخدم
+      const projCtl = rawS.projects.length > 1
+        ? '<select class="inp" id="proj-switch" style="max-width:280px;padding:8px 12px;font-size:13px">' +
+          rawS.projects.map(function (pp) {
+            return '<option value="' + pp.id + '"' + (pp.id === currentProject ? ' selected' : '') + '>🏗️ ' + esc(pp.name) + '</option>';
+          }).join('') + '</select>'
+        : '<span class="proj">🏗️ ' + esc(P ? P.name : '') + ' · ' + esc(P ? P.location || '' : '') + '</span>';
+
       app.innerHTML =
         '<div class="app"><aside class="sidebar">' + sidebarHtml() + '</aside>' +
         '<div class="main"><div class="topbar"><h1>' + page.icon + ' ' + esc(page.title) + '</h1>' +
-        '<span class="proj">🏗️ ' + esc(S.projects[0] ? S.projects[0].name : '') + ' · ' + esc(S.projects[0] ? S.projects[0].location : '') + '</span>' +
+        projCtl +
         '<span class="spacer"></span>' +
         '<span class="small muted num">' + new Date().toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
         '</div><div class="content" id="page"></div></div></div>';
       wireSidebar(app.querySelector('.sidebar'));
+      const ps = app.querySelector('#proj-switch');
+      if (ps) ps.addEventListener('change', function () { ctx.setProject(ps.value); });
       page.render(document.getElementById('page'), ctx);
     }
 

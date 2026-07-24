@@ -59,8 +59,10 @@
     { id: 'contractors', title: 'المقاولون والأداء', icon: '👷', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderContractors },
     { id: 'ai', title: 'ذكاء بصير الاصطناعي', icon: '🤖', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderAi },
     { id: 'reports', title: 'التقارير والإرسال', icon: '📨', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderReports },
+    { id: 'archive', title: 'أرشيف المستندات', icon: '📚', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VR.renderArchive },
 
     { id: 'home', title: 'لوحة المقاول', icon: '🏗️', sec: 'أعمالي', roles: ['contractor'], render: VR.renderContractorHome },
+    { id: 'archive-c', title: 'أرشيف مستنداتي', icon: '📚', sec: 'أعمالي', roles: ['contractor'], render: VR.renderArchive },
 
     { id: 'approvals', title: 'الاعتمادات', icon: '✍️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderApprovals, badge: badgePending },
     { id: 'tech-office', title: 'خدمات المكتب الفني', icon: '🏛️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderTechOffice, badge: badgeTech },
@@ -166,11 +168,50 @@
     let current = location.hash.replace('#', '') || myPages[0].id;
     if (!myPages.some(function (p) { return p.id === current; })) current = myPages[0].id;
 
+    // ============ تعدد المشاريع: المشروع الحالي وترشيح بياناته ============
+    let rawS = S;
+    let currentProject = sessionStorage.getItem('bassir-project');
+    if (!rawS.projects.some(function (p) { return p.id === currentProject; })) {
+      currentProject = rawS.projects[0] ? rawS.projects[0].id : null;
+    }
+
+    /** يرشّح اللقطة لبيانات المشروع المحدد (كل عنصر يحمل projectId) */
+    function scopedState(full, pid) {
+      if (!pid || full.projects.length <= 1) return full;
+      const c = {};
+      Object.keys(full).forEach(function (k) {
+        c[k] = Array.isArray(full[k])
+          ? full[k].filter(function (x) { return !x || typeof x !== 'object' || !x.projectId || x.projectId === pid; })
+          : full[k];
+      });
+      c.projects = full.projects.filter(function (p) { return p.id === pid; });
+      if (!c.projects.length) c.projects = full.projects;
+      return c;
+    }
+
     ctx = {
-      U: user, S: S,
+      U: user,
+      S: scopedState(rawS, currentProject),
+      Sall: rawS, // اللقطة الكاملة (لصفحات عين المالك، المشاريع، المستخدمين)
+      projectId: currentProject,
       nav: function (id) { current = id; location.hash = id; draw(); },
-      refresh: async function () { ctx.S = await Api.state(); S = ctx.S; draw(); },
-      refreshSilent: async function () { ctx.S = await Api.state(); S = ctx.S; drawSidebar(); }
+      setProject: function (pid) {
+        currentProject = pid;
+        ctx.projectId = pid;
+        sessionStorage.setItem('bassir-project', pid);
+        ctx.S = scopedState(rawS, pid);
+        draw();
+      },
+      refresh: async function () {
+        rawS = await Api.state();
+        ctx.Sall = rawS; ctx.S = scopedState(rawS, currentProject); S = rawS;
+        draw();
+      },
+      refreshSilent: async function () {
+        rawS = await Api.state();
+        ctx.Sall = rawS; ctx.S = scopedState(rawS, currentProject); S = rawS;
+        drawSidebar();
+      }
     };
 
     function sidebarHtml() {
@@ -215,14 +256,25 @@
 
     function draw() {
       const page = myPages.find(function (p) { return p.id === current; }) || myPages[0];
+      const P = ctx.S.projects[0];
+      // مبدّل المشروع: يظهر عند وجود أكثر من مشروع في نطاق المستخدم
+      const projCtl = rawS.projects.length > 1
+        ? '<select class="inp" id="proj-switch" style="max-width:280px;padding:8px 12px;font-size:13px">' +
+          rawS.projects.map(function (pp) {
+            return '<option value="' + pp.id + '"' + (pp.id === currentProject ? ' selected' : '') + '>🏗️ ' + esc(pp.name) + '</option>';
+          }).join('') + '</select>'
+        : '<span class="proj">🏗️ ' + esc(P ? P.name : '') + ' · ' + esc(P ? P.location || '' : '') + '</span>';
+
       app.innerHTML =
         '<div class="app"><aside class="sidebar">' + sidebarHtml() + '</aside>' +
         '<div class="main"><div class="topbar"><h1>' + page.icon + ' ' + esc(t(page.title)) + '</h1>' +
-        '<span class="proj">🏗️ ' + esc(S.projects[0] ? S.projects[0].name : '') + ' · ' + esc(S.projects[0] ? S.projects[0].location : '') + '</span>' +
+        projCtl +
         '<span class="spacer"></span>' +
         '<span class="small muted num">' + new Date().toLocaleDateString(I18n.locale(), { year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
         '</div><div class="content" id="page"></div></div></div>';
       wireSidebar(app.querySelector('.sidebar'));
+      const ps = app.querySelector('#proj-switch');
+      if (ps) ps.addEventListener('change', function () { ctx.setProject(ps.value); });
       page.render(document.getElementById('page'), ctx);
     }
 

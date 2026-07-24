@@ -238,6 +238,15 @@ function storeUpload(buffer, originalName, mime, byUser) {
   return rec;
 }
 
+/** يستنتج مشروع الملف المرفوع: مشروع المقاول الفعلي إن وُجد، وإلا المشروع الأول (توافقاً مع الوضع أحادي المشروع) */
+function inferProjectId(user) {
+  if (user && user.role === 'contractor') {
+    const c = db.contractors.find(function (x) { return x.id === user.contractorId; });
+    if (c && c.projectId) return c.projectId;
+  }
+  return db.projects[0] ? db.projects[0].id : 'P1';
+}
+
 /** يعدّ الملفات المرفوعة إجمالاً عبر مجلدي الصور والمستندات */
 function countUploads() {
   return [UPLOADS_IMAGES_DIR, UPLOADS_DOCS_DIR].reduce(function (n, dir) {
@@ -287,8 +296,13 @@ const server = http.createServer(async function (req, res) {
       if (!cam) return json(res, 404, { error: 'كاميرا غير معروفة' });
       const buf = await readRawBody(req);
       const rec = storeUpload(buf, cam.id + '-snapshot.jpg', req.headers['content-type'] || 'image/jpeg', cam.name);
+      rec.projectId = cam.projectId || inferProjectId(null);
+      rec.docCode = core.docCode('files', rec.projectId);
+      if (!db.files) db.files = [];
+      db.files.unshift(rec);
       const photo = {
-        id: 'PH' + Date.now(), date: new Date().toISOString().slice(0, 10),
+        id: 'PH' + Date.now(), projectId: db.projects[0] ? db.projects[0].id : 'P1',
+        date: new Date().toISOString().slice(0, 10),
         area: cam.location || '', title: 'لقطة ' + cam.name,
         ai: 'بانتظار التحليل', detected: null, url: rec.url
       };
@@ -301,7 +315,7 @@ const server = http.createServer(async function (req, res) {
         integrations.analyzeImage(buf, rec.mime, { area: cam.name }).then(function (a) {
           photo.ai = a.summary; photo.detected = a.progress;
           db.aiInsights.unshift({
-            id: 'AI' + Date.now(), date: photo.date, source: 'camera', area: cam.name,
+            id: 'AI' + Date.now(), projectId: photo.projectId, date: photo.date, source: 'camera', area: cam.name,
             detected: a.progress, reported: null,
             note: a.summary + (a.safety.length ? ' — سلامة: ' + a.safety.join('؛ ') : ''),
             severity: a.safety.length ? 'alert' : 'ok'
@@ -372,7 +386,11 @@ const server = http.createServer(async function (req, res) {
       if (!buf.length) return json(res, 400, { error: 'لا يوجد محتوى' });
       const name = decodeURIComponent(req.headers['x-filename'] || 'file');
       const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
-      core.audit(user, 'upload', 'رفع ملف: ' + rec.name);
+      rec.projectId = inferProjectId(user);
+      rec.docCode = core.docCode('files', rec.projectId);
+      if (!db.files) db.files = [];
+      db.files.unshift(rec);
+      core.audit(user, 'upload', 'رفع ملف: ' + rec.name + ' (' + rec.docCode + ')');
       persist();
       return json(res, 201, rec);
     }
@@ -407,11 +425,13 @@ const server = http.createServer(async function (req, res) {
       const today = new Date().toISOString().slice(0, 10);
       const diff = body.reported != null ? Math.round((analysis.progress - body.reported) * 10) / 10 : null;
       db.photos.unshift({
-        id: 'PH' + Date.now(), date: today, area: body.area || '',
+        id: 'PH' + Date.now(), projectId: body.projectId || (db.projects[0] ? db.projects[0].id : 'P1'),
+        date: today, area: body.area || '',
         title: body.area || 'صورة محللة', ai: analysis.summary, detected: analysis.progress, url: body.url
       });
       db.aiInsights.unshift({
-        id: 'AI' + Date.now(), date: today, source: 'photos', area: body.area || '',
+        id: 'AI' + Date.now(), projectId: body.projectId || (db.projects[0] ? db.projects[0].id : 'P1'),
+        date: today, source: 'photos', area: body.area || '',
         detected: analysis.progress, reported: body.reported != null ? Number(body.reported) : null,
         note: analysis.summary +
           (analysis.observations.length ? ' — ' + analysis.observations.join('؛ ') : '') +

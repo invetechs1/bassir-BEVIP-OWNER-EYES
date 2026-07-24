@@ -491,7 +491,9 @@
         '<th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الحالة') + '</th><th>' + I18n.t('الملاحظات / التوقيع') + '</th><th></th></tr></thead><tbody>' +
         items.map(function (it) {
           return '<tr>' +
-            '<td class="num small"><b>' + esc(it.ref) + '</b>' + (it.file ? '<br><span class="muted">📎 ' + VS.att(it.file) + '</span>' : '') + '</td>' +
+            '<td class="num small"><b>' + esc(it.ref) + '</b>' +
+            (it.docCode ? '<div class="muted" style="font-size:10px;color:var(--accent2)">' + esc(it.docCode) + '</div>' : '') +
+            (it.file ? '<br><span class="muted">📎 ' + VS.att(it.file) + '</span>' : '') + '</td>' +
             '<td>' + esc(it.title) + (it.location ? '<div class="small muted">' + I18n.t('الموقع: ') + esc(VS.floorName(ctx, it.location)) + '</div>' : '') + '</td>' +
             '<td class="small">' + esc(contractorName(ctx, it.contractorId)) + '</td>' +
             (tab === 'changeOrders' ? '<td>' + money(it.amount) + '<div class="small muted num">+' + (it.days || 0) + I18n.t(' يوم') + '</div></td>' : '') +
@@ -500,7 +502,8 @@
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:220px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
             (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-            '<td>' + (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') + '</td>' +
+            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
+            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') + '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا توجد طلبات في هذا القسم') + '</div>') +
@@ -513,6 +516,13 @@
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-review'); });
         openReviewModal(ctx, tab, it);
+      });
+    });
+    // فتح المخطط للترميز والاعتماد/الإرجاع من داخل العارض
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        window.DrawingViewer.open(ctx, tab, it, { canEdit: true, canReview: it.status === 'pending' });
       });
     });
   }
@@ -910,12 +920,14 @@
   function renderRepProjects(el, ctx) {
     el.innerHTML =
       '<div class="grid" style="grid-template-columns:1.2fr 1fr">' +
-      '<div class="card"><h3>' + I18n.t('🏗️ مشاريع المالك') + '</h3>' +
-      ctx.S.projects.map(function (p) {
-        return '<div style="border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
+      '<div class="card"><h3>' + I18n.t('🏗️ مشاريع المالك') + ' <span class="hint">' + I18n.t('اضغط "فتح" للتنقل بين المشاريع — أو استخدم مبدّل المشروع أعلى الشاشة') + '</span></h3>' +
+      (ctx.Sall || ctx.S).projects.map(function (p) {
+        const active = ctx.projectId === p.id;
+        return '<div style="border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b style="font-size:16px">' + esc(p.name) + '</b>' +
-          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div>' +
-          '<div class="small muted" style="margin:6px 0">' + esc(p.location) + I18n.t(' · الميزانية ') + VS.millions(p.budgetPlanned) + '</div>' +
+          '<div class="flex">' + (active ? '<span class="pill p-ok">' + I18n.t('المشروع الحالي') + '</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">' + I18n.t('فتح المشروع ←') + '</button>') +
+          '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div></div>' +
+          '<div class="small muted" style="margin:6px 0">' + esc(p.location || '—') + I18n.t(' · الميزانية ') + VS.millions(p.budgetPlanned || 0) + '</div>' +
           '<div class="small">' + I18n.t('👨‍💼 الاستشاري: ') + '<b>' + esc(p.consultantName || I18n.t('لم يعيّن')) + '</b></div></div>';
       }).join('') + '</div>' +
 
@@ -950,9 +962,15 @@
             '<div class="card" style="padding:16px"><div>👤 <b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">🔑 <b class="num">' + esc(res.account.password) + '</b></div></div>' +
             '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم') + '</button></div>');
-        } else toast(I18n.t('✅ أُنشئ المشروع'));
+        } else toast(I18n.t('✅ أُنشئ المشروع — استخدم زر "فتح المشروع" أو المبدّل أعلى الشاشة للانتقال إليه'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
+    });
+    el.querySelectorAll('[data-open-proj]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ctx.setProject(b.getAttribute('data-open-proj'));
+        ctx.nav('dashboard');
+      });
     });
   }
 
@@ -998,7 +1016,7 @@
     }
     if (u.projectIds && u.projectIds.length) {
       return '🏗️ ' + u.projectIds.map(function (pid) {
-        const p = ctx.S.projects.find(function (x) { return x.id === pid; });
+        const p = (ctx.Sall || ctx.S).projects.find(function (x) { return x.id === pid; });
         return esc(p ? p.name : pid);
       }).join('، ');
     }
@@ -1054,9 +1072,9 @@
           ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
       } else if (r === 'owner' || r === 'consultant') {
         scopeBox.innerHTML = '<label class="fl">' + I18n.t(r === 'owner' ? 'مشروع المالك (يرى صفحة مشروعه فقط)' : 'المشاريع المسندة (اتركها كلها فارغة = جميع المشاريع)') + '</label>' +
-          ctx.S.projects.map(function (p) {
+          (ctx.Sall || ctx.S).projects.map(function (p) {
             return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="nu-proj" value="' + p.id + '"' +
-              (r === 'owner' && ctx.S.projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+              (r === 'owner' && (ctx.Sall || ctx.S).projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
           }).join('');
       } else {
         scopeBox.innerHTML = '';
@@ -1216,6 +1234,12 @@
       } catch (e) { toast(e.message, true); btn.disabled = false; }
     });
 
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false });
+      });
+    });
     el.querySelector('#pd-add').addEventListener('click', async function () {
       const title = el.querySelector('#pd-title').value.trim();
       if (!title) { toast(I18n.t('أدخل اسم المخطط'), true); return; }
@@ -1289,6 +1313,13 @@
         if (it) openThreadModal(ctx, parts[0], it);
       });
     });
+    // المقاول يفتح المخطط ويرى ترميز الاستشاري وملاحظاته (قراءة فقط)
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = (ctx.S[contState.tab] || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        if (it) window.DrawingViewer.open(ctx, contState.tab, it, { canEdit: false, canReview: false });
+      });
+    });
   }
 
   function renderContractorList(ctx) {
@@ -1302,8 +1333,9 @@
       items.map(function (it) {
         const reply = tab === 'rfis' ? it.answer : it.notes;
         const nComments = commentsFor(ctx, tab, it.id).length;
-        return '<tr><td class="num small"><b>' + esc(it.ref) + '</b></td>' +
-          '<td>' + esc(it.title) +
+        return '<tr><td class="num small"><b>' + esc(it.ref) + '</b>' +
+          (it.docCode ? '<div class="muted" style="font-size:10px;color:var(--accent2)">' + esc(it.docCode) + '</div>' : '') + '</td>' +
+          '<td>' + esc(it.title) + ' ' + window.DrawingViewer.btn(it) +
           (it.question ? '<div class="small muted" style="max-width:300px">' + esc(it.question) + '</div>' : '') +
           (it.kind === 'eot' ? '<div class="small muted num">' + I18n.t('تمديد +') + (it.days || 0) + I18n.t(' يوم') + '</div>' : '') +
           (it.kind === 'itp' ? '<div class="small muted">' + I18n.t('خطة فحص ITP') + '</div>' : '') + '</td>' +
@@ -1801,10 +1833,155 @@
     });
   }
 
+  // ============ الأرشيف المركزي: كل مستند مُكوَّد وقابل للاسترجاع ============
+  const ARCHIVE_TYPES = [
+    ['shopDrawings', '📐 مخطط تنفيذي', 'SD'], ['materials', '🧱 اعتماد مواد', 'MAT'],
+    ['scheduleSubmittals', '🗓️ جدول زمني', 'SCH'], ['wirs', '✅ طلب استلام', 'WIR'],
+    ['changeOrders', '🔁 أمر تغيير', 'CO'], ['payments', '💰 مستخلص', 'IPC'],
+    ['methodStatements', '🧾 أسلوب تنفيذ/ITP', 'MS'], ['claims', '⚖️ مطالبة/EOT', 'CLM'],
+    ['valueEngineering', '💡 هندسة قيمية', 'VE'], ['handoverDocs', '📦 مستند تسليم', 'HOD'],
+    ['rfis', '❓ استفسار RFI', 'RFI'], ['ncrs', '🚫 عدم مطابقة', 'NCR'],
+    ['siteInstructions', '📢 تعليمات موقعية', 'SI'], ['snags', '📌 ملاحظة تسليم', 'SNG'],
+    ['hseReports', '🦺 سلامة', 'HSE'], ['materialTests', '🧪 اختبار مواد', 'TST'],
+    ['meetings', '🤝 محضر اجتماع', 'MOM'], ['correspondence', '📮 خطاب', 'COR'],
+    ['dailyReports', '📝 تقرير يومي', 'DDR'], ['weeklyReports', '🗓️ تقرير أسبوعي', 'WKR'],
+    ['monthlyReports', '📊 تقرير شهري', 'MOR'], ['planDrawings', '🏢 مخطط مشروع', 'DRW'],
+    ['files', '📎 ملف مرفوع', 'FIL']
+  ];
+  const DONE_STATES = ['approved', 'approved_notes', 'answered', 'done', 'closed', 'pass'];
+  const archState = { q: '', type: 'all', status: 'all', year: 'all' };
+
+  function archiveRows(ctx) {
+    const rows = [];
+    ARCHIVE_TYPES.forEach(function (t) {
+      (ctx.S[t[0]] || []).forEach(function (it) {
+        rows.push({
+          col: t[0], typeName: t[1], item: it,
+          docCode: it.docCode || '', ref: it.ref || '', title: it.title || it.name || '',
+          date: it.date || it.month || it.weekOf || '',
+          status: it.status || it.result || '',
+          contractor: it.contractorId ? contractorName(ctx, it.contractorId) : (it.by || '—')
+        });
+      });
+    });
+    rows.sort(function (a, b) { return String(b.date).localeCompare(String(a.date)); });
+    return rows;
+  }
+
+  function openArchiveDetails(ctx, row) {
+    const it = row.item;
+    const hasDrawing = it.file || (it.annotations || []).length;
+    const m = modal(
+      '<h3>' + row.typeName + '</h3>' +
+      '<div class="m-sub num">' + esc(row.docCode) + (row.ref ? ' · ' + esc(row.ref) : '') + '</div>' +
+      '<div class="card" style="padding:14px">' +
+      '<div><b>' + esc(row.title || '—') + '</b></div>' +
+      (it.description || it.question || it.details || it.summary ?
+        '<div class="small" style="margin-top:8px;line-height:1.9;color:#c6cdda">' + esc(it.description || it.question || it.details || it.summary) + '</div>' : '') +
+      '<div class="small muted" style="margin-top:10px">التاريخ: <b class="num">' + esc(row.date) + '</b>' +
+      (row.contractor !== '—' ? ' · الجهة: <b>' + esc(row.contractor) + '</b>' : '') +
+      (it.amount ? ' · القيمة: ' + money(it.amount) : '') + '</div>' +
+      (row.status ? '<div style="margin-top:8px">' + pill(row.status) + '</div>' : '') +
+      (it.notes ? '<div class="small mt">📝 ' + esc(it.notes) + '</div>' : '') +
+      (it.answer ? '<div class="small mt" style="color:var(--ok)">↩ ' + esc(it.answer) + '</div>' : '') +
+      (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate || '') + '</div>' : '') +
+      (it.file && typeof it.file === 'object' && it.file.url ? '<div class="mt"><a class="btn ghost sm" href="' + esc(it.file.url) + '" target="_blank">⬇ تحميل المرفق</a></div>' : '') +
+      (it.url ? '<div class="mt"><a class="btn ghost sm" href="' + esc(it.url) + '" target="_blank">⬇ فتح الملف</a></div>' : '') +
+      '</div>' +
+      '<div class="m-actions">' +
+      (hasDrawing ? '<button class="btn" id="ad-view">🖊 فتح المخطط' + ((it.annotations || []).length ? ' (' + it.annotations.length + ' ترميز)' : '') + '</button>' : '') +
+      '<button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">إغلاق</button></div>'
+    );
+    const v = m.querySelector('#ad-view');
+    if (v) v.addEventListener('click', function () {
+      m.remove();
+      const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
+      window.DrawingViewer.open(ctx, row.col, it, { canEdit: canEdit, canReview: canEdit && it.status === 'pending' });
+    });
+  }
+
+  function renderArchive(el, ctx) {
+    const all = archiveRows(ctx);
+    const years = {};
+    all.forEach(function (r) { const y = String(r.date).slice(0, 4); if (y) years[y] = 1; });
+
+    const rows = all.filter(function (r) {
+      if (archState.type !== 'all' && r.col !== archState.type) return false;
+      if (archState.year !== 'all' && String(r.date).slice(0, 4) !== archState.year) return false;
+      if (archState.status === 'active' && (DONE_STATES.indexOf(r.status) !== -1 || r.status === 'rejected' || r.status === 'fail')) return false;
+      if (archState.status === 'done' && DONE_STATES.indexOf(r.status) === -1) return false;
+      if (archState.status === 'rejected' && r.status !== 'rejected' && r.status !== 'fail') return false;
+      if (archState.q) {
+        const hay = (r.docCode + ' ' + r.ref + ' ' + r.title + ' ' + r.contractor).toLowerCase();
+        if (hay.indexOf(archState.q.toLowerCase()) === -1) return false;
+      }
+      return true;
+    });
+
+    el.innerHTML =
+      '<div class="card">' +
+      '<div class="flex" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:12px">' +
+      '<h3 style="margin:0">📚 أرشيف المستندات <span class="hint">كل مستند مُكوَّد بصيغة BSR-المشروع-النوع-السنة-التسلسل — ' + all.length + ' مستند مؤرشف</span></h3></div>' +
+      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">' +
+      '<input class="inp" id="ar-q" placeholder="🔍 بحث بالكود (BSR-...) أو المرجع أو العنوان أو الجهة..." value="' + esc(archState.q) + '">' +
+      '<select class="inp" id="ar-type"><option value="all">كل الأنواع</option>' +
+      ARCHIVE_TYPES.map(function (t) {
+        const n = (ctx.S[t[0]] || []).length;
+        return n ? '<option value="' + t[0] + '"' + (archState.type === t[0] ? ' selected' : '') + '>' + t[1] + ' (' + n + ')</option>' : '';
+      }).join('') + '</select>' +
+      '<select class="inp" id="ar-status">' +
+      [['all', 'كل الحالات'], ['active', 'قيد الإجراء'], ['done', 'معتمد / مغلق'], ['rejected', 'مرفوض / راسب']].map(function (o) {
+        return '<option value="' + o[0] + '"' + (archState.status === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+      }).join('') + '</select>' +
+      '<select class="inp" id="ar-year"><option value="all">كل السنوات</option>' +
+      Object.keys(years).sort().reverse().map(function (y) {
+        return '<option value="' + y + '"' + (archState.year === y ? ' selected' : '') + '>' + y + '</option>';
+      }).join('') + '</select>' +
+      '</div>' +
+      (rows.length ?
+        '<div class="tbl-wrap" style="max-height:62vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
+        '<th>كود المستند</th><th>النوع</th><th>العنوان</th><th>الجهة</th><th>التاريخ</th><th>الحالة</th><th></th></tr></thead><tbody>' +
+        rows.slice(0, 400).map(function (r, i) {
+          return '<tr>' +
+            '<td class="num small" style="white-space:nowrap"><b style="color:var(--accent2)">' + esc(r.docCode || '—') + '</b>' +
+            (r.ref ? '<div class="muted">' + esc(r.ref) + '</div>' : '') + '</td>' +
+            '<td class="small">' + r.typeName + '</td>' +
+            '<td class="small" style="max-width:300px">' + esc(r.title) + '</td>' +
+            '<td class="small">' + esc(r.contractor) + '</td>' +
+            '<td class="small muted num">' + esc(r.date) + '</td>' +
+            '<td>' + (r.status ? pill(r.status) : '<span class="muted small">—</span>') + '</td>' +
+            '<td><button class="btn ghost sm" data-arow="' + i + '">فتح 📂</button></td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        (rows.length > 400 ? '<div class="small muted mt">يعرض أول 400 نتيجة — ضيّق البحث للوصول لبقية المستندات</div>' : '')
+        : '<div class="empty"><div class="e-ico">📚</div>لا مستندات مطابقة للبحث</div>') +
+      '</div>';
+
+    function rewire(keepFocus) {
+      ['ar-type', 'ar-status', 'ar-year'].forEach(function (id) {
+        el.querySelector('#' + id).addEventListener('change', function (e) {
+          archState[id.replace('ar-', '') === 'type' ? 'type' : id === 'ar-status' ? 'status' : 'year'] = e.target.value;
+          renderArchive(el, ctx);
+        });
+      });
+      const q = el.querySelector('#ar-q');
+      q.addEventListener('input', function () {
+        archState.q = q.value;
+        renderArchive(el, ctx);
+        const q2 = el.querySelector('#ar-q');
+        q2.focus(); q2.setSelectionRange(q2.value.length, q2.value.length);
+      });
+      el.querySelectorAll('[data-arow]').forEach(function (b) {
+        b.addEventListener('click', function () { openArchiveDetails(ctx, rows[Number(b.getAttribute('data-arow'))]); });
+      });
+    }
+    rewire();
+  }
+
   window.ViewsRoles = {
     renderApprovals: renderApprovals,
     renderTechOffice: renderTechOffice,
     renderSystem: renderSystem,
+    renderArchive: renderArchive,
     renderManageContractors: renderManageContractors,
     renderBoq: renderBoq,
     renderDailyReport: renderDailyReport,

@@ -17,6 +17,7 @@ const SCRIPTS = [
   'shared/api-core.js',
   'public/js/api.js',
   'public/js/charts.js',
+  'public/js/viewer.js',
   'public/js/views.js',
   'public/js/views2.js',
   'public/js/app.js'

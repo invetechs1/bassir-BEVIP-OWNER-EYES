@@ -55,6 +55,16 @@
       (item && (item.title || item.name || item.description || item.ref || item.username || item.id) || '');
   }
 
+  // رموز أنواع المستندات في نظام التكويد: BSR-المشروع-النوع-السنة-التسلسل
+  const DOC_TYPE_CODES = {
+    shopDrawings: 'SD', materials: 'MAT', scheduleSubmittals: 'SCH', wirs: 'WIR',
+    changeOrders: 'CO', payments: 'IPC', methodStatements: 'MS', claims: 'CLM',
+    valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
+    siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
+    meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
+    monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', files: 'FIL'
+  };
+
   // من يستطيع إنشاء عناصر في كل مجموعة
   const CREATE_RULES = {
     shopDrawings: ['contractor', 'consultant', 'admin'],
@@ -119,6 +129,20 @@
       return e;
     }
 
+    /**
+     * تكويد المستندات: كود فريد متسلسل لكل مستند/اعتماد/ملف
+     * الصيغة: BSR-<المشروع>-<النوع>-<السنة>-<تسلسل 4 خانات>
+     */
+    function docCode(collection, projectId, year) {
+      const t = DOC_TYPE_CODES[collection];
+      if (!t) return null;
+      const y = year || String(new Date().getFullYear());
+      const key = (projectId || 'P1') + '-' + t + '-' + y;
+      if (!db.meta.docSeq) db.meta.docSeq = {};
+      db.meta.docSeq[key] = (db.meta.docSeq[key] || 0) + 1;
+      return 'BSR-' + key + '-' + String(db.meta.docSeq[key]).padStart(4, '0');
+    }
+
     /** سجل النظام: توثيق كل عملية (من، متى، ماذا) — يحتفظ بآخر 800 حدث */
     function audit(user, action, target) {
       if (!db.auditLog) db.auditLog = [];
@@ -175,6 +199,7 @@
       s.monthlyReports = db.monthlyReports;
       s.cameras = db.cameras || [];
       s.planDrawings = db.planDrawings || [];
+      s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant') ? (db.files || []) : [];
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
@@ -252,17 +277,22 @@
         return item;
       }
 
-      item.projectId = item.projectId || 'P1';
-      if (REF_PREFIX[collection]) item.ref = nextRef(collection); // يتجاهل أي ref مُرسَل من العميل عمداً
       if (user.role === 'contractor') {
         item.contractorId = user.contractorId; // المقاول لا يُنشئ باسم غيره
+        // مشروع المقاول الفعلي دائماً — لا يُعتمد على ما يرسله العميل (مهم عند تعدد المشاريع)
+        const myContractor = db.contractors.find(function (c) { return c.id === user.contractorId; });
+        item.projectId = (myContractor && myContractor.projectId) || item.projectId || 'P1';
         if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
+      } else {
+        item.projectId = item.projectId || 'P1';
       }
+      if (REF_PREFIX[collection]) item.ref = nextRef(collection); // يتجاهل أي ref مُرسَل من العميل عمداً
       if (!item.date) item.date = todayStr();
       if (!item.status) {
         if (DEFAULT_STATUS[collection]) item.status = DEFAULT_STATUS[collection];
         else if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
       }
+      if (!item.docCode) item.docCode = docCode(collection, item.projectId);
       if (collection === 'users' && item.password && pwd.hash) {
         const plain = item.password;
         delete item.password;
@@ -470,6 +500,7 @@
     return {
       db: db,
       audit: audit,
+      docCode: docCode,
       login: login,
       getState: getState,
       createItem: createItem,

@@ -376,9 +376,10 @@
   }
 
   function renderOwnerEye(el, ctx) {
-    const html = ctx.S.projects.map(function (P) {
+    const A = ctx.Sall || ctx.S; // كل مشاريع المستخدم
+    const html = A.projects.map(function (P) {
       const g = projectGlance(ctx, P);
-      const items = ctx.S.boqItems.filter(function (b) { return b.projectId === P.id; });
+      const items = A.boqItems.filter(function (b) { return b.projectId === P.id; });
       const floors = (P.floors || []);
 
       // شريط الأدوار: نظرة سريعة على إنجاز كل دور
@@ -389,7 +390,7 @@
           const p = weightedProgress(items.filter(function (b) { return b.floor === f.id; }));
           if (p == null) return '';
           const t = 0.08 + (p / 100) * 0.84;
-          return '<div class="eye-floor" data-goflor="' + f.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
+          return '<div class="eye-floor" data-goflor="' + f.id + '" data-gopr="' + P.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
             (p >= 95 ? 'box-shadow:0 0 14px rgba(224,164,88,.65);' : '') + '">' +
             '<b class="num" style="color:' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '">' + p + '%</b>' +
             '<span style="color:' + (t > 0.5 ? '#233' : '#8b95a8') + '">' + esc(f.name) + '</span></div>';
@@ -436,6 +437,8 @@
         visionState.tab = '2d';
         visionState.floor = b.getAttribute('data-goflor');
         visionState.zone = null;
+        const pid = b.getAttribute('data-gopr');
+        if (pid && ctx.setProject && pid !== ctx.projectId) { sessionStorage.setItem('bassir-project', pid); ctx.setProject(pid); }
         ctx.nav('vision');
       });
     });
@@ -534,15 +537,17 @@
       '</div>' +
 
       '<div class="grid g2 mb">' +
-      '<div class="card"><h3>📈 ' + I18n.t('الجدول الزمني: المخطط مقابل الفعلي') + ' <span class="hint">' + I18n.t('منحنى S التراكمي') + '</span></h3>' + Charts.sCurve(ctx.S.scheduleCurve) + '</div>' +
-      '<div class="card"><h3>💰 ' + I18n.t('التكلفة: المخطط مقابل الفعلي') + ' <span class="hint">' + I18n.t('مليون ريال') + '</span></h3>' + Charts.sCurve(ctx.S.costCurve, { maxY: 55, unit: 'م' }) + '</div>' +
+      '<div class="card"><h3>📈 ' + I18n.t('الجدول الزمني: المخطط مقابل الفعلي') + ' <span class="hint">' + I18n.t('منحنى S التراكمي') + '</span></h3>' +
+      (ctx.S.scheduleCurve.length > 1 ? Charts.sCurve(ctx.S.scheduleCurve) : '<div class="empty"><div class="e-ico">📈</div>' + I18n.t('لا بيانات جدول زمني لهذا المشروع بعد — يرفعها الاستشاري') + '</div>') + '</div>' +
+      '<div class="card"><h3>💰 ' + I18n.t('التكلفة: المخطط مقابل الفعلي') + ' <span class="hint">' + I18n.t('مليون ريال') + '</span></h3>' +
+      (ctx.S.costCurve.length > 1 ? Charts.sCurve(ctx.S.costCurve, { maxY: 55, unit: 'م' }) : '<div class="empty"><div class="e-ico">💰</div>' + I18n.t('لا بيانات تكلفة لهذا المشروع بعد') + '</div>') + '</div>' +
       '</div>' +
 
       '<div class="grid g2">' +
       '<div class="card"><h3>🗂️ ' + I18n.t('مراحل المشروع') + '</h3>' +
-      Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
+      (ctx.S.scheduleTasks.length ? Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
         return { label: t.name, actual: t.progress, planned: taskPlanned(t) };
-      })) + '</div>' +
+      })) : '<div class="empty"><div class="e-ico">🗂️</div>' + I18n.t('لم تُسجل مراحل لهذا المشروع بعد') + '</div>') + '</div>' +
       '<div class="card"><h3>🔔 ' + I18n.t('تنبيهات بصير الذكية') + ' <span class="hint">' + I18n.t('من تحليل الصور والكاميرات') + '</span></h3>' +
       (alerts.length ? alerts.map(aiItemHtml).join('') : '<div class="empty"><div class="e-ico">✨</div>' + I18n.t('لا توجد تنبيهات حرجة') + '</div>') +
       '<button class="btn ghost sm" data-nav="ai">' + I18n.t('فتح صفحة الذكاء الاصطناعي ←') + '</button></div>' +
@@ -752,6 +757,13 @@
     el.querySelectorAll('[data-bimfloor]').forEach(function (z) {
       z.addEventListener('click', function () { st.bimFloor = z.getAttribute('data-bimfloor'); renderVision(el, ctx); });
     });
+    el.querySelectorAll('[data-dview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
+        const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: canEdit, canReview: false });
+      });
+    });
     // من الواجهة: الضغط على أي دور يفتحه تلقائياً في عرض المخططات مع تفصيل تخصصاته
     el.querySelectorAll('[data-elevfloor]').forEach(function (z) {
       z.addEventListener('click', function () {
@@ -846,8 +858,8 @@
       '<div style="border-top:1px dashed var(--border);margin-top:12px;padding-top:10px">' +
       '<b class="small">📐 ' + I18n.t('المخططات المرتبطة بهذا الدور:') + '</b>' +
       floorDrawings.map(function (dr) {
-        return '<div class="small muted" style="margin-top:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
-          ' <span class="pill p-ok" style="font-size:10px">' + I18n.t('مربوط بجدول الكميات ✓') + '</span></div>';
+        return '<div class="small muted flex" style="margin-top:6px;gap:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
+          ' <span class="pill p-ok" style="font-size:10px">' + I18n.t('مربوط بجدول الكميات ✓') + '</span> ' + window.DrawingViewer.btn(dr) + '</div>';
       }).join('') + '</div>' : '';
 
     // لوحة البنود الجانبية
