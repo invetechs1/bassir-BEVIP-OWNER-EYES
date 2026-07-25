@@ -209,6 +209,9 @@
         s.users = db.users.map(stripPassword);
       }
 
+      // إشعارات المستخدم الحالي فقط (بحسب دوره أو مقاوله)
+      s.notifications = myNotifications(user).slice(0, 60);
+
       // سجل النظام: للأدمن وممثل المالك فقط
       if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
 
@@ -230,6 +233,37 @@
       const allowed = CREATE_RULES[collection];
       if (!allowed) throw err('مجموعة غير معروفة: ' + collection, 404);
       if (allowed.indexOf(user.role) === -1) throw err('لا تملك صلاحية الإضافة هنا', 403);
+    }
+
+    /**
+     * إشعار داخلي فوري. target: { role: 'consultant' } يصل للاستشاري والأدمن،
+     * أو { contractorId: 'C1' } يصل لحسابات هذا المقاول.
+     * تُقرأ لكل مستخدم على حدة عبر readBy.
+     */
+    function pushNotification(target, kind, text, refCollection, refId) {
+      if (!db.notifications) db.notifications = [];
+      db.notifications.unshift({
+        id: nextId('NT'), time: nowStr(), kind: kind, text: text,
+        role: target.role || null, contractorId: target.contractorId || null,
+        collection: refCollection || null, refId: refId || null, readBy: []
+      });
+      if (db.notifications.length > 200) db.notifications.length = 200;
+    }
+
+    function myNotifications(user) {
+      return (db.notifications || []).filter(function (n) {
+        if (n.contractorId) return user.role === 'contractor' && user.contractorId === n.contractorId;
+        if (n.role) return user.role === n.role || user.role === 'admin';
+        return false;
+      });
+    }
+
+    function markNotificationsRead(user) {
+      myNotifications(user).forEach(function (n) {
+        if (n.readBy.indexOf(user.id) === -1) n.readBy.push(user.id);
+      });
+      persist();
+      return { ok: true };
     }
 
     function createItem(user, collection, data) {
@@ -261,6 +295,15 @@
         return Object.assign(stripPassword(item), { password: plain }); // تُعرض مرة واحدة فقط
       }
       db[collection].push(item);
+      // إشعار المكتب الفني بكل تقديم جديد من مقاول
+      if (user.role === 'contractor' &&
+          (APPROVAL_COLLECTIONS.indexOf(collection) !== -1 || collection === 'rfis' || collection === 'rfps')) {
+        pushNotification({ role: 'consultant' }, 'submit',
+          '📥 تقديم جديد: ' + labelOf(collection, item) + ' — من ' + user.name, collection, item.id);
+        if (collection === 'rfps' && item.to === 'owner') {
+          pushNotification({ role: 'owner' }, 'submit', '📮 طلب عرض موجه إليك: ' + (item.title || item.ref), collection, item.id);
+        }
+      }
       audit(user, 'create', labelOf(collection, item));
       persist();
       return item;
@@ -280,7 +323,13 @@
           if (!allowed) throw err('لا يمكن تعديل طلب تم البت فيه — يمكنك الرد على الملاحظات أو رفع نسخة معدلة', 403);
         }
       }
+      const wasOpen = item.status === 'open';
       Object.assign(item, patch);
+      // إشعار المقاول عند الرد على استفساره أو عرضه
+      if (wasOpen && patch.status === 'answered' && (collection === 'rfis' || collection === 'rfps') && item.contractorId) {
+        pushNotification({ contractorId: item.contractorId }, 'answer',
+          '↩️ تم الرد على ' + labelOf(collection, item) + (patch.answer ? ' — ' + patch.answer : ''), collection, item.id);
+      }
       audit(user, 'update', labelOf(collection, item));
       persist();
       return item;
@@ -328,6 +377,11 @@
         applyPaymentEffects(item);
       }
       const decision = status === 'rejected' ? 'رفض' : 'اعتماد';
+      if (item.contractorId) {
+        pushNotification({ contractorId: item.contractorId }, 'decision',
+          (status === 'rejected' ? '↩ أُرجع إليك للتعديل: ' : status === 'approved_notes' ? '📝 اعتُمد مع ملاحظات: ' : '✅ اعتُمد: ') +
+          labelOf(collection, item) + (opts.notes ? ' — ' + opts.notes : ''), collection, item.id);
+      }
       audit(user, 'review', decision + ' — ' + labelOf(collection, item));
       persist();
       return item;
@@ -378,6 +432,8 @@
       item.reviewStartDate = null; item.reviewEndDate = null; item.reviewDays = null;
       if (!item.history) item.history = [];
       item.history.push({ status: 'resubmitted', by: user.name, role: user.role, date: todayStr(), notes: 'نسخة معدلة رقم ' + (item.revisions.length + 1) });
+      pushNotification({ role: 'consultant' }, 'resubmit',
+        '🔄 أُعيد التقديم بنسخة معدلة: ' + labelOf(collection, item) + ' — من ' + user.name, collection, item.id);
       audit(user, 'update', 'إعادة تقديم نسخة معدلة — ' + labelOf(collection, item));
       persist();
       return item;
@@ -513,6 +569,7 @@
       deleteItem: deleteItem,
       review: review,
       resubmit: resubmit,
+      markNotificationsRead: markNotificationsRead,
       addContractor: addContractor,
       addProject: addProject,
       sendReport: sendReport,

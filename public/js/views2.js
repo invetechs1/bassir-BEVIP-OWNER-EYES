@@ -657,7 +657,11 @@
       '<label class="fl">ملف النموذج</label><input class="inp" id="bim-file" type="file" accept=".ifc,.rvt,.nwd,.nwc">' +
       '<label class="fl">إصدار النموذج</label><input class="inp" id="bim-rev" placeholder="Rev-04 - يوليو 2026" value="Rev-04 - يوليو 2026">' +
       '<div class="m-actions"><button class="btn block" id="bim-up">رفع النموذج وربطه بجدول الكميات</button></div>' +
-      '<div class="sig">النموذج الحالي: BassirTower_Rev03.ifc · رُفع 2026-06-12 · مرتبط بـ <b class="num">' + ctx.S.boqItems.length + '</b> بند</div></div>' +
+      (function () {
+        const bm = (ctx.S.bimModels || [])[ctx.S.bimModels ? ctx.S.bimModels.length - 1 : 0];
+        return bm ? '<div class="sig">النموذج الحالي: ' + esc(bm.name) + ' · ' + esc(bm.rev || '') + ' · ' + esc(bm.date || '') +
+          ' · مرتبط بـ <b class="num">' + ctx.S.boqItems.length + '</b> بند — الإدارة الكاملة في صفحة "إدارة BIM"</div>' : '';
+      })() + '</div>' +
 
       '<div class="card"><h3>🔗 حالة ربط جدول الكميات بالنموذج</h3>' +
       P.disciplines.map(function (d) {

@@ -211,17 +211,52 @@
           }).join('') + '</select>'
         : '<span class="proj">🏗️ ' + esc(P ? P.name : '') + ' · ' + esc(P ? P.location || '' : '') + '</span>';
 
+      // جرس الإشعارات: أحداث دورة المراجعة تصل لصاحبها فور تحديث اللقطة
+      const notifs = ctx.S.notifications || [];
+      const unread = notifs.filter(function (n) { return (n.readBy || []).indexOf(user.id) === -1; }).length;
+
       app.innerHTML =
         '<div class="app"><aside class="sidebar">' + sidebarHtml() + '</aside>' +
         '<div class="main"><div class="topbar"><h1>' + page.icon + ' ' + esc(page.title) + '</h1>' +
         projCtl +
         '<span class="spacer"></span>' +
+        '<button class="bell" id="btn-bell" title="الإشعارات">🔔' +
+        (unread ? '<span class="bell-n">' + unread + '</span>' : '') + '</button>' +
         '<span class="small muted num">' + new Date().toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
         '</div><div class="content" id="page"></div></div></div>';
       wireSidebar(app.querySelector('.sidebar'));
       const ps = app.querySelector('#proj-switch');
       if (ps) ps.addEventListener('change', function () { ctx.setProject(ps.value); });
+      app.querySelector('#btn-bell').addEventListener('click', function () { openNotifications(notifs, unread); });
       page.render(document.getElementById('page'), ctx);
+    }
+
+    function openNotifications(notifs, unread) {
+      const old = document.querySelector('.notif-pop');
+      if (old) { old.remove(); return; }
+      const pop = document.createElement('div');
+      pop.className = 'notif-pop';
+      pop.innerHTML =
+        '<div class="flex" style="justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)">' +
+        '<b class="small">🔔 الإشعارات' + (unread ? ' <span class="pill p-danger" style="font-size:10px">' + unread + ' جديد</span>' : '') + '</b>' +
+        '<button class="btn mutedb sm" id="nt-close">✕</button></div>' +
+        '<div class="notif-list">' +
+        (notifs.length ? notifs.map(function (n) {
+          const isNew = (n.readBy || []).indexOf(user.id) === -1;
+          return '<div class="notif-row' + (isNew ? ' new' : '') + '">' +
+            '<div class="small" style="line-height:1.8">' + esc(n.text) + '</div>' +
+            '<div class="small muted num">' + esc(n.time || '') + '</div></div>';
+        }).join('') : '<div class="empty" style="padding:26px"><div class="e-ico">🔕</div>لا إشعارات بعد</div>') +
+        '</div>';
+      document.body.appendChild(pop);
+      pop.querySelector('#nt-close').addEventListener('click', function () { pop.remove(); });
+      // فتح الجرس يعلّم إشعاراتك كمقروءة
+      if (unread) {
+        Api.notifyRead().then(function () { return ctx.refreshSilent(); }).then(function () {
+          const b = app.querySelector('#btn-bell .bell-n');
+          if (b) b.remove();
+        }).catch(function () { /* تجاهل */ });
+      }
     }
 
     draw();

@@ -26,6 +26,26 @@
     rejected: 'أُرجع للمقاول', resubmitted: 'أُعيد التقديم (نسخة معدلة)', open: 'فُتح', answered: 'تم الرد'
   };
 
+  const SLA_DAYS = 7; // مهلة المراجعة المستهدفة بالأيام
+
+  function daysSince(dateStr) {
+    if (!dateStr) return null;
+    return Math.max(0, Math.round((Date.now() - new Date(dateStr).getTime()) / 86400000));
+  }
+
+  /** تصدير CSV بترميز يفتح عربياً في Excel */
+  function exportCsv(filename, headers, rows) {
+    const csv = '﻿' + [headers].concat(rows).map(function (r) {
+      return r.map(function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+    }).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('📥 صُدّر الملف: ' + filename);
+  }
+
   // ============ 1) تتبع التقديمات: الحالة والتواريخ ومدة المراجعة والسجل الكامل ============
   const SUB_COLS = [
     ['shopDrawings', '📐 مخطط تنفيذي'], ['materials', '🧱 اعتماد مواد'],
@@ -101,16 +121,22 @@
     const rejected = all.filter(function (r) { return r.status === 'rejected'; }).length;
     const durations = all.map(function (r) { return r.item.reviewDays; }).filter(function (d) { return d != null; });
     const avgDays = durations.length ? Math.round(durations.reduce(function (a, b) { return a + b; }, 0) / durations.length * 10) / 10 : 0;
+    const overdue = all.filter(function (r) {
+      return (r.status === 'pending' || r.status === 'open') && (daysSince(r.item.date) || 0) > SLA_DAYS;
+    }).length;
 
     el.innerHTML =
-      '<div class="grid g4 mb">' +
+      '<div class="grid g4 mb" style="grid-template-columns:repeat(5,1fr)">' +
       '<div class="card kpi"><div class="lbl">إجمالي التقديمات</div><div class="val num">' + all.length + '</div><div class="sub">بكل الأنواع</div></div>' +
       '<div class="card kpi k-warn"><div class="lbl">قيد المراجعة الآن</div><div class="val num">' + pending + '</div><div class="sub">لدى الاستشاري</div></div>' +
+      '<div class="card kpi ' + (overdue ? 'k-danger' : 'k-ok') + '"><div class="lbl">متأخرة عن المهلة</div><div class="val num">' + overdue + '</div><div class="sub">في المراجعة أكثر من ' + SLA_DAYS + ' أيام</div></div>' +
       '<div class="card kpi k-ok"><div class="lbl">معتمد / تم الرد</div><div class="val num">' + done + '</div><div class="sub">مرفوض/مرجع: <b class="num">' + rejected + '</b></div></div>' +
       '<div class="card kpi k-info"><div class="lbl">متوسط مدة المراجعة</div><div class="val num">' + avgDays + '</div><div class="sub">يوم لكل تقديم مكتمل</div></div>' +
       '</div>' +
 
-      '<div class="card"><h3>📋 تتبع التقديمات <span class="hint">رقم الملف، الحالة، تواريخ التقديم والمراجعة، المدة، والسجل الكامل للتغييرات</span></h3>' +
+      '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+      '<h3 style="margin:0 0 8px">📋 تتبع التقديمات <span class="hint">رقم الملف، الحالة، تواريخ التقديم والمراجعة، المدة، والسجل الكامل للتغييرات</span></h3>' +
+      '<button class="btn ghost sm" id="sb-csv">📥 تصدير CSV</button></div>' +
       '<div class="grid" style="grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:14px">' +
       '<input class="inp" id="sb-q" placeholder="🔍 بحث برقم الملف أو الاسم أو الجهة..." value="' + esc(subState.q) + '">' +
       '<select class="inp" id="sb-type"><option value="all">كل الأنواع</option>' +
@@ -136,7 +162,14 @@
             '<td class="small muted num">' + esc(r.submitted || '—') + '</td>' +
             '<td class="small muted num">' + esc(it.reviewStartDate || it.date || '—') + '</td>' +
             '<td class="small muted num">' + esc(it.reviewEndDate || '—') + '</td>' +
-            '<td class="num small">' + (it.reviewDays != null ? '<b>' + it.reviewDays + '</b> يوم' : '<span class="muted">جارية</span>') + '</td>' +
+            '<td class="num small">' + (it.reviewDays != null
+              ? '<b>' + it.reviewDays + '</b> يوم'
+              : (function () {
+                  const d = daysSince(it.date) || 0;
+                  return d > SLA_DAYS
+                    ? '<span class="pill p-danger" style="font-size:10px">⏰ متأخرة — ' + d + ' يوم</span>'
+                    : '<span class="muted">جارية منذ ' + d + ' يوم</span>';
+                })()) + '</td>' +
             '<td>' + pill(r.status) + '</td>' +
             '<td class="num small">' + ((it.revisions || []).length + 1) + '</td>' +
             '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
@@ -145,6 +178,16 @@
         : '<div class="empty"><div class="e-ico">📋</div>لا تقديمات مطابقة</div>') +
       '</div>';
 
+    el.querySelector('#sb-csv').addEventListener('click', function () {
+      exportCsv('bassir-submissions.csv',
+        ['رقم الملف', 'المرجع', 'اسم التقديم', 'النوع', 'الجهة', 'تاريخ التقديم', 'بدء المراجعة', 'انتهاء المراجعة', 'مدة المراجعة (يوم)', 'الحالة', 'عدد النسخ'],
+        rows.map(function (r) {
+          const it = r.item;
+          return [r.fileNo, it.ref || '', r.title, r.typeName.replace(/^\S+\s/, ''), r.contractor,
+            r.submitted, it.reviewStartDate || it.date || '', it.reviewEndDate || '',
+            it.reviewDays != null ? it.reviewDays : 'جارية', r.status, (it.revisions || []).length + 1];
+        }));
+    });
     el.querySelector('#sb-type').addEventListener('change', function (e) { subState.type = e.target.value; renderSubmissions(el, ctx); });
     el.querySelector('#sb-status').addEventListener('change', function (e) { subState.status = e.target.value; renderSubmissions(el, ctx); });
     const q = el.querySelector('#sb-q');
@@ -199,9 +242,10 @@
       '<div class="card kpi k-info"><div class="lbl">متوسط مدة الاستجابة</div><div class="val num">' + avgTd + '</div><div class="sub">يوم من الإرسال حتى الرد</div></div>' +
       '</div>' +
 
-      '<div class="card"><div class="flex" style="justify-content:space-between;margin-bottom:8px">' +
+      '<div class="card"><div class="flex" style="justify-content:space-between;margin-bottom:8px;flex-wrap:wrap">' +
       '<h3 style="margin:0">' + (isRfp ? '📮 طلبات العروض والمقترحات RFP <span class="hint">تُوجه للاستشاري أو للمالك مع تتبع الردود ومددها</span>' : '❓ الاستفسارات الفنية RFI') + '</h3>' +
-      '<button class="btn sm" id="rx-add">➕ إرسال ' + (isRfp ? 'RFP' : 'RFI') + ' جديد</button></div>' +
+      '<div class="flex"><button class="btn ghost sm" id="rx-csv">📥 تصدير CSV</button>' +
+      '<button class="btn sm" id="rx-add">➕ إرسال ' + (isRfp ? 'RFP' : 'RFI') + ' جديد</button></div></div>' +
       (items.length ?
         '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
         '<th>المرجع</th><th>الموضوع</th><th>من</th>' + (isRfp ? '<th>موجه إلى</th>' : '') +
@@ -218,7 +262,16 @@
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:260px">' + (it.answer ? '<span style="color:var(--ok)">' + esc(it.answer) + '</span>' +
               (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') : '<span class="muted">—</span>') + '</td>' +
-            '<td class="num small">' + (td != null ? '<b>' + td + '</b> يوم' : '<span class="muted">—</span>') + '</td>' +
+            '<td class="num small">' + (td != null
+              ? '<b>' + td + '</b> يوم'
+              : it.status === 'open'
+                ? (function () {
+                    const d = daysSince(it.date) || 0;
+                    return d > SLA_DAYS
+                      ? '<span class="pill p-danger" style="font-size:10px">⏰ بلا رد منذ ' + d + ' يوم</span>'
+                      : '<span class="muted">بانتظار الرد منذ ' + d + ' يوم</span>';
+                  })()
+                : '<span class="muted">—</span>') + '</td>' +
             '<td>' + (canAnswer && it.status === 'open' ? '<button class="btn sm" data-ans="' + it.id + '">↩️ رد</button>' : '') + '</td></tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>لا سجلات — أرسل أول ' + (isRfp ? 'RFP' : 'RFI') + '</div>') +
@@ -226,6 +279,16 @@
 
     el.querySelectorAll('[data-xtab]').forEach(function (t) {
       t.addEventListener('click', function () { rfxState.tab = t.getAttribute('data-xtab'); renderRfx(el, ctx); });
+    });
+    el.querySelector('#rx-csv').addEventListener('click', function () {
+      exportCsv(isRfp ? 'bassir-rfp.csv' : 'bassir-rfi.csv',
+        ['المرجع', 'الكود', 'الموضوع', 'من', 'موجه إلى', 'تاريخ الإرسال', 'الحالة', 'الرد', 'وقّعه', 'تاريخ الرد', 'مدة الاستجابة (يوم)'],
+        items.map(function (it) {
+          return [it.ref || '', it.docCode || '', it.title, contractorName(ctx, it.contractorId),
+            isRfp ? (it.to === 'owner' ? 'المالك' : 'الاستشاري') : 'الاستشاري',
+            it.date, it.status, it.answer || '', it.signature || '', it.signDate || '',
+            turnaround(it) != null ? turnaround(it) : ''];
+        }));
     });
     el.querySelector('#rx-add').addEventListener('click', function () {
       const m = modal(
@@ -318,7 +381,9 @@
       '<div class="card kpi k-info"><div class="lbl">إجمالي الأوامر</div><div class="val num">' + items.length + '</div><div class="sub">معتمد: <b class="num">' + appr.length + '</b></div></div>' +
       '</div>' +
 
-      '<div class="card"><h3>🔁 أوامر التغيير وطلبات التعديل <span class="hint">دورة اعتماد كاملة مع تتبع أثر التكلفة والجدول الزمني</span></h3>' +
+      '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+      '<h3 style="margin:0 0 8px">🔁 أوامر التغيير وطلبات التعديل <span class="hint">دورة اعتماد كاملة مع تتبع أثر التكلفة والجدول الزمني</span></h3>' +
+      '<button class="btn ghost sm" id="vr-csv">📥 تصدير CSV</button></div>' +
       (items.length ?
         '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
         '<th>المرجع</th><th>الوصف</th><th>الجهة</th><th>أثر التكلفة</th><th>أثر المدة</th><th>دورة الاعتماد</th><th>القرار</th><th></th></tr></thead><tbody>' +
@@ -338,6 +403,14 @@
         : '<div class="empty"><div class="e-ico">🔁</div>لا أوامر تغيير بعد</div>') +
       '</div>';
 
+    el.querySelector('#vr-csv').addEventListener('click', function () {
+      exportCsv('bassir-variations.csv',
+        ['المرجع', 'الكود', 'الوصف', 'الجهة', 'أثر التكلفة (ر.س)', 'أثر المدة (يوم)', 'التاريخ', 'الحالة', 'القرار', 'وقّعه'],
+        items.map(function (it) {
+          return [it.ref || '', it.docCode || '', it.title, contractorName(ctx, it.contractorId),
+            it.amount || 0, it.days || 0, it.date || '', it.status, it.notes || '', it.signature || ''];
+        }));
+    });
     el.querySelectorAll('[data-vrev]').forEach(function (b) {
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-vrev'); });

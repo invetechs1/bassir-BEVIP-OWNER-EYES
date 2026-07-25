@@ -398,6 +398,9 @@ const server = http.createServer(async function (req, res) {
     if (u === '/api/actions/resubmit' && req.method === 'POST') {
       return json(res, 200, core.resubmit(user, await readBody(req)));
     }
+    if (u === '/api/actions/notify-read' && req.method === 'POST') {
+      return json(res, 200, core.markNotificationsRead(user));
+    }
 
     // النسخ الاحتياطي (أدمن): نسخة مؤرخة من قاعدة البيانات في data/backups
     if (u === '/api/actions/backup' && req.method === 'POST') {

@@ -338,6 +338,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
   border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px rgba(224, 164, 88, .2);
 }
 
+/* ============ جرس الإشعارات ============ */
+.bell {
+  position: relative; background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+  border-radius: 10px; padding: 7px 12px; font-size: 16px; cursor: pointer; font-family: inherit;
+}
+.bell:hover { border-color: var(--accent); }
+.bell-n {
+  position: absolute; top: -6px; inset-inline-start: -6px; background: var(--danger); color: #fff;
+  border-radius: 99px; font-size: 10.5px; font-weight: 800; padding: 1px 6px; min-width: 18px;
+}
+.notif-pop {
+  position: fixed; top: 64px; inset-inline-start: 18px; z-index: 95; width: min(420px, 92vw);
+  background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: var(--shadow); overflow: hidden;
+}
+.notif-list { max-height: 55vh; overflow-y: auto; }
+.notif-row { padding: 11px 14px; border-bottom: 1px solid rgba(34, 44, 64, .5); }
+.notif-row.new { background: rgba(224, 164, 88, .08); border-inline-start: 3px solid var(--accent); }
+.notif-row:last-child { border-bottom: 0; }
+
 /* ============ نوافذ ورسائل ============ */
 .modal-back { position: fixed; inset: 0; background: rgba(5, 8, 14, .7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
 .modal { width: 560px; max-width: 100%; max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--border); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }
@@ -727,7 +747,30 @@ textarea.inp { resize: vertical; min-height: 80px; }
           'معايير النمذجة': 'LOD 350 للتنفيذ، تسمية الملفات وفق ISO 19650، وحدة المتر، نقطة أصل موحدة.',
           'بيئة البيانات المشتركة CDE': 'نظام بصير هو الـCDE المعتمد: الرفع والاعتماد والأرشفة والتكويد.',
           'جدول تسليم النماذج': 'معماري وإنشائي: محدث كل أسبوعين. MEP: أسبوعياً أثناء التنسيق.'
+        } },
+      { id: 'BD2', projectId: 'P1', kind: 'midp', title: 'خطة تسليم المعلومات الرئيسية MIDP - برج بصير', rev: 'R1',
+        date: '2026-06-20', by: 'دار العمران للاستشارات', status: 'pending',
+        sections: {
+          'قائمة التسليمات': 'نموذج معماري وإنشائي (IFC)، نماذج MEP منسقة، مخططات تنفيذية PDF، وجداول كميات مستخرجة.',
+          'مواعيد التسليم': 'نهاية كل مرحلة إنشائية + تسليم نهائي As-Built قبل الاستلام الابتدائي بـ30 يوماً.',
+          'مستويات المعلومات': 'LOD 350 أثناء التنفيذ، LOD 500 للتسليم النهائي مع بيانات الأصول.',
+          'المسؤوليات': 'يُعِد: منسقو النماذج. يراجع: مدير BIM. يعتمد: استشاري المشروع عبر نظام بصير.'
         } }
+    ];
+
+    // خادم الملفات المركزي: وثائق المشروع التأسيسية بالفئات
+    db.files = [
+      { id: 'FL1', projectId: 'P1', name: 'Bassir-Main-Contract-2025.pdf', url: '', size: 4200000,
+        category: 'العقود', by: 'م. سعود الجاسر', date: '2025-08-20', versions: [] },
+      { id: 'FL2', projectId: 'P1', name: 'Bassir-BOQ-Master-Rev2.xlsx', url: '', size: 1850000,
+        category: 'جداول الكميات BOQ', by: 'دار العمران للاستشارات', date: '2026-01-15',
+        versions: [{ v: 1, name: 'Bassir-BOQ-Master-Rev1.xlsx', url: '', size: 1720000, by: 'دار العمران للاستشارات', date: '2025-09-10' }] },
+      { id: 'FL3', projectId: 'P1', name: 'Bassir-IFC-Structural-Set.dwg', url: '', size: 96000000,
+        category: 'مخططات IFC', by: 'دار العمران للاستشارات', date: '2026-02-02', versions: [] },
+      { id: 'FL4', projectId: 'P1', name: 'Bassir-Technical-Specifications.pdf', url: '', size: 12400000,
+        category: 'المواصفات', by: 'دار العمران للاستشارات', date: '2025-10-05', versions: [] },
+      { id: 'FL5', projectId: 'P1', name: 'Owner-Requirements-Brief.pdf', url: '', size: 2100000,
+        category: 'متطلبات المالك', by: 'م. سعود الجاسر', date: '2025-07-30', versions: [] }
     ];
 
     // تقارير عدم المطابقة NCR
@@ -888,7 +931,6 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'AL2', time: '2026-07-17 14:02', userName: 'مؤسسة البناء المعماري', role: 'contractor', action: 'create', target: 'رفع طلب استلام WIR-ARC-087' },
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
-    db.files = [];
 
     // ============ تكويد كل المستندات (حتمي حسب تاريخ كل مستند) ============
     const DOC_TYPES = {
@@ -897,7 +939,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
       siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
       meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
-      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', rfps: 'RFP', bimModels: 'BIM', bimDocs: 'BDC'
+      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', rfps: 'RFP', bimModels: 'BIM', bimDocs: 'BDC',
+      files: 'FIL'
     };
     // سجل تتبع أولي لكل معاملة موجودة (تقديم ثم قرار إن وجد)
     ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
@@ -925,7 +968,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 9, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 10, docSeq: docSeq };
 
     return db;
   }
@@ -1146,6 +1189,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
         s.users = db.users.map(stripPassword);
       }
 
+      // إشعارات المستخدم الحالي فقط (بحسب دوره أو مقاوله)
+      s.notifications = myNotifications(user).slice(0, 60);
+
       // سجل النظام: للأدمن وممثل المالك فقط
       if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
 
@@ -1167,6 +1213,37 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const allowed = CREATE_RULES[collection];
       if (!allowed) throw err('مجموعة غير معروفة: ' + collection, 404);
       if (allowed.indexOf(user.role) === -1) throw err('لا تملك صلاحية الإضافة هنا', 403);
+    }
+
+    /**
+     * إشعار داخلي فوري. target: { role: 'consultant' } يصل للاستشاري والأدمن،
+     * أو { contractorId: 'C1' } يصل لحسابات هذا المقاول.
+     * تُقرأ لكل مستخدم على حدة عبر readBy.
+     */
+    function pushNotification(target, kind, text, refCollection, refId) {
+      if (!db.notifications) db.notifications = [];
+      db.notifications.unshift({
+        id: nextId('NT'), time: nowStr(), kind: kind, text: text,
+        role: target.role || null, contractorId: target.contractorId || null,
+        collection: refCollection || null, refId: refId || null, readBy: []
+      });
+      if (db.notifications.length > 200) db.notifications.length = 200;
+    }
+
+    function myNotifications(user) {
+      return (db.notifications || []).filter(function (n) {
+        if (n.contractorId) return user.role === 'contractor' && user.contractorId === n.contractorId;
+        if (n.role) return user.role === n.role || user.role === 'admin';
+        return false;
+      });
+    }
+
+    function markNotificationsRead(user) {
+      myNotifications(user).forEach(function (n) {
+        if (n.readBy.indexOf(user.id) === -1) n.readBy.push(user.id);
+      });
+      persist();
+      return { ok: true };
     }
 
     function createItem(user, collection, data) {
@@ -1198,6 +1275,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
         return Object.assign(stripPassword(item), { password: plain }); // تُعرض مرة واحدة فقط
       }
       db[collection].push(item);
+      // إشعار المكتب الفني بكل تقديم جديد من مقاول
+      if (user.role === 'contractor' &&
+          (APPROVAL_COLLECTIONS.indexOf(collection) !== -1 || collection === 'rfis' || collection === 'rfps')) {
+        pushNotification({ role: 'consultant' }, 'submit',
+          '📥 تقديم جديد: ' + labelOf(collection, item) + ' — من ' + user.name, collection, item.id);
+        if (collection === 'rfps' && item.to === 'owner') {
+          pushNotification({ role: 'owner' }, 'submit', '📮 طلب عرض موجه إليك: ' + (item.title || item.ref), collection, item.id);
+        }
+      }
       audit(user, 'create', labelOf(collection, item));
       persist();
       return item;
@@ -1217,7 +1303,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
           if (!allowed) throw err('لا يمكن تعديل طلب تم البت فيه — يمكنك الرد على الملاحظات أو رفع نسخة معدلة', 403);
         }
       }
+      const wasOpen = item.status === 'open';
       Object.assign(item, patch);
+      // إشعار المقاول عند الرد على استفساره أو عرضه
+      if (wasOpen && patch.status === 'answered' && (collection === 'rfis' || collection === 'rfps') && item.contractorId) {
+        pushNotification({ contractorId: item.contractorId }, 'answer',
+          '↩️ تم الرد على ' + labelOf(collection, item) + (patch.answer ? ' — ' + patch.answer : ''), collection, item.id);
+      }
       audit(user, 'update', labelOf(collection, item));
       persist();
       return item;
@@ -1265,6 +1357,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
         applyPaymentEffects(item);
       }
       const decision = status === 'rejected' ? 'رفض' : 'اعتماد';
+      if (item.contractorId) {
+        pushNotification({ contractorId: item.contractorId }, 'decision',
+          (status === 'rejected' ? '↩ أُرجع إليك للتعديل: ' : status === 'approved_notes' ? '📝 اعتُمد مع ملاحظات: ' : '✅ اعتُمد: ') +
+          labelOf(collection, item) + (opts.notes ? ' — ' + opts.notes : ''), collection, item.id);
+      }
       audit(user, 'review', decision + ' — ' + labelOf(collection, item));
       persist();
       return item;
@@ -1315,6 +1412,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       item.reviewStartDate = null; item.reviewEndDate = null; item.reviewDays = null;
       if (!item.history) item.history = [];
       item.history.push({ status: 'resubmitted', by: user.name, role: user.role, date: todayStr(), notes: 'نسخة معدلة رقم ' + (item.revisions.length + 1) });
+      pushNotification({ role: 'consultant' }, 'resubmit',
+        '🔄 أُعيد التقديم بنسخة معدلة: ' + labelOf(collection, item) + ' — من ' + user.name, collection, item.id);
       audit(user, 'update', 'إعادة تقديم نسخة معدلة — ' + labelOf(collection, item));
       persist();
       return item;
@@ -1450,6 +1549,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       deleteItem: deleteItem,
       review: review,
       resubmit: resubmit,
+      markNotificationsRead: markNotificationsRead,
       addContractor: addContractor,
       addProject: addProject,
       sendReport: sendReport,
@@ -1520,6 +1620,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     if (m && method === 'DELETE') return c.deleteItem(demoUser, m[1], m[2]);
     if (path === '/api/actions/review') return c.review(demoUser, body);
     if (path === '/api/actions/resubmit') return c.resubmit(demoUser, body);
+    if (path === '/api/actions/notify-read') return c.markNotificationsRead(demoUser);
     if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
     if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
     if (path === '/api/actions/send-report') return c.sendReport(demoUser, body);
@@ -1588,6 +1689,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       return data;
     },
     resubmit(p) { return call('/api/actions/resubmit', 'POST', p); },
+    notifyRead() { return call('/api/actions/notify-read', 'POST', {}); },
     backup() {
       if (DEMO) return Promise.reject(new Error('النسخ الاحتياطي متاح في نسخة الخادم'));
       return call('/api/actions/backup', 'POST', {});
@@ -3724,7 +3826,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<label class="fl">ملف النموذج</label><input class="inp" id="bim-file" type="file" accept=".ifc,.rvt,.nwd,.nwc">' +
       '<label class="fl">إصدار النموذج</label><input class="inp" id="bim-rev" placeholder="Rev-04 - يوليو 2026" value="Rev-04 - يوليو 2026">' +
       '<div class="m-actions"><button class="btn block" id="bim-up">رفع النموذج وربطه بجدول الكميات</button></div>' +
-      '<div class="sig">النموذج الحالي: BassirTower_Rev03.ifc · رُفع 2026-06-12 · مرتبط بـ <b class="num">' + ctx.S.boqItems.length + '</b> بند</div></div>' +
+      (function () {
+        const bm = (ctx.S.bimModels || [])[ctx.S.bimModels ? ctx.S.bimModels.length - 1 : 0];
+        return bm ? '<div class="sig">النموذج الحالي: ' + esc(bm.name) + ' · ' + esc(bm.rev || '') + ' · ' + esc(bm.date || '') +
+          ' · مرتبط بـ <b class="num">' + ctx.S.boqItems.length + '</b> بند — الإدارة الكاملة في صفحة "إدارة BIM"</div>' : '';
+      })() + '</div>' +
 
       '<div class="card"><h3>🔗 حالة ربط جدول الكميات بالنموذج</h3>' +
       P.disciplines.map(function (d) {
@@ -4551,6 +4657,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
     rejected: 'أُرجع للمقاول', resubmitted: 'أُعيد التقديم (نسخة معدلة)', open: 'فُتح', answered: 'تم الرد'
   };
 
+  const SLA_DAYS = 7; // مهلة المراجعة المستهدفة بالأيام
+
+  function daysSince(dateStr) {
+    if (!dateStr) return null;
+    return Math.max(0, Math.round((Date.now() - new Date(dateStr).getTime()) / 86400000));
+  }
+
+  /** تصدير CSV بترميز يفتح عربياً في Excel */
+  function exportCsv(filename, headers, rows) {
+    const csv = '﻿' + [headers].concat(rows).map(function (r) {
+      return r.map(function (v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
+    }).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast('📥 صُدّر الملف: ' + filename);
+  }
+
   // ============ 1) تتبع التقديمات: الحالة والتواريخ ومدة المراجعة والسجل الكامل ============
   const SUB_COLS = [
     ['shopDrawings', '📐 مخطط تنفيذي'], ['materials', '🧱 اعتماد مواد'],
@@ -4626,16 +4752,22 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const rejected = all.filter(function (r) { return r.status === 'rejected'; }).length;
     const durations = all.map(function (r) { return r.item.reviewDays; }).filter(function (d) { return d != null; });
     const avgDays = durations.length ? Math.round(durations.reduce(function (a, b) { return a + b; }, 0) / durations.length * 10) / 10 : 0;
+    const overdue = all.filter(function (r) {
+      return (r.status === 'pending' || r.status === 'open') && (daysSince(r.item.date) || 0) > SLA_DAYS;
+    }).length;
 
     el.innerHTML =
-      '<div class="grid g4 mb">' +
+      '<div class="grid g4 mb" style="grid-template-columns:repeat(5,1fr)">' +
       '<div class="card kpi"><div class="lbl">إجمالي التقديمات</div><div class="val num">' + all.length + '</div><div class="sub">بكل الأنواع</div></div>' +
       '<div class="card kpi k-warn"><div class="lbl">قيد المراجعة الآن</div><div class="val num">' + pending + '</div><div class="sub">لدى الاستشاري</div></div>' +
+      '<div class="card kpi ' + (overdue ? 'k-danger' : 'k-ok') + '"><div class="lbl">متأخرة عن المهلة</div><div class="val num">' + overdue + '</div><div class="sub">في المراجعة أكثر من ' + SLA_DAYS + ' أيام</div></div>' +
       '<div class="card kpi k-ok"><div class="lbl">معتمد / تم الرد</div><div class="val num">' + done + '</div><div class="sub">مرفوض/مرجع: <b class="num">' + rejected + '</b></div></div>' +
       '<div class="card kpi k-info"><div class="lbl">متوسط مدة المراجعة</div><div class="val num">' + avgDays + '</div><div class="sub">يوم لكل تقديم مكتمل</div></div>' +
       '</div>' +
 
-      '<div class="card"><h3>📋 تتبع التقديمات <span class="hint">رقم الملف، الحالة، تواريخ التقديم والمراجعة، المدة، والسجل الكامل للتغييرات</span></h3>' +
+      '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+      '<h3 style="margin:0 0 8px">📋 تتبع التقديمات <span class="hint">رقم الملف، الحالة، تواريخ التقديم والمراجعة، المدة، والسجل الكامل للتغييرات</span></h3>' +
+      '<button class="btn ghost sm" id="sb-csv">📥 تصدير CSV</button></div>' +
       '<div class="grid" style="grid-template-columns:2fr 1fr 1fr;gap:10px;margin-bottom:14px">' +
       '<input class="inp" id="sb-q" placeholder="🔍 بحث برقم الملف أو الاسم أو الجهة..." value="' + esc(subState.q) + '">' +
       '<select class="inp" id="sb-type"><option value="all">كل الأنواع</option>' +
@@ -4661,7 +4793,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td class="small muted num">' + esc(r.submitted || '—') + '</td>' +
             '<td class="small muted num">' + esc(it.reviewStartDate || it.date || '—') + '</td>' +
             '<td class="small muted num">' + esc(it.reviewEndDate || '—') + '</td>' +
-            '<td class="num small">' + (it.reviewDays != null ? '<b>' + it.reviewDays + '</b> يوم' : '<span class="muted">جارية</span>') + '</td>' +
+            '<td class="num small">' + (it.reviewDays != null
+              ? '<b>' + it.reviewDays + '</b> يوم'
+              : (function () {
+                  const d = daysSince(it.date) || 0;
+                  return d > SLA_DAYS
+                    ? '<span class="pill p-danger" style="font-size:10px">⏰ متأخرة — ' + d + ' يوم</span>'
+                    : '<span class="muted">جارية منذ ' + d + ' يوم</span>';
+                })()) + '</td>' +
             '<td>' + pill(r.status) + '</td>' +
             '<td class="num small">' + ((it.revisions || []).length + 1) + '</td>' +
             '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
@@ -4670,6 +4809,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
         : '<div class="empty"><div class="e-ico">📋</div>لا تقديمات مطابقة</div>') +
       '</div>';
 
+    el.querySelector('#sb-csv').addEventListener('click', function () {
+      exportCsv('bassir-submissions.csv',
+        ['رقم الملف', 'المرجع', 'اسم التقديم', 'النوع', 'الجهة', 'تاريخ التقديم', 'بدء المراجعة', 'انتهاء المراجعة', 'مدة المراجعة (يوم)', 'الحالة', 'عدد النسخ'],
+        rows.map(function (r) {
+          const it = r.item;
+          return [r.fileNo, it.ref || '', r.title, r.typeName.replace(/^\S+\s/, ''), r.contractor,
+            r.submitted, it.reviewStartDate || it.date || '', it.reviewEndDate || '',
+            it.reviewDays != null ? it.reviewDays : 'جارية', r.status, (it.revisions || []).length + 1];
+        }));
+    });
     el.querySelector('#sb-type').addEventListener('change', function (e) { subState.type = e.target.value; renderSubmissions(el, ctx); });
     el.querySelector('#sb-status').addEventListener('change', function (e) { subState.status = e.target.value; renderSubmissions(el, ctx); });
     const q = el.querySelector('#sb-q');
@@ -4724,9 +4873,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="card kpi k-info"><div class="lbl">متوسط مدة الاستجابة</div><div class="val num">' + avgTd + '</div><div class="sub">يوم من الإرسال حتى الرد</div></div>' +
       '</div>' +
 
-      '<div class="card"><div class="flex" style="justify-content:space-between;margin-bottom:8px">' +
+      '<div class="card"><div class="flex" style="justify-content:space-between;margin-bottom:8px;flex-wrap:wrap">' +
       '<h3 style="margin:0">' + (isRfp ? '📮 طلبات العروض والمقترحات RFP <span class="hint">تُوجه للاستشاري أو للمالك مع تتبع الردود ومددها</span>' : '❓ الاستفسارات الفنية RFI') + '</h3>' +
-      '<button class="btn sm" id="rx-add">➕ إرسال ' + (isRfp ? 'RFP' : 'RFI') + ' جديد</button></div>' +
+      '<div class="flex"><button class="btn ghost sm" id="rx-csv">📥 تصدير CSV</button>' +
+      '<button class="btn sm" id="rx-add">➕ إرسال ' + (isRfp ? 'RFP' : 'RFI') + ' جديد</button></div></div>' +
       (items.length ?
         '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
         '<th>المرجع</th><th>الموضوع</th><th>من</th>' + (isRfp ? '<th>موجه إلى</th>' : '') +
@@ -4743,7 +4893,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:260px">' + (it.answer ? '<span style="color:var(--ok)">' + esc(it.answer) + '</span>' +
               (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') : '<span class="muted">—</span>') + '</td>' +
-            '<td class="num small">' + (td != null ? '<b>' + td + '</b> يوم' : '<span class="muted">—</span>') + '</td>' +
+            '<td class="num small">' + (td != null
+              ? '<b>' + td + '</b> يوم'
+              : it.status === 'open'
+                ? (function () {
+                    const d = daysSince(it.date) || 0;
+                    return d > SLA_DAYS
+                      ? '<span class="pill p-danger" style="font-size:10px">⏰ بلا رد منذ ' + d + ' يوم</span>'
+                      : '<span class="muted">بانتظار الرد منذ ' + d + ' يوم</span>';
+                  })()
+                : '<span class="muted">—</span>') + '</td>' +
             '<td>' + (canAnswer && it.status === 'open' ? '<button class="btn sm" data-ans="' + it.id + '">↩️ رد</button>' : '') + '</td></tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>لا سجلات — أرسل أول ' + (isRfp ? 'RFP' : 'RFI') + '</div>') +
@@ -4751,6 +4910,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     el.querySelectorAll('[data-xtab]').forEach(function (t) {
       t.addEventListener('click', function () { rfxState.tab = t.getAttribute('data-xtab'); renderRfx(el, ctx); });
+    });
+    el.querySelector('#rx-csv').addEventListener('click', function () {
+      exportCsv(isRfp ? 'bassir-rfp.csv' : 'bassir-rfi.csv',
+        ['المرجع', 'الكود', 'الموضوع', 'من', 'موجه إلى', 'تاريخ الإرسال', 'الحالة', 'الرد', 'وقّعه', 'تاريخ الرد', 'مدة الاستجابة (يوم)'],
+        items.map(function (it) {
+          return [it.ref || '', it.docCode || '', it.title, contractorName(ctx, it.contractorId),
+            isRfp ? (it.to === 'owner' ? 'المالك' : 'الاستشاري') : 'الاستشاري',
+            it.date, it.status, it.answer || '', it.signature || '', it.signDate || '',
+            turnaround(it) != null ? turnaround(it) : ''];
+        }));
     });
     el.querySelector('#rx-add').addEventListener('click', function () {
       const m = modal(
@@ -4843,7 +5012,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="card kpi k-info"><div class="lbl">إجمالي الأوامر</div><div class="val num">' + items.length + '</div><div class="sub">معتمد: <b class="num">' + appr.length + '</b></div></div>' +
       '</div>' +
 
-      '<div class="card"><h3>🔁 أوامر التغيير وطلبات التعديل <span class="hint">دورة اعتماد كاملة مع تتبع أثر التكلفة والجدول الزمني</span></h3>' +
+      '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+      '<h3 style="margin:0 0 8px">🔁 أوامر التغيير وطلبات التعديل <span class="hint">دورة اعتماد كاملة مع تتبع أثر التكلفة والجدول الزمني</span></h3>' +
+      '<button class="btn ghost sm" id="vr-csv">📥 تصدير CSV</button></div>' +
       (items.length ?
         '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
         '<th>المرجع</th><th>الوصف</th><th>الجهة</th><th>أثر التكلفة</th><th>أثر المدة</th><th>دورة الاعتماد</th><th>القرار</th><th></th></tr></thead><tbody>' +
@@ -4863,6 +5034,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
         : '<div class="empty"><div class="e-ico">🔁</div>لا أوامر تغيير بعد</div>') +
       '</div>';
 
+    el.querySelector('#vr-csv').addEventListener('click', function () {
+      exportCsv('bassir-variations.csv',
+        ['المرجع', 'الكود', 'الوصف', 'الجهة', 'أثر التكلفة (ر.س)', 'أثر المدة (يوم)', 'التاريخ', 'الحالة', 'القرار', 'وقّعه'],
+        items.map(function (it) {
+          return [it.ref || '', it.docCode || '', it.title, contractorName(ctx, it.contractorId),
+            it.amount || 0, it.days || 0, it.date || '', it.status, it.notes || '', it.signature || ''];
+        }));
+    });
     el.querySelectorAll('[data-vrev]').forEach(function (b) {
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-vrev'); });
@@ -5672,17 +5851,52 @@ textarea.inp { resize: vertical; min-height: 80px; }
           }).join('') + '</select>'
         : '<span class="proj">🏗️ ' + esc(P ? P.name : '') + ' · ' + esc(P ? P.location || '' : '') + '</span>';
 
+      // جرس الإشعارات: أحداث دورة المراجعة تصل لصاحبها فور تحديث اللقطة
+      const notifs = ctx.S.notifications || [];
+      const unread = notifs.filter(function (n) { return (n.readBy || []).indexOf(user.id) === -1; }).length;
+
       app.innerHTML =
         '<div class="app"><aside class="sidebar">' + sidebarHtml() + '</aside>' +
         '<div class="main"><div class="topbar"><h1>' + page.icon + ' ' + esc(page.title) + '</h1>' +
         projCtl +
         '<span class="spacer"></span>' +
+        '<button class="bell" id="btn-bell" title="الإشعارات">🔔' +
+        (unread ? '<span class="bell-n">' + unread + '</span>' : '') + '</button>' +
         '<span class="small muted num">' + new Date().toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'long', day: 'numeric' }) + '</span>' +
         '</div><div class="content" id="page"></div></div></div>';
       wireSidebar(app.querySelector('.sidebar'));
       const ps = app.querySelector('#proj-switch');
       if (ps) ps.addEventListener('change', function () { ctx.setProject(ps.value); });
+      app.querySelector('#btn-bell').addEventListener('click', function () { openNotifications(notifs, unread); });
       page.render(document.getElementById('page'), ctx);
+    }
+
+    function openNotifications(notifs, unread) {
+      const old = document.querySelector('.notif-pop');
+      if (old) { old.remove(); return; }
+      const pop = document.createElement('div');
+      pop.className = 'notif-pop';
+      pop.innerHTML =
+        '<div class="flex" style="justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)">' +
+        '<b class="small">🔔 الإشعارات' + (unread ? ' <span class="pill p-danger" style="font-size:10px">' + unread + ' جديد</span>' : '') + '</b>' +
+        '<button class="btn mutedb sm" id="nt-close">✕</button></div>' +
+        '<div class="notif-list">' +
+        (notifs.length ? notifs.map(function (n) {
+          const isNew = (n.readBy || []).indexOf(user.id) === -1;
+          return '<div class="notif-row' + (isNew ? ' new' : '') + '">' +
+            '<div class="small" style="line-height:1.8">' + esc(n.text) + '</div>' +
+            '<div class="small muted num">' + esc(n.time || '') + '</div></div>';
+        }).join('') : '<div class="empty" style="padding:26px"><div class="e-ico">🔕</div>لا إشعارات بعد</div>') +
+        '</div>';
+      document.body.appendChild(pop);
+      pop.querySelector('#nt-close').addEventListener('click', function () { pop.remove(); });
+      // فتح الجرس يعلّم إشعاراتك كمقروءة
+      if (unread) {
+        Api.notifyRead().then(function () { return ctx.refreshSilent(); }).then(function () {
+          const b = app.querySelector('#btn-bell .bell-n');
+          if (b) b.remove();
+        }).catch(function () { /* تجاهل */ });
+      }
     }
 
     draw();

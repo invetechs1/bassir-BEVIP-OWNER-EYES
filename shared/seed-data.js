@@ -359,7 +359,30 @@
           'معايير النمذجة': 'LOD 350 للتنفيذ، تسمية الملفات وفق ISO 19650، وحدة المتر، نقطة أصل موحدة.',
           'بيئة البيانات المشتركة CDE': 'نظام بصير هو الـCDE المعتمد: الرفع والاعتماد والأرشفة والتكويد.',
           'جدول تسليم النماذج': 'معماري وإنشائي: محدث كل أسبوعين. MEP: أسبوعياً أثناء التنسيق.'
+        } },
+      { id: 'BD2', projectId: 'P1', kind: 'midp', title: 'خطة تسليم المعلومات الرئيسية MIDP - برج بصير', rev: 'R1',
+        date: '2026-06-20', by: 'دار العمران للاستشارات', status: 'pending',
+        sections: {
+          'قائمة التسليمات': 'نموذج معماري وإنشائي (IFC)، نماذج MEP منسقة، مخططات تنفيذية PDF، وجداول كميات مستخرجة.',
+          'مواعيد التسليم': 'نهاية كل مرحلة إنشائية + تسليم نهائي As-Built قبل الاستلام الابتدائي بـ30 يوماً.',
+          'مستويات المعلومات': 'LOD 350 أثناء التنفيذ، LOD 500 للتسليم النهائي مع بيانات الأصول.',
+          'المسؤوليات': 'يُعِد: منسقو النماذج. يراجع: مدير BIM. يعتمد: استشاري المشروع عبر نظام بصير.'
         } }
+    ];
+
+    // خادم الملفات المركزي: وثائق المشروع التأسيسية بالفئات
+    db.files = [
+      { id: 'FL1', projectId: 'P1', name: 'Bassir-Main-Contract-2025.pdf', url: '', size: 4200000,
+        category: 'العقود', by: 'م. سعود الجاسر', date: '2025-08-20', versions: [] },
+      { id: 'FL2', projectId: 'P1', name: 'Bassir-BOQ-Master-Rev2.xlsx', url: '', size: 1850000,
+        category: 'جداول الكميات BOQ', by: 'دار العمران للاستشارات', date: '2026-01-15',
+        versions: [{ v: 1, name: 'Bassir-BOQ-Master-Rev1.xlsx', url: '', size: 1720000, by: 'دار العمران للاستشارات', date: '2025-09-10' }] },
+      { id: 'FL3', projectId: 'P1', name: 'Bassir-IFC-Structural-Set.dwg', url: '', size: 96000000,
+        category: 'مخططات IFC', by: 'دار العمران للاستشارات', date: '2026-02-02', versions: [] },
+      { id: 'FL4', projectId: 'P1', name: 'Bassir-Technical-Specifications.pdf', url: '', size: 12400000,
+        category: 'المواصفات', by: 'دار العمران للاستشارات', date: '2025-10-05', versions: [] },
+      { id: 'FL5', projectId: 'P1', name: 'Owner-Requirements-Brief.pdf', url: '', size: 2100000,
+        category: 'متطلبات المالك', by: 'م. سعود الجاسر', date: '2025-07-30', versions: [] }
     ];
 
     // تقارير عدم المطابقة NCR
@@ -520,7 +543,6 @@
       { id: 'AL2', time: '2026-07-17 14:02', userName: 'مؤسسة البناء المعماري', role: 'contractor', action: 'create', target: 'رفع طلب استلام WIR-ARC-087' },
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
-    db.files = [];
 
     // ============ تكويد كل المستندات (حتمي حسب تاريخ كل مستند) ============
     const DOC_TYPES = {
@@ -529,7 +551,8 @@
       valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
       siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
       meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
-      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', rfps: 'RFP', bimModels: 'BIM', bimDocs: 'BDC'
+      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', rfps: 'RFP', bimModels: 'BIM', bimDocs: 'BDC',
+      files: 'FIL'
     };
     // سجل تتبع أولي لكل معاملة موجودة (تقديم ثم قرار إن وجد)
     ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
@@ -557,7 +580,7 @@
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 9, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 10, docSeq: docSeq };
 
     return db;
   }

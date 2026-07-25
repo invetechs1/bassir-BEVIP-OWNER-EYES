@@ -54,6 +54,7 @@
     if (m && method === 'DELETE') return c.deleteItem(demoUser, m[1], m[2]);
     if (path === '/api/actions/review') return c.review(demoUser, body);
     if (path === '/api/actions/resubmit') return c.resubmit(demoUser, body);
+    if (path === '/api/actions/notify-read') return c.markNotificationsRead(demoUser);
     if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
     if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
     if (path === '/api/actions/send-report') return c.sendReport(demoUser, body);
@@ -122,6 +123,7 @@
       return data;
     },
     resubmit(p) { return call('/api/actions/resubmit', 'POST', p); },
+    notifyRead() { return call('/api/actions/notify-read', 'POST', {}); },
     backup() {
       if (DEMO) return Promise.reject(new Error('النسخ الاحتياطي متاح في نسخة الخادم'));
       return call('/api/actions/backup', 'POST', {});
