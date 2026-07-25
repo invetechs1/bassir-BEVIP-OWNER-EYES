@@ -70,8 +70,59 @@ db.users.forEach(function (u) {
 if (migrated) console.log('🔐 شُفِّرت كلمات مرور ' + migrated + ' مستخدم (scrypt)');
 persist();
 
+/**
+ * تسليم الإشعارات فعلياً عبر البريد وواتساب لكل مستلم حسب تفضيلاته.
+ * غير معطِّل للمسار الأساسي: يُطلق بلا انتظار، وأي فشل يوثَّق فقط.
+ * القنوات غير المهيأة (بلا مفاتيح .env) تُسجَّل كمحاكاة موثّقة.
+ */
+function deliverNotification(notif, recipients) {
+  const projectName = db.projects && db.projects[0] ? db.projects[0].name : '';
+  const subject = 'بصير · إشعار: ' + (notif.kind === 'submit' ? 'تقديم جديد'
+    : notif.kind === 'decision' ? 'قرار اعتماد'
+    : notif.kind === 'answer' ? 'رد على استفسار'
+    : notif.kind === 'resubmit' ? 'إعادة تقديم' : 'تحديث');
+  const html = '<div dir="rtl" style="font-family:Tahoma,Arial;line-height:1.9">' +
+    '<h3 style="color:#0b5">👁 بصير — عيون المالك</h3>' +
+    '<p><b>' + escapeHtml(subject) + '</b></p><p>' + escapeHtml(notif.text) + '</p>' +
+    (projectName ? '<p style="color:#888">المشروع: ' + escapeHtml(projectName) + '</p>' : '') +
+    '<p style="color:#aaa;font-size:12px">' + escapeHtml(notif.time) + '</p></div>';
+
+  recipients.forEach(function (u) {
+    if (u.notifyEmail !== false && u.email) {
+      integrations.sendEmail(u.email, subject, html)
+        .then(function () { logDelivery('email', u, notif, 'sent'); })
+        .catch(function (e) { logDelivery('email', u, notif, e.notConfigured ? 'sent_demo' : 'failed'); });
+    }
+    if (u.notifyWhatsapp && u.phone) {
+      integrations.sendWhatsapp(u.phone, subject + '\n' + notif.text + (projectName ? '\nالمشروع: ' + projectName : ''))
+        .then(function () { logDelivery('whatsapp', u, notif, 'sent'); })
+        .catch(function (e) { logDelivery('whatsapp', u, notif, e.notConfigured ? 'sent_demo' : 'failed'); });
+    }
+  });
+}
+
+function logDelivery(channel, user, notif, status) {
+  if (!db.messages) db.messages = [];
+  db.messages.push({
+    id: 'MSGN' + Date.now() + Math.floor(Math.random() * 1000),
+    channel: channel, to: channel === 'email' ? user.email : user.phone,
+    title: 'إشعار آلي: ' + notif.text.slice(0, 60), auto: true,
+    date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+    status: status, by: 'النظام'
+  });
+  if (db.messages.length > 500) db.messages.splice(0, db.messages.length - 500);
+  persist();
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
 const core = coreModule.createCore(db, persist, {
-  password: { hash: hashPassword, verify: verifyPassword }
+  password: { hash: hashPassword, verify: verifyPassword },
+  onNotify: deliverNotification
 });
 
 // ============ توكنات موقعة (JWT HS256) تبقى صالحة بعد إعادة التشغيل ============
@@ -400,6 +451,9 @@ const server = http.createServer(async function (req, res) {
     }
     if (u === '/api/actions/notify-read' && req.method === 'POST') {
       return json(res, 200, core.markNotificationsRead(user));
+    }
+    if (u === '/api/actions/profile' && req.method === 'POST') {
+      return json(res, 200, core.updateProfile(user, await readBody(req)));
     }
 
     // النسخ الاحتياطي (أدمن): نسخة مؤرخة من قاعدة البيانات في data/backups

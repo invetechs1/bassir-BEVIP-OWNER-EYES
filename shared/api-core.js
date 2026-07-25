@@ -101,6 +101,8 @@
       hash: null,
       verify: function (plain, u) { return u.password === plain; }
     };
+    // خطاف التسليم الخارجي (بريد/واتساب): يمرره الخادم فقط. غير معرّف في الديمو.
+    const onNotify = typeof opts.onNotify === 'function' ? opts.onNotify : null;
 
     function nextId(prefix) {
       db.meta.seq = (db.meta.seq || 1000) + 1;
@@ -211,6 +213,8 @@
 
       // إشعارات المستخدم الحالي فقط (بحسب دوره أو مقاوله)
       s.notifications = myNotifications(user).slice(0, 60);
+      // بيانات تواصل المستخدم وتفضيلات إشعاراته (للإعدادات)
+      s.profile = myProfile(user);
 
       // سجل النظام: للأدمن وممثل المالك فقط
       if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
@@ -242,12 +246,27 @@
      */
     function pushNotification(target, kind, text, refCollection, refId) {
       if (!db.notifications) db.notifications = [];
-      db.notifications.unshift({
+      const notif = {
         id: nextId('NT'), time: nowStr(), kind: kind, text: text,
         role: target.role || null, contractorId: target.contractorId || null,
         collection: refCollection || null, refId: refId || null, readBy: []
-      });
+      };
+      db.notifications.unshift(notif);
       if (db.notifications.length > 200) db.notifications.length = 200;
+      // التسليم الخارجي (بريد/واتساب) عبر الخادم — لا يعطّل المسار الأساسي إن فشل
+      if (onNotify) {
+        try { onNotify(notif, notifyTargets(target)); } catch (e) { /* لا يؤثر على العملية */ }
+      }
+      return notif;
+    }
+
+    /** المستخدمون الذين يخصهم إشعار معيّن (دور + الأدمن، أو مقاول محدد) */
+    function notifyTargets(target) {
+      return (db.users || []).filter(function (u) {
+        if (target.contractorId) return u.role === 'contractor' && u.contractorId === target.contractorId;
+        if (target.role) return u.role === target.role || u.role === 'admin';
+        return false;
+      }).map(stripPassword);
     }
 
     function myNotifications(user) {
@@ -264,6 +283,29 @@
       });
       persist();
       return { ok: true };
+    }
+
+    /** بيانات التواصل وتفضيلات الإشعارات للمستخدم الحالي (بلا كلمة المرور) */
+    function myProfile(user) {
+      const u = (db.users || []).find(function (x) { return x.id === user.id; }) || {};
+      return {
+        id: u.id, name: u.name, username: u.username, role: u.role,
+        email: u.email || '', phone: u.phone || '',
+        notifyEmail: u.notifyEmail !== false, notifyWhatsapp: !!u.notifyWhatsapp
+      };
+    }
+
+    /** تحديث المستخدم لبيانات تواصله وتفضيلات إشعاراته (لنفسه فقط) */
+    function updateProfile(user, patch) {
+      const u = (db.users || []).find(function (x) { return x.id === user.id; });
+      if (!u) throw err('المستخدم غير موجود', 404);
+      if (patch.email != null) u.email = String(patch.email).trim();
+      if (patch.phone != null) u.phone = String(patch.phone).trim();
+      if (patch.notifyEmail != null) u.notifyEmail = !!patch.notifyEmail;
+      if (patch.notifyWhatsapp != null) u.notifyWhatsapp = !!patch.notifyWhatsapp;
+      audit(user, 'update', 'تحديث بيانات التواصل وتفضيلات الإشعارات');
+      persist();
+      return myProfile(user);
     }
 
     function createItem(user, collection, data) {
@@ -570,6 +612,8 @@
       review: review,
       resubmit: resubmit,
       markNotificationsRead: markNotificationsRead,
+      updateProfile: updateProfile,
+      myProfile: myProfile,
       addContractor: addContractor,
       addProject: addProject,
       sendReport: sendReport,

@@ -585,13 +585,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     // ============ المستخدمون ============
     db.users = [
-      { id: 'U1', username: 'admin',      password: 'admin123',   name: 'مدير النظام',                    role: 'admin' },
-      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner', projectIds: ['P1'] },
-      { id: 'U3', username: 'rep',        password: 'rep123',     name: 'م. سالم الحربي (ممثل المالك)',   role: 'owner_rep' },
-      { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant' },
-      { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1' },
-      { id: 'U6', username: 'cont-arch',  password: 'cont123',    name: 'مؤسسة البناء المعماري',          role: 'contractor', contractorId: 'C2' },
-      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3' }
+      { id: 'U1', username: 'admin',      password: 'admin123',   name: 'مدير النظام',                    role: 'admin', email: 'admin@bassir.app', phone: '0500000001', notifyEmail: true, notifyWhatsapp: false },
+      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner', projectIds: ['P1'], email: 'owner@bassir.app', phone: '0500000002', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U3', username: 'rep',        password: 'rep123',     name: 'م. سالم الحربي (ممثل المالك)',   role: 'owner_rep', email: 'rep@bassir.app', phone: '0500000003', notifyEmail: true, notifyWhatsapp: false },
+      { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant', email: 'consultant@bassir.app', phone: '0500000004', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1', email: 'str@bassir.app', phone: '0500000005', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U6', username: 'cont-arch',  password: 'cont123',    name: 'مؤسسة البناء المعماري',          role: 'contractor', contractorId: 'C2', email: 'arch@bassir.app', phone: '0500000006', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3', email: 'elec@bassir.app', phone: '0500000007', notifyEmail: true, notifyWhatsapp: false }
     ];
 
     // ============ اعتمادات المخططات (Shop Drawings) ============
@@ -968,7 +968,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 10, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 11, docSeq: docSeq };
 
     return db;
   }
@@ -1081,6 +1081,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       hash: null,
       verify: function (plain, u) { return u.password === plain; }
     };
+    // خطاف التسليم الخارجي (بريد/واتساب): يمرره الخادم فقط. غير معرّف في الديمو.
+    const onNotify = typeof opts.onNotify === 'function' ? opts.onNotify : null;
 
     function nextId(prefix) {
       db.meta.seq = (db.meta.seq || 1000) + 1;
@@ -1191,6 +1193,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
       // إشعارات المستخدم الحالي فقط (بحسب دوره أو مقاوله)
       s.notifications = myNotifications(user).slice(0, 60);
+      // بيانات تواصل المستخدم وتفضيلات إشعاراته (للإعدادات)
+      s.profile = myProfile(user);
 
       // سجل النظام: للأدمن وممثل المالك فقط
       if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
@@ -1222,12 +1226,27 @@ textarea.inp { resize: vertical; min-height: 80px; }
      */
     function pushNotification(target, kind, text, refCollection, refId) {
       if (!db.notifications) db.notifications = [];
-      db.notifications.unshift({
+      const notif = {
         id: nextId('NT'), time: nowStr(), kind: kind, text: text,
         role: target.role || null, contractorId: target.contractorId || null,
         collection: refCollection || null, refId: refId || null, readBy: []
-      });
+      };
+      db.notifications.unshift(notif);
       if (db.notifications.length > 200) db.notifications.length = 200;
+      // التسليم الخارجي (بريد/واتساب) عبر الخادم — لا يعطّل المسار الأساسي إن فشل
+      if (onNotify) {
+        try { onNotify(notif, notifyTargets(target)); } catch (e) { /* لا يؤثر على العملية */ }
+      }
+      return notif;
+    }
+
+    /** المستخدمون الذين يخصهم إشعار معيّن (دور + الأدمن، أو مقاول محدد) */
+    function notifyTargets(target) {
+      return (db.users || []).filter(function (u) {
+        if (target.contractorId) return u.role === 'contractor' && u.contractorId === target.contractorId;
+        if (target.role) return u.role === target.role || u.role === 'admin';
+        return false;
+      }).map(stripPassword);
     }
 
     function myNotifications(user) {
@@ -1244,6 +1263,29 @@ textarea.inp { resize: vertical; min-height: 80px; }
       });
       persist();
       return { ok: true };
+    }
+
+    /** بيانات التواصل وتفضيلات الإشعارات للمستخدم الحالي (بلا كلمة المرور) */
+    function myProfile(user) {
+      const u = (db.users || []).find(function (x) { return x.id === user.id; }) || {};
+      return {
+        id: u.id, name: u.name, username: u.username, role: u.role,
+        email: u.email || '', phone: u.phone || '',
+        notifyEmail: u.notifyEmail !== false, notifyWhatsapp: !!u.notifyWhatsapp
+      };
+    }
+
+    /** تحديث المستخدم لبيانات تواصله وتفضيلات إشعاراته (لنفسه فقط) */
+    function updateProfile(user, patch) {
+      const u = (db.users || []).find(function (x) { return x.id === user.id; });
+      if (!u) throw err('المستخدم غير موجود', 404);
+      if (patch.email != null) u.email = String(patch.email).trim();
+      if (patch.phone != null) u.phone = String(patch.phone).trim();
+      if (patch.notifyEmail != null) u.notifyEmail = !!patch.notifyEmail;
+      if (patch.notifyWhatsapp != null) u.notifyWhatsapp = !!patch.notifyWhatsapp;
+      audit(user, 'update', 'تحديث بيانات التواصل وتفضيلات الإشعارات');
+      persist();
+      return myProfile(user);
     }
 
     function createItem(user, collection, data) {
@@ -1550,6 +1592,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       review: review,
       resubmit: resubmit,
       markNotificationsRead: markNotificationsRead,
+      updateProfile: updateProfile,
+      myProfile: myProfile,
       addContractor: addContractor,
       addProject: addProject,
       sendReport: sendReport,
@@ -1621,6 +1665,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     if (path === '/api/actions/review') return c.review(demoUser, body);
     if (path === '/api/actions/resubmit') return c.resubmit(demoUser, body);
     if (path === '/api/actions/notify-read') return c.markNotificationsRead(demoUser);
+    if (path === '/api/actions/profile') return c.updateProfile(demoUser, body);
     if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
     if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
     if (path === '/api/actions/send-report') return c.sendReport(demoUser, body);
@@ -1690,6 +1735,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     },
     resubmit(p) { return call('/api/actions/resubmit', 'POST', p); },
     notifyRead() { return call('/api/actions/notify-read', 'POST', {}); },
+    updateProfile(p) { return call('/api/actions/profile', 'POST', p); },
     backup() {
       if (DEMO) return Promise.reject(new Error('النسخ الاحتياطي متاح في نسخة الخادم'));
       return call('/api/actions/backup', 'POST', {});
@@ -3134,10 +3180,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<option>ملخص أداء المقاولين</option></select>' +
         '<div class="m-actions"><button class="btn" id="rp-send">📤 إرسال الآن</button></div>'
         : '<div class="muted small">الإرسال متاح للاستشاري وممثل المالك</div>') +
-      '<h3 class="mt">سجل الإرسال</h3>' +
-      (ctx.S.messages.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>القناة</th><th>إلى</th><th>التقرير</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
+      '<h3 class="mt">سجل الإرسال <span class="hint">التقارير اليدوية وإشعارات دورة المراجعة الآلية</span></h3>' +
+      (ctx.S.messages.length ? '<div class="tbl-wrap" style="max-height:50vh;overflow-y:auto"><table class="tbl"><thead><tr><th>النوع</th><th>القناة</th><th>إلى</th><th>الموضوع</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
         ctx.S.messages.slice().reverse().map(function (m) {
-          return '<tr><td>' + (m.channel === 'whatsapp' ? '💬 واتساب' : '📧 إيميل') + '</td><td class="num">' + esc(m.to) + '</td><td>' + esc(m.title) + '</td><td class="small muted num">' + esc(m.date) + '</td><td>' + (m.status === 'sent_demo' ? '<span class="pill p-warn">محاكاة (القناة غير مهيأة)</span>' : '<span class="pill p-ok">أُرسل فعلياً ✓</span>') + '</td></tr>';
+          const statusPill = m.status === 'failed' ? '<span class="pill p-danger">فشل الإرسال ✗</span>'
+            : m.status === 'sent_demo' ? '<span class="pill p-warn">محاكاة (القناة غير مهيأة)</span>'
+            : '<span class="pill p-ok">أُرسل فعلياً ✓</span>';
+          return '<tr><td class="small">' + (m.auto ? '🔔 إشعار آلي' : '📄 تقرير') + '</td>' +
+            '<td>' + (m.channel === 'whatsapp' ? '💬 واتساب' : '📧 إيميل') + '</td><td class="num">' + esc(m.to || '') + '</td><td class="small">' + esc(m.title) + '</td><td class="small muted num">' + esc(m.date) + '</td><td>' + statusPill + '</td></tr>';
         }).join('') + '</tbody></table></div>' : '<div class="empty">لا رسائل بعد</div>') +
       '</div></div></div>';
 
@@ -3681,12 +3731,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
       '<div class="card"><h3>👥 مستخدمو النظام <span class="hint">كلمات المرور مشفرة ولا تظهر لأحد</span></h3>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      '<th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>النطاق</th><th></th></tr></thead><tbody>' +
+      '<th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>النطاق</th><th>قنوات الإشعار</th><th></th></tr></thead><tbody>' +
       (ctx.S.users || []).map(function (u) {
         const m = ROLE_META[u.role] || { icon: '👤', color: 'p-muted' };
+        const chans = [];
+        if (u.notifyEmail !== false && u.email) chans.push('<span class="pill p-info" style="font-size:10px" title="' + esc(u.email) + '">📧 بريد</span>');
+        if (u.notifyWhatsapp && u.phone) chans.push('<span class="pill p-ok" style="font-size:10px" title="' + esc(u.phone) + '">💬 واتساب</span>');
         return '<tr><td><b>' + esc(u.name) + '</b></td><td class="num">' + esc(u.username) + '</td>' +
           '<td><span class="pill ' + m.color + '">' + m.icon + ' ' + esc(ROLE_NAMES[u.role] || u.role) + '</span></td>' +
           '<td class="small">' + userScopeLabel(ctx, u) + '</td>' +
+          '<td class="small">' + (chans.length ? chans.join(' ') : '<span class="muted">داخل النظام فقط</span>') + '</td>' +
           '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">حذف</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
@@ -3699,6 +3753,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<label class="fl">الاسم الكامل</label><input class="inp" id="nu-name" placeholder="م. فلان الفلاني">' +
       '<label class="fl">اسم المستخدم</label><input class="inp num" id="nu-user" placeholder="username" dir="ltr">' +
       '<label class="fl">كلمة المرور (اتركها فارغة للتوليد التلقائي)</label><input class="inp num" id="nu-pass" placeholder="••••••••" dir="ltr">' +
+      '<div class="grid g2"><div><label class="fl">البريد الإلكتروني (للإشعارات)</label><input class="inp num" id="nu-email" dir="ltr" placeholder="you@company.com"></div>' +
+      '<div><label class="fl">الجوال (واتساب)</label><input class="inp num" id="nu-phone" dir="ltr" placeholder="05xxxxxxxx"></div></div>' +
       '<div id="nu-scope"></div>' +
       '<div class="m-actions"><button class="btn block" id="nu-save">إنشاء المستخدم وتسليم بياناته</button></div></div></div>';
 
@@ -3733,7 +3789,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const data = {
         name: name, username: username,
         password: el.querySelector('#nu-pass').value || Math.random().toString(36).slice(2, 10),
-        role: role
+        role: role,
+        email: el.querySelector('#nu-email').value.trim(),
+        phone: el.querySelector('#nu-phone').value.trim(),
+        notifyEmail: true, notifyWhatsapp: !!el.querySelector('#nu-phone').value.trim()
       };
       const contSel = el.querySelector('#nu-cont');
       if (contSel) data.contractorId = contSel.value;
@@ -5879,7 +5938,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       pop.innerHTML =
         '<div class="flex" style="justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)">' +
         '<b class="small">🔔 الإشعارات' + (unread ? ' <span class="pill p-danger" style="font-size:10px">' + unread + ' جديد</span>' : '') + '</b>' +
-        '<button class="btn mutedb sm" id="nt-close">✕</button></div>' +
+        '<div class="flex" style="gap:6px"><button class="btn ghost sm" id="nt-settings">⚙ الإعدادات</button>' +
+        '<button class="btn mutedb sm" id="nt-close">✕</button></div></div>' +
         '<div class="notif-list">' +
         (notifs.length ? notifs.map(function (n) {
           const isNew = (n.readBy || []).indexOf(user.id) === -1;
@@ -5890,6 +5950,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '</div>';
       document.body.appendChild(pop);
       pop.querySelector('#nt-close').addEventListener('click', function () { pop.remove(); });
+      pop.querySelector('#nt-settings').addEventListener('click', function () { pop.remove(); openNotifSettings(); });
       // فتح الجرس يعلّم إشعاراتك كمقروءة
       if (unread) {
         Api.notifyRead().then(function () { return ctx.refreshSilent(); }).then(function () {
@@ -5897,6 +5958,40 @@ textarea.inp { resize: vertical; min-height: 80px; }
           if (b) b.remove();
         }).catch(function () { /* تجاهل */ });
       }
+    }
+
+    /** إعدادات الإشعارات: بريد وجوال المستخدم وقنوات وصوله (لنفسه) */
+    function openNotifSettings() {
+      const p = (ctx.S.profile) || { email: '', phone: '', notifyEmail: true, notifyWhatsapp: false };
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML =
+        '<div class="modal">' +
+        '<h3>⚙ إعدادات الإشعارات</h3>' +
+        '<div class="m-sub">تصلك تنبيهات دورة المراجعة داخل النظام، ويمكنك استلامها أيضاً على بريدك أو واتساب.</div>' +
+        '<label class="fl">البريد الإلكتروني</label><input class="inp num" id="ns-email" dir="ltr" value="' + esc(p.email || '') + '" placeholder="you@company.com">' +
+        '<label class="fl">رقم الجوال (واتساب)</label><input class="inp num" id="ns-phone" dir="ltr" value="' + esc(p.phone || '') + '" placeholder="05xxxxxxxx">' +
+        '<label class="fl flex" style="cursor:pointer;margin-top:12px"><input type="checkbox" id="ns-em"' + (p.notifyEmail !== false ? ' checked' : '') + '> 📧 استلام الإشعارات على البريد</label>' +
+        '<label class="fl flex" style="cursor:pointer"><input type="checkbox" id="ns-wa"' + (p.notifyWhatsapp ? ' checked' : '') + '> 💬 استلام الإشعارات على واتساب</label>' +
+        '<div class="small muted" style="margin-top:8px;line-height:1.8">إن لم تكن قناة البريد/واتساب مهيأة على الخادم، تُسجَّل المحاولة كمحاكاة موثّقة وتظل الإشعارات داخل النظام تعمل دائماً.</div>' +
+        '<div class="m-actions"><button class="btn" id="ns-save">حفظ</button><button class="btn mutedb" id="ns-cancel">إلغاء</button></div>' +
+        '</div>';
+      document.body.appendChild(back);
+      back.querySelector('#ns-cancel').addEventListener('click', function () { back.remove(); });
+      back.addEventListener('click', function (e) { if (e.target === back) back.remove(); });
+      back.querySelector('#ns-save').addEventListener('click', async function () {
+        try {
+          await Api.updateProfile({
+            email: back.querySelector('#ns-email').value,
+            phone: back.querySelector('#ns-phone').value,
+            notifyEmail: back.querySelector('#ns-em').checked,
+            notifyWhatsapp: back.querySelector('#ns-wa').checked
+          });
+          back.remove();
+          VS.toast('✅ حُفظت تفضيلات الإشعارات');
+          ctx.refreshSilent();
+        } catch (e) { VS.toast(e.message, true); }
+      });
     }
 
     draw();

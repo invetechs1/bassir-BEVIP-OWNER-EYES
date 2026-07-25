@@ -512,12 +512,16 @@
       '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
       '<div class="card"><h3>👥 مستخدمو النظام <span class="hint">كلمات المرور مشفرة ولا تظهر لأحد</span></h3>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      '<th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>النطاق</th><th></th></tr></thead><tbody>' +
+      '<th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>النطاق</th><th>قنوات الإشعار</th><th></th></tr></thead><tbody>' +
       (ctx.S.users || []).map(function (u) {
         const m = ROLE_META[u.role] || { icon: '👤', color: 'p-muted' };
+        const chans = [];
+        if (u.notifyEmail !== false && u.email) chans.push('<span class="pill p-info" style="font-size:10px" title="' + esc(u.email) + '">📧 بريد</span>');
+        if (u.notifyWhatsapp && u.phone) chans.push('<span class="pill p-ok" style="font-size:10px" title="' + esc(u.phone) + '">💬 واتساب</span>');
         return '<tr><td><b>' + esc(u.name) + '</b></td><td class="num">' + esc(u.username) + '</td>' +
           '<td><span class="pill ' + m.color + '">' + m.icon + ' ' + esc(ROLE_NAMES[u.role] || u.role) + '</span></td>' +
           '<td class="small">' + userScopeLabel(ctx, u) + '</td>' +
+          '<td class="small">' + (chans.length ? chans.join(' ') : '<span class="muted">داخل النظام فقط</span>') + '</td>' +
           '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">حذف</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
@@ -530,6 +534,8 @@
       '<label class="fl">الاسم الكامل</label><input class="inp" id="nu-name" placeholder="م. فلان الفلاني">' +
       '<label class="fl">اسم المستخدم</label><input class="inp num" id="nu-user" placeholder="username" dir="ltr">' +
       '<label class="fl">كلمة المرور (اتركها فارغة للتوليد التلقائي)</label><input class="inp num" id="nu-pass" placeholder="••••••••" dir="ltr">' +
+      '<div class="grid g2"><div><label class="fl">البريد الإلكتروني (للإشعارات)</label><input class="inp num" id="nu-email" dir="ltr" placeholder="you@company.com"></div>' +
+      '<div><label class="fl">الجوال (واتساب)</label><input class="inp num" id="nu-phone" dir="ltr" placeholder="05xxxxxxxx"></div></div>' +
       '<div id="nu-scope"></div>' +
       '<div class="m-actions"><button class="btn block" id="nu-save">إنشاء المستخدم وتسليم بياناته</button></div></div></div>';
 
@@ -564,7 +570,10 @@
       const data = {
         name: name, username: username,
         password: el.querySelector('#nu-pass').value || Math.random().toString(36).slice(2, 10),
-        role: role
+        role: role,
+        email: el.querySelector('#nu-email').value.trim(),
+        phone: el.querySelector('#nu-phone').value.trim(),
+        notifyEmail: true, notifyWhatsapp: !!el.querySelector('#nu-phone').value.trim()
       };
       const contSel = el.querySelector('#nu-cont');
       if (contSel) data.contractorId = contSel.value;

@@ -812,10 +812,14 @@
         '<option>ملخص أداء المقاولين</option></select>' +
         '<div class="m-actions"><button class="btn" id="rp-send">📤 إرسال الآن</button></div>'
         : '<div class="muted small">الإرسال متاح للاستشاري وممثل المالك</div>') +
-      '<h3 class="mt">سجل الإرسال</h3>' +
-      (ctx.S.messages.length ? '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>القناة</th><th>إلى</th><th>التقرير</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
+      '<h3 class="mt">سجل الإرسال <span class="hint">التقارير اليدوية وإشعارات دورة المراجعة الآلية</span></h3>' +
+      (ctx.S.messages.length ? '<div class="tbl-wrap" style="max-height:50vh;overflow-y:auto"><table class="tbl"><thead><tr><th>النوع</th><th>القناة</th><th>إلى</th><th>الموضوع</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
         ctx.S.messages.slice().reverse().map(function (m) {
-          return '<tr><td>' + (m.channel === 'whatsapp' ? '💬 واتساب' : '📧 إيميل') + '</td><td class="num">' + esc(m.to) + '</td><td>' + esc(m.title) + '</td><td class="small muted num">' + esc(m.date) + '</td><td>' + (m.status === 'sent_demo' ? '<span class="pill p-warn">محاكاة (القناة غير مهيأة)</span>' : '<span class="pill p-ok">أُرسل فعلياً ✓</span>') + '</td></tr>';
+          const statusPill = m.status === 'failed' ? '<span class="pill p-danger">فشل الإرسال ✗</span>'
+            : m.status === 'sent_demo' ? '<span class="pill p-warn">محاكاة (القناة غير مهيأة)</span>'
+            : '<span class="pill p-ok">أُرسل فعلياً ✓</span>';
+          return '<tr><td class="small">' + (m.auto ? '🔔 إشعار آلي' : '📄 تقرير') + '</td>' +
+            '<td>' + (m.channel === 'whatsapp' ? '💬 واتساب' : '📧 إيميل') + '</td><td class="num">' + esc(m.to || '') + '</td><td class="small">' + esc(m.title) + '</td><td class="small muted num">' + esc(m.date) + '</td><td>' + statusPill + '</td></tr>';
         }).join('') + '</tbody></table></div>' : '<div class="empty">لا رسائل بعد</div>') +
       '</div></div></div>';
 

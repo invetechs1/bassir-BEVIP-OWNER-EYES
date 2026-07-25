@@ -239,7 +239,8 @@
       pop.innerHTML =
         '<div class="flex" style="justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border)">' +
         '<b class="small">🔔 الإشعارات' + (unread ? ' <span class="pill p-danger" style="font-size:10px">' + unread + ' جديد</span>' : '') + '</b>' +
-        '<button class="btn mutedb sm" id="nt-close">✕</button></div>' +
+        '<div class="flex" style="gap:6px"><button class="btn ghost sm" id="nt-settings">⚙ الإعدادات</button>' +
+        '<button class="btn mutedb sm" id="nt-close">✕</button></div></div>' +
         '<div class="notif-list">' +
         (notifs.length ? notifs.map(function (n) {
           const isNew = (n.readBy || []).indexOf(user.id) === -1;
@@ -250,6 +251,7 @@
         '</div>';
       document.body.appendChild(pop);
       pop.querySelector('#nt-close').addEventListener('click', function () { pop.remove(); });
+      pop.querySelector('#nt-settings').addEventListener('click', function () { pop.remove(); openNotifSettings(); });
       // فتح الجرس يعلّم إشعاراتك كمقروءة
       if (unread) {
         Api.notifyRead().then(function () { return ctx.refreshSilent(); }).then(function () {
@@ -257,6 +259,40 @@
           if (b) b.remove();
         }).catch(function () { /* تجاهل */ });
       }
+    }
+
+    /** إعدادات الإشعارات: بريد وجوال المستخدم وقنوات وصوله (لنفسه) */
+    function openNotifSettings() {
+      const p = (ctx.S.profile) || { email: '', phone: '', notifyEmail: true, notifyWhatsapp: false };
+      const back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML =
+        '<div class="modal">' +
+        '<h3>⚙ إعدادات الإشعارات</h3>' +
+        '<div class="m-sub">تصلك تنبيهات دورة المراجعة داخل النظام، ويمكنك استلامها أيضاً على بريدك أو واتساب.</div>' +
+        '<label class="fl">البريد الإلكتروني</label><input class="inp num" id="ns-email" dir="ltr" value="' + esc(p.email || '') + '" placeholder="you@company.com">' +
+        '<label class="fl">رقم الجوال (واتساب)</label><input class="inp num" id="ns-phone" dir="ltr" value="' + esc(p.phone || '') + '" placeholder="05xxxxxxxx">' +
+        '<label class="fl flex" style="cursor:pointer;margin-top:12px"><input type="checkbox" id="ns-em"' + (p.notifyEmail !== false ? ' checked' : '') + '> 📧 استلام الإشعارات على البريد</label>' +
+        '<label class="fl flex" style="cursor:pointer"><input type="checkbox" id="ns-wa"' + (p.notifyWhatsapp ? ' checked' : '') + '> 💬 استلام الإشعارات على واتساب</label>' +
+        '<div class="small muted" style="margin-top:8px;line-height:1.8">إن لم تكن قناة البريد/واتساب مهيأة على الخادم، تُسجَّل المحاولة كمحاكاة موثّقة وتظل الإشعارات داخل النظام تعمل دائماً.</div>' +
+        '<div class="m-actions"><button class="btn" id="ns-save">حفظ</button><button class="btn mutedb" id="ns-cancel">إلغاء</button></div>' +
+        '</div>';
+      document.body.appendChild(back);
+      back.querySelector('#ns-cancel').addEventListener('click', function () { back.remove(); });
+      back.addEventListener('click', function (e) { if (e.target === back) back.remove(); });
+      back.querySelector('#ns-save').addEventListener('click', async function () {
+        try {
+          await Api.updateProfile({
+            email: back.querySelector('#ns-email').value,
+            phone: back.querySelector('#ns-phone').value,
+            notifyEmail: back.querySelector('#ns-em').checked,
+            notifyWhatsapp: back.querySelector('#ns-wa').checked
+          });
+          back.remove();
+          VS.toast('✅ حُفظت تفضيلات الإشعارات');
+          ctx.refreshSilent();
+        } catch (e) { VS.toast(e.message, true); }
+      });
     }
 
     draw();
