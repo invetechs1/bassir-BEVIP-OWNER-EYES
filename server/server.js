@@ -181,6 +181,7 @@ function storeUpload(buffer, originalName, mime, byUser) {
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8', '.pdf': 'application/pdf',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon'
 };
@@ -231,11 +232,14 @@ const server = http.createServer(async function (req, res) {
       persist();
       // تحليل غير متزامن إن كان الذكاء الاصطناعي مهيأ
       if (integrations.aiConfigured()) {
-        integrations.analyzeImage(buf, rec.mime, { area: cam.name }).then(function (a) {
+        // نسبة النموذج (BOQ) للعنصر المرتبط بالكاميرا — أساس المقارنة الآلية
+        const bimReported = cam.bimFloor ? core.floorDisciplineProgress(cam.bimFloor, cam.bimDiscipline || null) : null;
+        integrations.analyzeImage(buf, rec.mime, { area: cam.name, reported: bimReported }).then(function (a) {
           photo.ai = a.summary; photo.detected = a.progress;
           db.aiInsights.unshift({
-            id: 'AI' + Date.now(), projectId: photo.projectId, date: photo.date, source: 'camera', area: cam.name,
-            detected: a.progress, reported: null,
+            id: 'AI' + Date.now(), projectId: photo.projectId, date: photo.date, source: 'camera',
+            area: cam.name + (cam.bimFloor ? ' ← نموذج BIM' : ''),
+            detected: a.progress, reported: bimReported,
             note: a.summary + (a.safety.length ? ' — سلامة: ' + a.safety.join('؛ ') : ''),
             severity: a.safety.length ? 'alert' : 'ok'
           });
@@ -297,16 +301,40 @@ const server = http.createServer(async function (req, res) {
       return json(res, 200, core.deleteItem(user, m[1], m[2]));
     }
 
-    // رفع الملفات (صور، مخططات، مستندات) — تخزين فعلي على القرص
+    // رفع الملفات (صور، مخططات، مستندات، نماذج BIM كبيرة) — تخزين فعلي مع فئات ونسخ
     if (u === '/api/upload' && req.method === 'POST') {
-      const buf = await readRawBody(req);
+      const buf = await readRawBody(req, 500e6); // يدعم نماذج BIM حتى 500MB
       if (!buf.length) return json(res, 400, { error: 'لا يوجد محتوى' });
       const name = decodeURIComponent(req.headers['x-filename'] || 'file');
+      const category = decodeURIComponent(req.headers['x-category'] || '') || 'أخرى';
+      const versionOf = req.headers['x-version-of'] || null;
+      if (!db.files) db.files = [];
+
+      // نسخة جديدة لملف موجود: يؤرشف السابق في versions بلا تكرار سجلات
+      if (versionOf) {
+        const existing = db.files.find(function (f) { return f.id === versionOf; });
+        if (!existing) return json(res, 404, { error: 'الملف الأصلي غير موجود' });
+        const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
+        if (!existing.versions) existing.versions = [];
+        existing.versions.push({
+          v: existing.versions.length + 1, name: existing.name, url: existing.url,
+          size: existing.size, by: existing.by, date: existing.date
+        });
+        existing.name = rec.name; existing.url = rec.url; existing.stored = rec.stored;
+        existing.size = rec.size; existing.mime = rec.mime;
+        existing.by = user.name; existing.date = rec.date;
+        core.audit(user, 'upload', 'نسخة جديدة (' + (existing.versions.length + 1) + ') من الملف ' + existing.docCode);
+        persist();
+        return json(res, 201, existing);
+      }
+
       const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
       rec.docCode = core.docCode('files', db.projects[0] ? db.projects[0].id : 'P1');
-      if (!db.files) db.files = [];
+      rec.category = category;
+      rec.projectId = req.headers['x-project'] || (db.projects[0] ? db.projects[0].id : 'P1');
+      rec.versions = [];
       db.files.unshift(rec);
-      core.audit(user, 'upload', 'رفع ملف: ' + rec.name + ' (' + rec.docCode + ')');
+      core.audit(user, 'upload', 'رفع ملف: ' + rec.name + ' (' + rec.docCode + ' · ' + category + ')');
       persist();
       return json(res, 201, rec);
     }
@@ -367,6 +395,31 @@ const server = http.createServer(async function (req, res) {
     if (u === '/api/actions/add-project' && req.method === 'POST') {
       return json(res, 201, core.addProject(user, await readBody(req)));
     }
+    if (u === '/api/actions/resubmit' && req.method === 'POST') {
+      return json(res, 200, core.resubmit(user, await readBody(req)));
+    }
+
+    // النسخ الاحتياطي (أدمن): نسخة مؤرخة من قاعدة البيانات في data/backups
+    if (u === '/api/actions/backup' && req.method === 'POST') {
+      if (user.role !== 'admin') return json(res, 403, { error: 'النسخ الاحتياطي صلاحية الأدمن' });
+      const bdir = path.join(DATA_DIR, 'backups');
+      if (!fs.existsSync(bdir)) fs.mkdirSync(bdir, { recursive: true });
+      const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+      const dest = path.join(bdir, 'bassir-' + stamp + '.json');
+      fs.writeFileSync(dest, JSON.stringify(db));
+      core.audit(user, 'update', 'نسخة احتياطية: ' + path.basename(dest));
+      persist();
+      return json(res, 201, { ok: true, file: path.basename(dest), size: fs.statSync(dest).size });
+    }
+    if (u === '/api/backups') {
+      if (user.role !== 'admin') return json(res, 403, { error: 'غير مصرح' });
+      const bdir = path.join(DATA_DIR, 'backups');
+      const list = fs.existsSync(bdir) ? fs.readdirSync(bdir).sort().reverse().map(function (f) {
+        return { file: f, size: fs.statSync(path.join(bdir, f)).size };
+      }) : [];
+      return json(res, 200, list);
+    }
+
     if (u === '/api/actions/send-report' && req.method === 'POST') {
       const body = await readBody(req);
       // إرسال حقيقي إن كانت القناة مهيأة، وإلا يوثق في السجل كمحاكاة

@@ -53,6 +53,7 @@
     if (m && method === 'PUT') return c.updateItem(demoUser, m[1], m[2], body);
     if (m && method === 'DELETE') return c.deleteItem(demoUser, m[1], m[2]);
     if (path === '/api/actions/review') return c.review(demoUser, body);
+    if (path === '/api/actions/resubmit') return c.resubmit(demoUser, body);
     if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
     if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
     if (path === '/api/actions/send-report') return c.sendReport(demoUser, body);
@@ -103,22 +104,31 @@
     addContractor(p) { return call('/api/actions/add-contractor', 'POST', p); },
     addProject(p) { return call('/api/actions/add-project', 'POST', p); },
     sendReport(p) { return call('/api/actions/send-report', 'POST', p); },
-    /** رفع ملف فعلي إلى الخادم — في وضع الديمو يعاد الاسم فقط (محاكاة) */
-    async upload(file) {
-      if (DEMO) return { name: file.name, url: '', demo: true };
+    /** رفع ملف فعلي — opts: { category, versionOf } — في الديمو محاكاة بالاسم */
+    async upload(file, opts) {
+      opts = opts || {};
+      if (DEMO) return { name: file.name, url: '', demo: true, category: opts.category || 'أخرى' };
       const token = sessionStorage.getItem('bassir-token');
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Content-Type': file.type || 'application/octet-stream',
-          'x-filename': encodeURIComponent(file.name)
-        },
-        body: file
-      });
+      const headers = {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': file.type || 'application/octet-stream',
+        'x-filename': encodeURIComponent(file.name)
+      };
+      if (opts.category) headers['x-category'] = encodeURIComponent(opts.category);
+      if (opts.versionOf) headers['x-version-of'] = opts.versionOf;
+      const res = await fetch('/api/upload', { method: 'POST', headers: headers, body: file });
       const data = await res.json().catch(function () { return {}; });
       if (!res.ok) { const e = new Error(data.error || 'فشل رفع الملف'); throw e; }
       return data;
+    },
+    resubmit(p) { return call('/api/actions/resubmit', 'POST', p); },
+    backup() {
+      if (DEMO) return Promise.reject(new Error('النسخ الاحتياطي متاح في نسخة الخادم'));
+      return call('/api/actions/backup', 'POST', {});
+    },
+    backups() {
+      if (DEMO) return Promise.resolve([]);
+      return call('/api/backups');
     },
     integrationsStatus() {
       if (DEMO) return Promise.resolve({ demo: true });

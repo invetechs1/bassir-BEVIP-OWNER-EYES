@@ -14,5 +14,8 @@
   "optionalDependencies": {
     "@anthropic-ai/sdk": "^0.112.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "pdfjs-dist": "^6.1.200"
+  }
 }

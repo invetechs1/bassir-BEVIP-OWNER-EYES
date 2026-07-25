@@ -107,10 +107,20 @@
     db.contractors = [
       { id: 'C1', projectId: 'P1', name: 'شركة الإعمار الحديثة', type: 'structural',
         contractValue: 18000000, startDate: '2025-03-15', endDate: '2026-04-30',
-        amountReceived: 15300000, plannedProgress: 95, phone: '0501112233' },
+        amountReceived: 15300000, plannedProgress: 95, phone: '0501112233',
+        address: 'الرياض - طريق الملك فهد - برج الأعمال 12', contactPerson: 'م. فهد العتيبي',
+        email: 'info@emaar-hadeetha.sa', crNumber: '1010456789',
+        licenses: ['رخصة مقاولات درجة أولى - أبنية', 'عضوية الهيئة السعودية للمقاولين'],
+        certifications: ['ISO 9001:2015', 'ISO 45001:2018'],
+        legalDocs: [] },
       { id: 'C2', projectId: 'P1', name: 'مؤسسة البناء المعماري', type: 'architectural',
         contractValue: 12000000, startDate: '2025-09-01', endDate: '2026-10-31',
-        amountReceived: 8900000, plannedProgress: 60, phone: '0502223344' },
+        amountReceived: 8900000, plannedProgress: 60, phone: '0502223344',
+        address: 'الرياض - حي العليا - شارع التحلية', contactPerson: 'م. ماجد القحطاني',
+        email: 'projects@albinaa-arch.sa', crNumber: '1010334455',
+        licenses: ['رخصة مقاولات درجة ثانية - تشطيبات'],
+        certifications: ['ISO 9001:2015'],
+        legalDocs: [] },
       { id: 'C3', projectId: 'P1', name: 'شركة الطاقة المتحدة', type: 'electrical',
         contractValue: 6500000, startDate: '2025-10-01', endDate: '2026-11-30',
         amountReceived: 2600000, plannedProgress: 50, phone: '0503334455' },
@@ -320,6 +330,38 @@
         signature: 'م. خالد العمران', signDate: '2026-07-07', discipline: 'structural' }
     ];
 
+    // طلبات العروض RFP (توجه للاستشاري أو المالك)
+    db.rfps = [
+      { id: 'RFP1', projectId: 'P1', contractorId: 'C2', ref: 'RFP-ARC-002', title: 'عرض بديل لنظام واجهات زجاجية موفرة للطاقة',
+        question: 'نرفق عرضاً فنياً ومالياً لنظام واجهات Low-E يخفض الحمل الحراري 22% بفارق سعري 4%. نرجو الدراسة.',
+        to: 'owner', date: '2026-07-10', status: 'open', answer: '' },
+      { id: 'RFP2', projectId: 'P1', contractorId: 'C7', ref: 'RFP-FUR-001', title: 'عرض توريد أثاث مكتبي بديل (مصنع محلي)',
+        question: 'عرض بديل بضمان 5 سنوات وتوفير 12% عن المواصفة الأصلية مع مطابقة كاملة.',
+        to: 'consultant', date: '2026-07-05', status: 'answered',
+        answer: 'قُبل مبدئياً — يقدم نموذج Mockup للاعتماد النهائي قبل التوريد.',
+        signature: 'م. خالد العمران', signDate: '2026-07-08' }
+    ];
+
+    // نماذج BIM المرفوعة (سحابي أو من الجهاز)
+    db.bimModels = [
+      { id: 'BM1', projectId: 'P1', name: 'BassirTower_Rev03.ifc', rev: 'Rev-03', discipline: 'federated',
+        source: 'cloud', url: 'https://acc.autodesk.com/models/bassir-tower-rev03', size: 486000000,
+        date: '2026-06-12', by: 'دار العمران للاستشارات', linkedBoq: true }
+    ];
+
+    // وثائق BIM (خطة تنفيذ BIM كمثال)
+    db.bimDocs = [
+      { id: 'BD1', projectId: 'P1', kind: 'bep', title: 'خطة تنفيذ الـBIM - برج بصير التجاري', rev: 'R2',
+        date: '2026-05-01', by: 'دار العمران للاستشارات', status: 'approved',
+        sections: {
+          'أهداف الـBIM': 'التنسيق بين التخصصات، اكتشاف التعارضات قبل التنفيذ، استخراج الكميات، وربط النموذج بالجدول الزمني (4D) والتكلفة (5D).',
+          'الأدوار والمسؤوليات': 'مدير BIM: دار العمران. منسق نماذج لكل مقاول. اجتماع تنسيق نماذج أسبوعي.',
+          'معايير النمذجة': 'LOD 350 للتنفيذ، تسمية الملفات وفق ISO 19650، وحدة المتر، نقطة أصل موحدة.',
+          'بيئة البيانات المشتركة CDE': 'نظام بصير هو الـCDE المعتمد: الرفع والاعتماد والأرشفة والتكويد.',
+          'جدول تسليم النماذج': 'معماري وإنشائي: محدث كل أسبوعين. MEP: أسبوعياً أثناء التنسيق.'
+        } }
+    ];
+
     // تقارير عدم المطابقة NCR
     db.ncrs = [
       { id: 'NCR1', projectId: 'P1', contractorId: 'C2', ref: 'NCR-ARC-009', title: 'لياسة غير مستوية بالجناح الغربي - الدور الثاني',
@@ -435,9 +477,9 @@
 
     // ============ كاميرات الموقع ============
     db.cameras = [
-      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', streamPath: 'cam1', status: 'online', installed: '2025-06-01' },
-      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', streamPath: 'cam2', status: 'online', installed: '2025-11-15' },
-      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', streamPath: 'cam3', status: 'online', installed: '2026-03-01' },
+      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', streamPath: 'cam1', status: 'online', installed: '2025-06-01', bimFloor: 'GF', bimDiscipline: 'architectural' },
+      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', streamPath: 'cam2', status: 'online', installed: '2025-11-15', bimFloor: 'F3', bimDiscipline: 'architectural' },
+      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', streamPath: 'cam3', status: 'online', installed: '2026-03-01', bimFloor: 'RF', bimDiscipline: 'structural' },
       { id: 'CAM4', name: 'كاميرا 4 - بوابة الموقع', location: 'المدخل الرئيسي', url: 'rtsp://site.bassir.local/cam4', streamPath: 'cam4', status: 'offline', installed: '2025-06-01' }
     ];
 
@@ -487,8 +529,23 @@
       valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
       siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
       meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
-      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT'
+      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', rfps: 'RFP', bimModels: 'BIM', bimDocs: 'BDC'
     };
+    // سجل تتبع أولي لكل معاملة موجودة (تقديم ثم قرار إن وجد)
+    ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
+     'methodStatements', 'claims', 'valueEngineering', 'handoverDocs', 'rfis', 'rfps'].forEach(function (col) {
+      (db[col] || []).forEach(function (it) {
+        const cName = (db.contractors.find(function (c) { return c.id === it.contractorId; }) || {}).name || 'المقاول';
+        it.history = [{ status: 'pending', by: cName, role: 'contractor', date: it.date }];
+        if (it.status && it.status !== 'pending' && it.status !== 'open') {
+          it.reviewStartDate = it.date;
+          it.reviewEndDate = it.signDate || it.date;
+          it.reviewDays = Math.max(0, Math.round((new Date(it.reviewEndDate) - new Date(it.date)) / 86400000));
+          it.history.push({ status: it.status, by: it.signature || 'الاستشاري', role: 'consultant', date: it.reviewEndDate, notes: it.notes || '' });
+        }
+      });
+    });
+
     const docSeq = {};
     Object.keys(DOC_TYPES).forEach(function (col) {
       (db[col] || []).forEach(function (it) {
@@ -500,7 +557,7 @@
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 8, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 9, docSeq: docSeq };
 
     return db;
   }

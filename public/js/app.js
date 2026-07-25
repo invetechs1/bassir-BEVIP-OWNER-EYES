@@ -2,29 +2,38 @@
 (function () {
   'use strict';
 
-  const VS = window.ViewsShared, VR = window.ViewsRoles;
+  const VS = window.ViewsShared, VR = window.ViewsRoles, VM = window.ViewsModules;
   const esc = VS.esc;
 
   const PAGES = [
     { id: 'owner-eye', title: 'عين المالك', icon: '👁', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep'], render: VS.renderOwnerEye },
+    { id: 'projects', title: 'لوحة المشاريع', icon: '🗂️', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VM.renderProjectsDash },
     { id: 'dashboard', title: 'لوحة القيادة', icon: '📊', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderDashboard },
     { id: 'vision', title: 'رؤية المشروع', icon: '🗺️', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderVision },
     { id: 'cameras', title: 'كاميرات الموقع', icon: '🎥', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderCameras },
     { id: 'contractors', title: 'المقاولون والأداء', icon: '👷', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderContractors },
     { id: 'ai', title: 'ذكاء بصير الاصطناعي', icon: '🤖', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderAi },
     { id: 'reports', title: 'التقارير والإرسال', icon: '📨', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VS.renderReports },
+    { id: 'submissions', title: 'تتبع التقديمات', icon: '📋', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VM.renderSubmissions },
+    { id: 'variations', title: 'أوامر التغيير', icon: '🔁', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VM.renderVariations },
+    { id: 'project-docs', title: 'وثائق المشروع', icon: '📁', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VM.renderProjectDocs },
     { id: 'archive', title: 'أرشيف المستندات', icon: '📚', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VR.renderArchive },
 
     { id: 'home', title: 'لوحة المقاول', icon: '🏗️', sec: 'أعمالي', roles: ['contractor'], render: VR.renderContractorHome },
+    { id: 'submissions-c', title: 'تتبع تقديماتي', icon: '📋', sec: 'أعمالي', roles: ['contractor'], render: VM.renderSubmissions },
     { id: 'archive-c', title: 'أرشيف مستنداتي', icon: '📚', sec: 'أعمالي', roles: ['contractor'], render: VR.renderArchive },
 
     { id: 'approvals', title: 'الاعتمادات', icon: '✍️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderApprovals, badge: badgePending },
+    { id: 'rfx', title: 'الاستفسارات والعروض RFI/RFP', icon: '📮', sec: 'المكتب الفني', roles: ['admin', 'consultant', 'owner_rep', 'owner'], render: VM.renderRfx, badge: badgeRfx },
     { id: 'tech-office', title: 'خدمات المكتب الفني', icon: '🏛️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderTechOffice, badge: badgeTech },
     { id: 'boq', title: 'جداول الكميات', icon: '📊', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBoq },
     { id: 'manage-contractors', title: 'إدارة المقاولين', icon: '🧰', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderManageContractors },
     { id: 'daily', title: 'إعداد التقارير', icon: '📝', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderDailyReport },
     { id: 'bim-upload', title: 'المخططات والنماذج', icon: '🏢', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBimUpload },
+    { id: 'bim', title: 'إدارة BIM', icon: '🧊', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VM.renderBim },
+    { id: 'contractor-db', title: 'قاعدة بيانات المقاولين', icon: '🗃️', sec: 'المكتب الفني', roles: ['admin', 'consultant', 'owner_rep'], render: VM.renderContractorDb },
 
+    { id: 'file-server', title: 'خادم الملفات المركزي', icon: '🗄️', sec: 'الإدارة', roles: ['admin', 'consultant', 'owner_rep'], render: VM.renderFileServer },
     { id: 'rep-projects', title: 'المشاريع والاستشاريون', icon: '🗂️', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderRepProjects },
     { id: 'users', title: 'المستخدمون والصلاحيات', icon: '👥', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderUsers },
     { id: 'audit', title: 'سجل النظام', icon: '📜', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderAudit },
@@ -39,6 +48,12 @@
   function badgePending(S) {
     return ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments']
       .reduce(function (a, c) { return a + (S[c] || []).filter(function (x) { return x.status === 'pending'; }).length; }, 0);
+  }
+
+  function badgeRfx(S) {
+    return ['rfis', 'rfps'].reduce(function (a, c) {
+      return a + (S[c] || []).filter(function (x) { return x.status === 'open'; }).length;
+    }, 0);
   }
 
   function badgeTech(S) {

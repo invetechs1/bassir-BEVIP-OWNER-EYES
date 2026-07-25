@@ -723,6 +723,7 @@
   // ============ صفحات المقاول ============
   const CONT_TABS = APPROVAL_TABS.concat([
     { col: 'rfis', name: 'استفسارات RFI', icon: '❓' },
+    { col: 'rfps', name: 'طلبات العروض RFP', icon: '📮' },
     { col: 'methodStatements', name: 'أساليب التنفيذ وITP', icon: '🧾' },
     { col: 'claims', name: 'المطالبات وEOT', icon: '⚖️' }
   ]);
@@ -765,12 +766,17 @@
       t.addEventListener('click', function () { contState.tab = t.getAttribute('data-ctab'); renderContractorHome(el, ctx); });
     });
     el.querySelector('#ct-new').addEventListener('click', function () { openSubmitModal(ctx); });
-    // المقاول يفتح المخطط ويرى ترميز الاستشاري وملاحظاته (قراءة فقط)
+    // المقاول يفتح المستند: يرى ترميز الاستشاري، وبعد البت يرد على الملاحظات
+    // على نفس النسخة ويعيد التقديم (بلا ملفات مكررة)
+    function openForContractor(id) {
+      const it = (ctx.S[contState.tab] || []).find(function (x) { return x.id === id; });
+      if (it) window.DrawingViewer.open(ctx, contState.tab, it, { canEdit: false, canReview: false, canRespond: true });
+    }
     el.querySelectorAll('[data-dview]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        const it = (ctx.S[contState.tab] || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
-        if (it) window.DrawingViewer.open(ctx, contState.tab, it, { canEdit: false, canReview: false });
-      });
+      b.addEventListener('click', function () { openForContractor(b.getAttribute('data-dview')); });
+    });
+    el.querySelectorAll('[data-resub]').forEach(function (b) {
+      b.addEventListener('click', function () { openForContractor(b.getAttribute('data-resub')); });
     });
   }
 
@@ -781,19 +787,22 @@
     const hasAmount = tab === 'changeOrders' || tab === 'payments' || tab === 'claims';
     return '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المرجع</th><th>العنوان</th>' +
       (hasAmount ? '<th>القيمة</th>' : '') +
-      '<th>التاريخ</th><th>الحالة</th><th>رد الاستشاري</th></tr></thead><tbody>' +
+      '<th>التاريخ</th><th>الحالة</th><th>رد الاستشاري</th><th></th></tr></thead><tbody>' +
       items.map(function (it) {
-        const reply = tab === 'rfis' ? it.answer : it.notes;
+        const reply = (tab === 'rfis' || tab === 'rfps') ? it.answer : it.notes;
+        const canRespond = it.status === 'rejected' || it.status === 'approved_notes';
         return '<tr><td class="num small"><b>' + esc(it.ref) + '</b>' +
           (it.docCode ? '<div class="muted" style="font-size:10px;color:var(--accent2)">' + esc(it.docCode) + '</div>' : '') + '</td>' +
           '<td>' + esc(it.title) + ' ' + window.DrawingViewer.btn(it) +
           (it.question ? '<div class="small muted" style="max-width:300px">' + esc(it.question) + '</div>' : '') +
           (it.kind === 'eot' ? '<div class="small muted num">تمديد +' + (it.days || 0) + ' يوم</div>' : '') +
-          (it.kind === 'itp' ? '<div class="small muted">خطة فحص ITP</div>' : '') + '</td>' +
+          (it.kind === 'itp' ? '<div class="small muted">خطة فحص ITP</div>' : '') +
+          ((it.revisions || []).length ? '<div class="small muted">🗂 ' + (it.revisions.length + 1) + ' نسخ على نفس المستند</div>' : '') + '</td>' +
           (hasAmount ? '<td>' + money(it.amount) + '</td>' : '') +
           '<td class="small muted num">' + esc(it.date) + '</td><td>' + pill(it.status) + '</td>' +
           '<td class="small" style="max-width:240px">' + (reply ? esc(reply) : '<span class="muted">—</span>') +
-          (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td></tr>';
+          (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
+          '<td>' + (canRespond ? '<button class="btn sm" data-resub="' + it.id + '">🔄 الرد وإعادة التقديم</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
   }
 
@@ -833,6 +842,8 @@
       '<label class="fl">رقم المرجع</label><input class="inp num" id="sb-ref" placeholder="REF-001">' +
       '<label class="fl">العنوان / الوصف</label><input class="inp" id="sb-title">' +
       (tab === 'rfis' ? '<label class="fl">نص الاستفسار الفني</label><textarea class="inp" id="sb-question" rows="3" placeholder="اشرح التعارض أو المعلومة المطلوبة مع ذكر رقم المخطط..."></textarea>' : '') +
+      (tab === 'rfps' ? '<label class="fl">موجه إلى</label><select class="inp" id="sb-to"><option value="consultant">📐 الاستشاري</option><option value="owner">👁 المالك</option></select>' +
+        '<label class="fl">تفاصيل العرض / الطلب</label><textarea class="inp" id="sb-question" rows="3" placeholder="اشرح العرض البديل أو الطلب مع أثره الفني والمالي..."></textarea>' : '') +
       (tab === 'methodStatements' ? '<label class="fl">النوع</label><select class="inp" id="sb-kind"><option value="ms">أسلوب تنفيذ MS</option><option value="itp">خطة فحص ITP</option></select>' : '') +
       (tab === 'claims' ? '<label class="fl">نوع المطالبة</label><select class="inp" id="sb-kind"><option value="eot">تمديد مدة EOT</option><option value="cost">مطالبة مالية</option></select>' : '') +
       (needAmount ? '<label class="fl">القيمة (ر.س)</label><input class="inp num" id="sb-amount" type="number">' : '') +
@@ -869,7 +880,8 @@
       if (!data.title) { toast('أدخل عنوان الطلب', true); return; }
       if (needAmount) data.amount = Number(m.querySelector('#sb-amount').value) || 0;
       if (tab === 'changeOrders' || tab === 'claims') data.days = Number(m.querySelector('#sb-days').value) || 0;
-      if (tab === 'rfis') data.question = m.querySelector('#sb-question').value;
+      if (tab === 'rfis' || tab === 'rfps') data.question = m.querySelector('#sb-question').value;
+      if (tab === 'rfps') data.to = m.querySelector('#sb-to').value;
       if (tab === 'methodStatements' || tab === 'claims') data.kind = m.querySelector('#sb-kind').value;
       if (isWir) data.location = m.querySelector('#sb-loc').value;
       const files = m.querySelector('#sb-file').files;
@@ -1294,7 +1306,8 @@
     ['meetings', '🤝 محضر اجتماع', 'MOM'], ['correspondence', '📮 خطاب', 'COR'],
     ['dailyReports', '📝 تقرير يومي', 'DDR'], ['weeklyReports', '🗓️ تقرير أسبوعي', 'WKR'],
     ['monthlyReports', '📊 تقرير شهري', 'MOR'], ['planDrawings', '🏢 مخطط مشروع', 'DRW'],
-    ['files', '📎 ملف مرفوع', 'FIL']
+    ['rfps', '📮 طلب عرض RFP', 'RFP'], ['bimModels', '🧊 نموذج BIM', 'BIM'],
+    ['bimDocs', '📚 وثيقة BIM', 'BDC'], ['files', '📎 ملف مرفوع', 'FIL']
   ];
   const DONE_STATES = ['approved', 'approved_notes', 'answered', 'done', 'closed', 'pass'];
   const archState = { q: '', type: 'all', status: 'all', year: 'all' };

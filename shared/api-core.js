@@ -15,14 +15,14 @@
     'methodStatements', 'claims', 'valueEngineering', 'handoverDocs'
   ];
   // مجموعات المكتب الفني المرتبطة بمقاول محدد (يرى المقاول ما يخصه فقط)
-  const TECH_FILTERED = ['rfis', 'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests'];
+  const TECH_FILTERED = ['rfis', 'rfps', 'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests'];
   // مجموعات مكتب فني عامة لا تُعرض للمقاول
   const TECH_INTERNAL = ['meetings', 'correspondence'];
   const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS.concat(TECH_FILTERED); // المقاول يرى ضمنها ما يخصه فقط
 
   // الحالة الابتدائية الافتراضية لكل مجموعة
   const DEFAULT_STATUS = {
-    rfis: 'open', ncrs: 'open', siteInstructions: 'issued',
+    rfis: 'open', rfps: 'open', ncrs: 'open', siteInstructions: 'issued',
     snags: 'open', hseReports: 'open'
   };
 
@@ -31,12 +31,13 @@
     shopDrawings: 'مخطط تنفيذي', materials: 'اعتماد مواد', scheduleSubmittals: 'جدول زمني',
     wirs: 'طلب استلام', changeOrders: 'أمر تغيير', payments: 'مستخلص',
     methodStatements: 'أسلوب تنفيذ/ITP', claims: 'مطالبة/EOT', valueEngineering: 'هندسة قيمية',
-    handoverDocs: 'مستند تسليم', rfis: 'استفسار RFI', ncrs: 'عدم مطابقة NCR',
+    handoverDocs: 'مستند تسليم', rfis: 'استفسار RFI', rfps: 'طلب عرض RFP', ncrs: 'عدم مطابقة NCR',
     siteInstructions: 'تعليمات موقعية', snags: 'ملاحظة تسليم', hseReports: 'تقرير سلامة',
     materialTests: 'اختبار مواد', meetings: 'محضر اجتماع', correspondence: 'خطاب',
     dailyReports: 'تقرير يومي', weeklyReports: 'تقرير أسبوعي', monthlyReports: 'تقرير شهري',
     boqItems: 'بند كميات', planDrawings: 'مخطط مشروع', cameras: 'كاميرا',
-    users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة'
+    users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة',
+    bimModels: 'نموذج BIM', bimDocs: 'وثيقة BIM'
   };
 
   function labelOf(collection, item) {
@@ -48,10 +49,11 @@
   const DOC_TYPE_CODES = {
     shopDrawings: 'SD', materials: 'MAT', scheduleSubmittals: 'SCH', wirs: 'WIR',
     changeOrders: 'CO', payments: 'IPC', methodStatements: 'MS', claims: 'CLM',
-    valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
+    valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', rfps: 'RFP', ncrs: 'NCR',
     siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
     meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
-    monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', files: 'FIL'
+    monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', files: 'FIL',
+    bimModels: 'BIM', bimDocs: 'BDC'
   };
 
   // من يستطيع إنشاء عناصر في كل مجموعة
@@ -72,6 +74,7 @@
     projects: ['owner_rep', 'admin'],
     // موديول المكتب الفني
     rfis: ['contractor', 'consultant', 'admin'],
+    rfps: ['contractor', 'consultant', 'admin'],
     methodStatements: ['contractor', 'consultant', 'admin'],
     claims: ['contractor', 'consultant', 'admin'],
     valueEngineering: ['contractor', 'consultant', 'admin'],
@@ -85,7 +88,9 @@
     hseReports: ['consultant', 'admin'],
     materialTests: ['consultant', 'admin'],
     meetings: ['consultant', 'admin'],
-    correspondence: ['consultant', 'admin']
+    correspondence: ['consultant', 'admin'],
+    bimModels: ['consultant', 'admin'],
+    bimDocs: ['consultant', 'admin']
   };
 
   function createCore(db, persist, opts) {
@@ -178,7 +183,10 @@
       s.monthlyReports = db.monthlyReports;
       s.cameras = db.cameras || [];
       s.planDrawings = db.planDrawings || [];
-      s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant') ? (db.files || []) : [];
+      s.bimModels = db.bimModels || [];
+      s.bimDocs = db.bimDocs || [];
+      // المالك يطلع على وثائق مشروعه (قراءة) — يقيدها نطاق المشروع أدناه
+      s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant' || role === 'owner') ? (db.files || []) : [];
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
@@ -191,6 +199,7 @@
         });
         TECH_INTERNAL.forEach(function (c) { s[c] = []; });
         s.cameras = [];
+        s.bimDocs = [];
         s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
         s.messages = [];
@@ -238,6 +247,10 @@
         else if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
       }
       if (!item.docCode) item.docCode = docCode(collection, item.projectId);
+      // سجل التتبع: كل معاملة تبدأ بحدث "تقديم"
+      if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1 || collection === 'rfis' || collection === 'rfps') {
+        item.history = [{ status: item.status || 'pending', by: user.name, role: user.role, date: item.date }];
+      }
       if (collection === 'users' && item.password && pwd.hash) {
         const plain = item.password;
         delete item.password;
@@ -260,7 +273,12 @@
       if (!item) throw err('العنصر غير موجود', 404);
       if (user.role === 'contractor') {
         if (item.contractorId !== user.contractorId) throw err('لا تملك صلاحية التعديل', 403);
-        if (item.status && item.status !== 'pending') throw err('لا يمكن تعديل طلب تم البت فيه', 403);
+        if (item.status && item.status !== 'pending' && item.status !== 'open') {
+          // بعد البت: يسمح فقط بالرد على الترميز/الملاحظات على نفس النسخة
+          const keys = Object.keys(patch);
+          const allowed = keys.every(function (k) { return ['annotations', 'markupBy', 'markupDate'].indexOf(k) !== -1; });
+          if (!allowed) throw err('لا يمكن تعديل طلب تم البت فيه — يمكنك الرد على الملاحظات أو رفع نسخة معدلة', 403);
+        }
       }
       Object.assign(item, patch);
       audit(user, 'update', labelOf(collection, item));
@@ -300,6 +318,11 @@
       item.notes = opts.notes || '';
       item.signature = user.name;
       item.signDate = todayStr();
+      if (!item.reviewStartDate) item.reviewStartDate = item.date;
+      item.reviewEndDate = todayStr();
+      item.reviewDays = Math.max(0, Math.round((new Date(item.reviewEndDate) - new Date(item.date)) / 86400000));
+      if (!item.history) item.history = [];
+      item.history.push({ status: status, by: user.name, role: user.role, date: todayStr(), notes: opts.notes || '' });
 
       if (collection === 'payments' && (status === 'approved' || status === 'approved_notes')) {
         applyPaymentEffects(item);
@@ -321,6 +344,43 @@
           bq.status = bq.progress >= 100 ? 'منجز' : bq.progress > 0 ? 'جاري' : 'لم يبدأ';
         }
       });
+    }
+
+    /**
+     * إعادة تقديم نسخة معدلة على نفس المستند: تؤرشف النسخة الحالية
+     * (الملف + الترميز + القرار) في revisions ويعود المستند لقيد المراجعة
+     * — دورة مراجعة متصلة بلا ملفات مكررة وبسجل تدقيق كامل.
+     */
+    function resubmit(user, opts) {
+      const collection = opts.collection, id = opts.id;
+      const list = db[collection];
+      if (!list) throw err('مجموعة غير معروفة', 404);
+      const item = list.find(function (x) { return x.id === id; });
+      if (!item) throw err('المستند غير موجود', 404);
+      if (user.role === 'contractor' && item.contractorId !== user.contractorId) throw err('غير مصرح', 403);
+      if (['contractor', 'consultant', 'admin'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      if (item.status === 'pending') throw err('المستند قيد المراجعة بالفعل', 400);
+
+      if (!item.revisions) item.revisions = [];
+      item.revisions.push({
+        rev: item.revisions.length + 1,
+        file: item.file || null,
+        annotations: item.annotations || [],
+        status: item.status, notes: item.notes || '',
+        signature: item.signature || '', signDate: item.signDate || '',
+        date: item.date, archivedAt: todayStr()
+      });
+      if (opts.file) item.file = opts.file;
+      item.annotations = [];
+      item.status = 'pending';
+      item.notes = ''; item.signature = ''; item.signDate = '';
+      item.date = todayStr();
+      item.reviewStartDate = null; item.reviewEndDate = null; item.reviewDays = null;
+      if (!item.history) item.history = [];
+      item.history.push({ status: 'resubmitted', by: user.name, role: user.role, date: todayStr(), notes: 'نسخة معدلة رقم ' + (item.revisions.length + 1) });
+      audit(user, 'update', 'إعادة تقديم نسخة معدلة — ' + labelOf(collection, item));
+      persist();
+      return item;
     }
 
     /** إضافة مقاول جديد مع حسابه وبنود كمياته (صلاحية الاستشاري) */
@@ -452,6 +512,7 @@
       updateItem: updateItem,
       deleteItem: deleteItem,
       review: review,
+      resubmit: resubmit,
       addContractor: addContractor,
       addProject: addProject,
       sendReport: sendReport,
