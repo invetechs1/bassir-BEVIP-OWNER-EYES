@@ -3,7 +3,7 @@
   'use strict';
 
   const t = window.I18n.t;
-  I18n.registerDict({ 'المخطط': 'Planned', 'الفعلي': 'Actual', 'مخطط': 'planned' });
+  I18n.registerDict({ 'المخطط': 'Planned', 'الفعلي': 'Actual', 'مخطط': 'planned', 'م.ر.س': 'M SAR' });
 
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
@@ -97,5 +97,26 @@
     return html + '</div>';
   }
 
-  window.Charts = { sCurve: sCurve, donut: donut, compareBars: compareBars, esc: esc };
+  /** أعمدة تدفق نقدي لكل فترة (صرف مخطط مقابل فعلي بمبالغ مطلقة) — مرتبطة بسياق نسبة الإنجاز الكلية */
+  function cashFlowChart(periods) {
+    const maxV = Math.max.apply(null, periods.reduce(function (a, p) { return a.concat([p.planned || 0, p.actual || 0]); }, [1]));
+    let html = '<div>';
+    periods.forEach(function (p) {
+      const aw = p.actual == null ? 0 : Math.max(2, p.actual / maxV * 100);
+      const pw = Math.max(2, (p.planned || 0) / maxV * 100);
+      html += '<div style="margin-bottom:12px">' +
+        '<div class="flex" style="justify-content:space-between;font-size:12px;margin-bottom:4px">' +
+        '<span class="muted">' + esc(p.label) + '</span>' +
+        '<span class="num small">' + (p.actual == null ? '—' : (p.actual / 1e6).toFixed(1) + ' ' + t('م.ر.س')) +
+        ' <span class="muted">/ ' + (p.planned / 1e6).toFixed(1) + ' ' + t('م.ر.س') + ' ' + t('مخطط') + '</span></span></div>' +
+        '<div style="position:relative;height:7px;background:#1a2234;border-radius:99px;margin-bottom:3px">' +
+        '<i style="position:absolute;inset-inline-start:0;top:0;bottom:0;width:' + pw + '%;border-radius:99px;background:#2a3550"></i></div>' +
+        '<div style="position:relative;height:7px;background:transparent;border-radius:99px">' +
+        '<i style="position:absolute;inset-inline-start:0;top:0;bottom:0;width:' + aw + '%;border-radius:99px;background:linear-gradient(90deg,#e0a458,#f2c078)"></i></div>' +
+        '</div>';
+    });
+    return html + '</div>';
+  }
+
+  window.Charts = { sCurve: sCurve, donut: donut, compareBars: compareBars, cashFlowChart: cashFlowChart, esc: esc };
 })();

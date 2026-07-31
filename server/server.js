@@ -13,6 +13,8 @@ const seedModule = require('../shared/seed-data.js');
 const coreModule = require('../shared/api-core.js');
 const storageModule = require('./storage.js');
 const integrations = require('./integrations.js');
+const pdfModule = require('./pdf.js');
+const reportsModule = require('./reports.js');
 
 const PORT = process.env.PORT || 3000;
 const ROOT = path.join(__dirname, '..');
@@ -469,6 +471,47 @@ const server = http.createServer(async function (req, res) {
         body.status = 'sent_demo'; // القناة غير مهيأة — سجل محاكاة
       }
       return json(res, 200, core.sendReport(user, body));
+    }
+
+    // تقارير PDF ثنائية اللغة — تُبنى من بيانات الخادم الحقيقية مباشرة (لا تعمل في وضع الديمو بالمتصفح)
+    if (u === '/api/actions/handover-report' && req.method === 'GET') {
+      if (['admin', 'consultant', 'owner', 'owner_rep'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
+      const lang = new URL(req.url, 'http://x').searchParams.get('lang') === 'en' ? 'en' : 'ar';
+      const pdfDoc = reportsModule.buildHandoverReport(db, lang);
+      res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="Handover-Report.pdf"' });
+      pdfDoc.pipe(res);
+      pdfDoc.end();
+      core.audit(user, 'export', 'تصدير تقرير التسليم الموحّد (PDF)');
+      persist();
+      return;
+    }
+    if (u === '/api/actions/progress-report' && req.method === 'GET') {
+      if (['admin', 'consultant', 'owner', 'owner_rep'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
+      const qs = new URL(req.url, 'http://x').searchParams;
+      const lang = qs.get('lang') === 'en' ? 'en' : 'ar';
+      const period = qs.get('period') === 'monthly' ? 'monthly' : 'weekly';
+      const pdfDoc = reportsModule.buildProgressReport(db, lang, period);
+      res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="' + period + '-report.pdf"' });
+      pdfDoc.pipe(res);
+      pdfDoc.end();
+      core.audit(user, 'export', 'تصدير تقرير ' + (period === 'monthly' ? 'شهري' : 'أسبوعي') + ' (PDF)');
+      persist();
+      return;
+    }
+
+    if (u === '/api/actions/incident-report' && req.method === 'GET') {
+      if (['admin', 'consultant', 'owner', 'owner_rep'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
+      const qs = new URL(req.url, 'http://x').searchParams;
+      const lang = qs.get('lang') === 'en' ? 'en' : 'ar';
+      const insight = (db.aiInsights || []).find(function (x) { return x.id === qs.get('id'); });
+      if (!insight) return json(res, 404, { error: 'التنبيه غير موجود' });
+      const pdfDoc = reportsModule.buildIncidentReport(db, insight, lang);
+      res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="Incident-Report.pdf"' });
+      pdfDoc.pipe(res);
+      pdfDoc.end();
+      core.audit(user, 'export', 'تصدير تقرير حادث (PDF): ' + (insight.area || insight.id));
+      persist();
+      return;
     }
 
     json(res, 404, { error: 'مسار غير معروف: ' + u });

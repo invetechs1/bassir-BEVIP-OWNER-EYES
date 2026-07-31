@@ -5,6 +5,56 @@
   const esc = Charts.esc;
 
   I18n.registerDict({
+    'توليد PDF متاح فقط عند الاتصال بالخادم الفعلي': 'PDF generation is only available when connected to the real server',
+    'فشل توليد التقرير': 'Failed to generate the report',
+    'التدفق النقدي حسب الفترة': 'Cash Flow by Period',
+    'مرتبط بنسبة الإنجاز الفعلية ': 'Linked to actual progress ',
+    'إجمالي الصرف الفعلي حتى تاريخه ': 'Total actual spend to date ',
+    ' مقابل إنجاز فعلي ': ' against actual progress ',
+    'الإنجاز الفعلي مقابل المخطط لكل مقاول': 'Actual vs. Planned Progress by Contractor',
+    'لا يوجد مقاولون بعد': 'No contractors yet',
+    'مُسندة إلى: ': 'Assigned to: ',
+    'غير مُسندة': 'Unassigned',
+    'إسناد': 'Assign',
+    'تقرير حادث (PDF)': 'Incident Report (PDF)',
+    'إسناد التنبيه لجهة مسؤولة': 'Assign Alert to Responsible Party',
+    'الجهة المسؤولة': 'Responsible Party',
+    '— غير مُسندة —': '— Unassigned —',
+    '✅ تم تحديث الإسناد': '✅ Assignment updated',
+    // مراحل المشروع (قابلة للتخصيص)
+    'إدارة المراحل': 'Manage Phases',
+    'إدارة مراحل المشروع': 'Manage Project Phases',
+    'أضف مرحلة جديدة أو حدّث نسبة إنجاز مرحلة قائمة — قابلة للتخصيص الكامل حسب نوع المشروع':
+      'Add a new phase or update an existing phase\'s progress — fully customizable per project type',
+    'اسم المرحلة': 'Phase Name',
+    'اختر من القائمة أو اكتب اسماً مخصصاً': 'Pick from the list or type a custom name',
+    'البداية المخططة': 'Planned Start',
+    'النهاية المخططة': 'Planned End',
+    'إضافة': 'Add',
+    'لا مراحل بعد': 'No phases yet',
+    'حذف هذه المرحلة؟': 'Delete this phase?',
+    'أدخل اسم المرحلة': 'Enter the phase name',
+    '✅ أُضيفت المرحلة': '✅ Phase added',
+    'أعمال الحفر والأساسات': 'Excavation & Foundations',
+    'الهيكل الخرساني': 'Concrete Structure',
+    'أعمال المباني واللياسة': 'Blockwork & Plastering',
+    'الأعمال الكهروميكانيكية MEP': 'MEP Works',
+    'التشطيبات الداخلية': 'Interior Fit-Out',
+    'الواجهات الخارجية': 'Facades & External Cladding',
+    'الفرش والتأثيث': 'FF&E (Furniture, Fixtures & Equipment)',
+    'التشغيل والتسليم': 'Commissioning & Handover',
+    'اعتمادات التصميم والاستشاري': 'Design & Consultant Approvals',
+    'الطرح والترسية على المقاولين': 'Tendering & Contractor Selection',
+    'التعبئة وتجهيز الموقع': 'Mobilization & Site Setup',
+    'الهيكل المعدني (حسب الحاجة)': 'Steel Structure (where applicable)',
+    'العزل المائي والحراري والصوتي': 'Waterproofing, Thermal & Acoustic Insulation',
+    'الأعمال الخارجية ومواقف السيارات': 'External Works & Parking Areas',
+    'تنسيق المواقع والأعمال الصلبة': 'Landscaping & Hardscape',
+    'البنية التحتية والمرافق': 'Infrastructure & Utilities',
+    'فحص وتشغيل الأنظمة': 'Systems Testing & Commissioning',
+    'تسليم المشروع': 'Project Handover',
+    'فترة ضمان العيوب DLP': 'Defects Liability Period (DLP)',
+
     // حالات (STATUS pills)
     'قيد المراجعة': 'Under Review',
     'معتمد': 'Approved',
@@ -544,17 +594,108 @@
       '</div>' +
 
       '<div class="grid g2">' +
-      '<div class="card"><h3>🗂️ ' + I18n.t('مراحل المشروع') + '</h3>' +
+      '<div class="card"><div class="flex" style="justify-content:space-between"><h3 style="margin:0">🗂️ ' + I18n.t('مراحل المشروع') + '</h3>' +
+      (['consultant', 'admin'].indexOf(ctx.U.role) !== -1 ? '<button class="btn ghost sm" id="ph-manage">✎ ' + I18n.t('إدارة المراحل') + '</button>' : '') + '</div>' +
       (ctx.S.scheduleTasks.length ? Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
         return { label: t.name, actual: t.progress, planned: taskPlanned(t) };
       })) : '<div class="empty"><div class="e-ico">🗂️</div>' + I18n.t('لم تُسجل مراحل لهذا المشروع بعد') + '</div>') + '</div>' +
       '<div class="card"><h3>🔔 ' + I18n.t('تنبيهات بصير الذكية') + ' <span class="hint">' + I18n.t('من تحليل الصور والكاميرات') + '</span></h3>' +
       (alerts.length ? alerts.map(aiItemHtml).join('') : '<div class="empty"><div class="e-ico">✨</div>' + I18n.t('لا توجد تنبيهات حرجة') + '</div>') +
       '<button class="btn ghost sm" data-nav="ai">' + I18n.t('فتح صفحة الذكاء الاصطناعي ←') + '</button></div>' +
-      '</div>';
+      '</div>' +
+
+      '<div class="card mt"><h3>💵 ' + I18n.t('التدفق النقدي حسب الفترة') + ' <span class="hint">' + I18n.t('مرتبط بنسبة الإنجاز الفعلية ') + P.progressActual + '%</span></h3>' +
+      (ctx.S.costCurve.length > 1 ? Charts.cashFlowChart(cashFlowPeriods(ctx.S.costCurve)) : '<div class="empty"><div class="e-ico">💵</div>' + I18n.t('لا بيانات تكلفة لهذا المشروع بعد') + '</div>') +
+      '<div class="small muted mt">' + I18n.t('إجمالي الصرف الفعلي حتى تاريخه ') + '<b class="num" style="color:var(--accent2)">' + millions(P.costActual) + '</b>' +
+      I18n.t(' مقابل إنجاز فعلي ') + '<b class="num">' + P.progressActual + '%</b></div></div>';
 
     el.querySelectorAll('[data-nav]').forEach(function (b) {
       b.addEventListener('click', function () { ctx.nav(b.getAttribute('data-nav')); });
+    });
+    const phBtn = el.querySelector('#ph-manage');
+    if (phBtn) phBtn.addEventListener('click', function () { openPhaseManager(ctx); });
+  }
+
+  // مراحل جاهزة كاقتراحات — دورة المشروع كاملة من التصميم حتى نهاية فترة الضمان
+  const PHASE_PRESETS = [
+    'أعمال الحفر والأساسات', 'الهيكل الخرساني', 'أعمال المباني واللياسة', 'الأعمال الكهروميكانيكية MEP',
+    'التشطيبات الداخلية', 'الواجهات الخارجية', 'الفرش والتأثيث', 'التشغيل والتسليم',
+    'اعتمادات التصميم والاستشاري', 'الطرح والترسية على المقاولين', 'التعبئة وتجهيز الموقع',
+    'الهيكل المعدني (حسب الحاجة)', 'العزل المائي والحراري والصوتي', 'الأعمال الخارجية ومواقف السيارات',
+    'تنسيق المواقع والأعمال الصلبة', 'البنية التحتية والمرافق', 'فحص وتشغيل الأنظمة',
+    'تسليم المشروع', 'فترة ضمان العيوب DLP'
+  ];
+
+  function openPhaseManager(ctx) {
+    const m = modal(
+      '<h3>🗓️ ' + I18n.t('إدارة مراحل المشروع') + '</h3>' +
+      '<div class="m-sub">' + I18n.t('أضف مرحلة جديدة أو حدّث نسبة إنجاز مرحلة قائمة — قابلة للتخصيص الكامل حسب نوع المشروع') + '</div>' +
+      '<div id="ph-list"></div>' +
+      '<div class="card mt" style="padding:14px">' +
+      '<b class="small">' + I18n.t('➕ إضافة مرحلة') + '</b>' +
+      '<label class="fl">' + I18n.t('اسم المرحلة') + '</label>' +
+      '<input class="inp" id="ph-name" list="ph-presets" placeholder="' + I18n.t('اختر من القائمة أو اكتب اسماً مخصصاً') + '">' +
+      '<datalist id="ph-presets">' + PHASE_PRESETS.map(function (p) { return '<option value="' + esc(p) + '">'; }).join('') + '</datalist>' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('البداية المخططة') + '</label><input class="inp" id="ph-start" type="date"></div>' +
+      '<div><label class="fl">' + I18n.t('النهاية المخططة') + '</label><input class="inp" id="ph-end" type="date"></div></div>' +
+      '<button class="btn sm mt" id="ph-add">' + I18n.t('إضافة') + '</button></div>' +
+      '<div class="m-actions"><button class="btn mutedb" id="ph-close">' + I18n.t('إغلاق') + '</button></div>'
+    );
+
+    function drawList() {
+      const box = m.querySelector('#ph-list');
+      const tasks = ctx.S.scheduleTasks || [];
+      box.innerHTML = tasks.length ? tasks.map(function (t) {
+        return '<div class="flex" style="justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--border)">' +
+          '<div style="flex:1"><b class="small">' + esc(t.name) + '</b><div class="small muted num">' + esc(t.startPlanned || '—') + ' → ' + esc(t.endPlanned || '—') + '</div></div>' +
+          '<input class="inp num" type="number" min="0" max="100" value="' + t.progress + '" data-ph-progress="' + t.id + '" style="width:70px">' +
+          '<button class="btn danger sm" data-ph-del="' + t.id + '">✕</button></div>';
+      }).join('') : '<div class="empty small"><div class="e-ico">🗓️</div>' + I18n.t('لا مراحل بعد') + '</div>';
+
+      box.querySelectorAll('[data-ph-progress]').forEach(function (inp) {
+        inp.addEventListener('change', async function () {
+          try {
+            await Api.update('scheduleTasks', inp.getAttribute('data-ph-progress'), { progress: Math.max(0, Math.min(100, Number(inp.value) || 0)) });
+            await ctx.refreshSilent();
+            toast(I18n.t('✅ تم التحديث'));
+          } catch (e) { toast(e.message, true); }
+        });
+      });
+      box.querySelectorAll('[data-ph-del]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          if (!confirm(I18n.t('حذف هذه المرحلة؟'))) return;
+          try { await Api.remove('scheduleTasks', b.getAttribute('data-ph-del')); await ctx.refresh(); drawList(); }
+          catch (e) { toast(e.message, true); }
+        });
+      });
+    }
+    drawList();
+
+    m.querySelector('#ph-add').addEventListener('click', async function () {
+      const name = m.querySelector('#ph-name').value.trim();
+      if (!name) { toast(I18n.t('أدخل اسم المرحلة'), true); return; }
+      try {
+        await Api.create('scheduleTasks', {
+          name: name, startPlanned: m.querySelector('#ph-start').value, endPlanned: m.querySelector('#ph-end').value, progress: 0
+        });
+        m.querySelector('#ph-name').value = ''; m.querySelector('#ph-start').value = ''; m.querySelector('#ph-end').value = '';
+        await ctx.refresh();
+        drawList();
+        toast(I18n.t('✅ أُضيفت المرحلة'));
+      } catch (e) { toast(e.message, true); }
+    });
+    m.querySelector('#ph-close').addEventListener('click', function () { m.remove(); });
+  }
+
+  /** يحوّل منحنى التكلفة التراكمي (مليون ر.س) إلى صرف كل فترة على حدة (مبالغ مطلقة) لعرض التدفق النقدي */
+  function cashFlowPeriods(costCurve) {
+    let prevPlanned = 0, prevActual = 0;
+    return costCurve.map(function (c) {
+      const planned = Math.max(0, (c.planned || 0) * 1e6 - prevPlanned);
+      const actual = c.actual == null ? null : Math.max(0, c.actual * 1e6 - prevActual);
+      prevPlanned = (c.planned || 0) * 1e6;
+      if (c.actual != null) prevActual = c.actual * 1e6;
+      return { label: c.month, planned: planned, actual: actual };
     });
   }
 
@@ -568,13 +709,20 @@
   }
 
   // ============ الذكاء الاصطناعي ============
-  function aiItemHtml(a) {
+  function aiItemHtml(a, ctx, full) {
     const ico = a.severity === 'alert' ? '🚨' : a.severity === 'warn' ? '⚠️' : '✅';
     const src = a.source === 'camera' ? I18n.t('كاميرات الموقع') : a.source === 'photos' ? I18n.t('تحليل الصور') : I18n.t('تحليل البيانات');
+    const assignee = full && a.assignedTo && ctx ? (ctx.S.contractors.find(function (c) { return c.id === a.assignedTo; }) || {}).name : null;
     return '<div class="ai-item sev-' + a.severity + '"><div class="ai-ico">' + ico + '</div><div style="flex:1">' +
       '<p>' + esc(a.note) + '</p>' +
       '<div class="meta">' + esc(a.date) + ' · ' + I18n.t('المصدر:') + ' ' + src + (a.area ? ' · ' + I18n.t('الموقع:') + ' ' + esc(a.area) : '') +
-      (a.detected != null ? ' · ' + I18n.t('الرصد البصري:') + ' <b class="num">' + a.detected + '%</b>' : '') + '</div></div></div>';
+      (a.detected != null ? ' · ' + I18n.t('الرصد البصري:') + ' <b class="num">' + a.detected + '%</b>' : '') + '</div>' +
+      (full ? '<div class="flex mt" style="gap:8px;flex-wrap:wrap">' +
+        (assignee ? '<span class="pill p-info">👤 ' + I18n.t('مُسندة إلى: ') + esc(assignee) + '</span>' : '<span class="pill p-muted">' + I18n.t('غير مُسندة') + '</span>') +
+        '<button class="btn ghost sm" data-ai-assign="' + a.id + '">👤 ' + I18n.t('إسناد') + '</button>' +
+        '<button class="btn ghost sm" data-ai-incident="' + a.id + '">🖨 ' + I18n.t('تقرير حادث (PDF)') + '</button>' +
+        '</div>' : '') +
+      '</div></div>';
   }
 
   function renderAi(el, ctx) {
@@ -623,7 +771,7 @@
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="grid g2">' +
-      '<div class="card"><h3>🧠 ' + I18n.t('رؤى وتنبيهات بصير') + '</h3>' + ctx.S.aiInsights.map(aiItemHtml).join('') + '</div>' +
+      '<div class="card"><h3>🧠 ' + I18n.t('رؤى وتنبيهات بصير') + '</h3>' + ctx.S.aiInsights.map(function (a) { return aiItemHtml(a, ctx, true); }).join('') + '</div>' +
       '<div class="card"><h3>📸 ' + I18n.t('آخر الصور المُحلَّلة') + ' <span class="hint">' + I18n.t('رفع فريق الموقع') + '</span></h3>' +
       '<div class="grid g2">' + ctx.S.photos.map(function (p) {
         return '<div class="photo-card"><div class="ph">' + (p.url ? '<img src="' + esc(p.url) + '" style="width:100%;height:100%;object-fit:cover" alt="">' : '🏗️') + '<div class="scan"></div></div><div class="info">' +
@@ -663,6 +811,47 @@
         out.innerHTML = '<div class="small mt" style="color:var(--warn)">⚠ ' + esc(e.message) + '</div>';
       }
     });
+
+    el.querySelectorAll('[data-ai-assign]').forEach(function (b) {
+      b.addEventListener('click', function () { openAiAssignModal(ctx, b.getAttribute('data-ai-assign')); });
+    });
+    el.querySelectorAll('[data-ai-incident]').forEach(function (b) {
+      b.addEventListener('click', function () { downloadIncidentReport(b, b.getAttribute('data-ai-incident')); });
+    });
+  }
+
+  function openAiAssignModal(ctx, id) {
+    const item = ctx.S.aiInsights.find(function (a) { return a.id === id; });
+    const m = modal(
+      '<h3>👤 ' + I18n.t('إسناد التنبيه لجهة مسؤولة') + '</h3>' +
+      '<div class="m-sub">' + esc(item ? item.note : '') + '</div>' +
+      '<label class="fl">' + I18n.t('الجهة المسؤولة') + '</label><select class="inp" id="aia-who">' +
+      '<option value="">' + I18n.t('— غير مُسندة —') + '</option>' +
+      ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '"' + (item && item.assignedTo === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select>' +
+      '<div class="m-actions"><button class="btn" id="aia-save">' + I18n.t('حفظ') + '</button><button class="btn mutedb" id="aia-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#aia-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#aia-save').addEventListener('click', async function () {
+      try {
+        await Api.update('aiInsights', id, { assignedTo: m.querySelector('#aia-who').value || null });
+        m.remove(); toast(I18n.t('✅ تم تحديث الإسناد')); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  async function downloadIncidentReport(btn, id) {
+    if (Api.demo) { toast(I18n.t('توليد PDF متاح فقط عند الاتصال بالخادم الفعلي'), true); return; }
+    btn.disabled = true;
+    try {
+      const token = sessionStorage.getItem('bassir-token');
+      const res = await fetch('/api/actions/incident-report?id=' + encodeURIComponent(id) + '&lang=' + I18n.getLang(), { headers: { Authorization: 'Bearer ' + token } });
+      if (!res.ok) { const e = await res.json().catch(function () { return {}; }); throw new Error(e.error || I18n.t('فشل توليد التقرير')); }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'Incident-Report.pdf'; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) { toast(e.message, true); }
+    btn.disabled = false;
   }
 
   // ============ صفحة المقاولين (رؤية المالك) ============
@@ -681,6 +870,10 @@
       '<div class="card kpi ' + (delayed.length || overpaid.length ? 'k-danger' : 'k-ok') + '"><div class="lbl">' + I18n.t('مؤشرات الخطر') + '</div><div class="val num">' + (delayed.length + overpaid.length) + '</div>' +
       '<div class="sub">' + delayed.length + ' ' + I18n.t('متأخر') + ' · ' + overpaid.length + ' ' + I18n.t('صرف أعلى من المستحق') + '</div></div>' +
       '</div>' +
+
+      '<div class="card mb"><h3>📊 ' + I18n.t('الإنجاز الفعلي مقابل المخطط لكل مقاول') + '</h3>' +
+      (sums.length ? Charts.compareBars(sums.map(function (s) { return { label: s.name, actual: s.progress, planned: s.plannedProgress }; }))
+        : '<div class="empty"><div class="e-ico">📊</div>' + I18n.t('لا يوجد مقاولون بعد') + '</div>') + '</div>' +
 
       '<div class="card"><h3>👷 ' + I18n.t('أداء المقاولين') + ' <span class="hint">' + I18n.t('الإنجاز محسوب من جداول الكميات المعتمدة') + '</span></h3>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
@@ -1032,7 +1225,8 @@
       }).join('') + '</div>' +
 
       '<div>' +
-      '<div class="card mb"><h3>🗓️ ' + I18n.t('التقارير الأسبوعية') + '</h3>' +
+      '<div class="card mb"><div class="flex" style="justify-content:space-between"><h3 style="margin:0">🗓️ ' + I18n.t('التقارير الأسبوعية') + '</h3>' +
+      (canSend ? '<button class="btn ghost sm" id="rp-pdf-weekly">📄 PDF</button>' : '') + '</div>' +
       (ctx.S.weeklyReports || []).map(function (r) {
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
@@ -1042,7 +1236,8 @@
           (r.issues && r.issues.length ? '<div class="small" style="color:var(--warn);margin-top:4px">⚠ ' + r.issues.map(esc).join(' · ') + '</div>' : '') +
           '<div class="small muted" style="margin-top:8px">📎 ' + ((r.photos || []).length + (r.attachments || []).length) + ' ' + I18n.t('مرفقات') + ' · ' + esc(r.by || '') + '</div></div>';
       }).join('') + '</div>' +
-      '<div class="card mb"><h3>📊 ' + I18n.t('التقارير الشهرية') + '</h3>' +
+      '<div class="card mb"><div class="flex" style="justify-content:space-between"><h3 style="margin:0">📊 ' + I18n.t('التقارير الشهرية') + '</h3>' +
+      (canSend ? '<button class="btn ghost sm" id="rp-pdf-monthly">📄 PDF</button>' : '') + '</div>' +
       ctx.S.monthlyReports.map(function (r) {
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
@@ -1079,6 +1274,25 @@
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
+
+    async function downloadPdf(btn, url, filename) {
+      if (Api.demo) { toast(I18n.t('توليد PDF متاح فقط عند الاتصال بالخادم الفعلي'), true); return; }
+      btn.disabled = true;
+      try {
+        const token = sessionStorage.getItem('bassir-token');
+        const res = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+        if (!res.ok) { const e = await res.json().catch(function () { return {}; }); throw new Error(e.error || I18n.t('فشل توليد التقرير')); }
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = blobUrl; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(blobUrl);
+      } catch (e) { toast(e.message, true); }
+      btn.disabled = false;
+    }
+    const wPdf = el.querySelector('#rp-pdf-weekly');
+    if (wPdf) wPdf.addEventListener('click', function () { downloadPdf(wPdf, '/api/actions/progress-report?period=weekly&lang=' + I18n.getLang(), 'Weekly-Report.pdf'); });
+    const mPdf = el.querySelector('#rp-pdf-monthly');
+    if (mPdf) mPdf.addEventListener('click', function () { downloadPdf(mPdf, '/api/actions/progress-report?period=monthly&lang=' + I18n.getLang(), 'Monthly-Report.pdf'); });
   }
 
   window.ViewsShared = {

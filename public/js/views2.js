@@ -6,6 +6,83 @@
   const esc = VS.esc, pill = VS.pill, money = VS.money, toast = VS.toast, modal = VS.modal, discOf = VS.discOf;
 
   I18n.registerDict({
+    // ============ التسليم والإغلاق (Handover) ============
+    'شهادة تسليم ابتدائية': 'Preliminary Handover Certificate',
+    'شهادة تسليم نهائية': 'Final Handover Certificate',
+    'شهادات فحص وتشغيل الأنظمة': 'Testing & Commissioning Certificates',
+    'تقرير المعاينة النهائية للاستشاري': 'Consultant Final Inspection Report',
+    'مخططات كما نُفذ': 'As-Built Drawings',
+    'كتيبات تشغيل وصيانة': 'O&M Manuals',
+    'شهادات ضمان': 'Warranty Certificates',
+    'ملاحظة فترة الضمان DLP': 'DLP Note',
+    'شهادة إتمام البناء (البلدية)': 'Building Completion Certificate (Municipality)',
+    'اعتماد الدفاع المدني': 'Civil Defense Approval',
+    'اعتماد الشركة السعودية للكهرباء': 'Saudi Electricity Company (SEC) Approval',
+    'شهادة إشغال': 'Occupancy Certificate',
+    'سجل تسليم المفاتيح': 'Keys Handover Log',
+    'لم يبدأ': 'Not started',
+    'مُقدَّم — بانتظار الجهة': 'Submitted — awaiting authority',
+    'معتمد ✓': 'Approved ✓',
+    'مرفوض': 'Rejected',
+    'التسليم والإغلاق: الشهادات، الاعتمادات الرسمية، قائمة الملاحظات، الضمانات، وفترة الضمان DLP':
+      'Handover & Closeout: certificates, regulatory approvals, punch list, warranties, and DLP',
+    'قائمة تجهيز التسليم': 'Handover Readiness Checklist',
+    'إغلاق قائمة الملاحظات (Punch List)': 'Punch List closure',
+    'ملاحظة مفتوحة': 'open item(s)',
+    'لوحة فترة الضمان (DLP)': 'Defects Liability Period (DLP) Dashboard',
+    'تقديري — حتى اعتماد شهادة التسليم النهائية': 'Estimated — until the final handover certificate is approved',
+    'بداية DLP': 'DLP Start',
+    'نهاية DLP': 'DLP End',
+    'لم تبدأ بعد': 'Not started yet',
+    'انتهت فترة الضمان': 'DLP period ended',
+    'يوم متبقٍ': 'days remaining',
+    'ملاحظات مفتوحة خلال الفترة: ': 'Open items during this period: ',
+    'تُحسب تلقائياً بعد اعتماد شهادة التسليم النهائية': 'Calculated automatically once the final handover certificate is approved',
+    'ملخص قائمة الملاحظات (Punch List) حسب المقاول': 'Punch List summary by contractor',
+    'لا توجد ملاحظات مسجّلة': 'No punch list items recorded',
+    'متابعة انتهاء الضمانات': 'Warranty Expiry Tracker',
+    'الضمان': 'Warranty',
+    'تاريخ الانتهاء': 'Expiry Date',
+    'منتهٍ': 'Expired',
+    'يوم': 'days',
+    'ساري': 'Active',
+    'لا توجد ضمانات مسجّلة بتاريخ انتهاء': 'No warranties recorded with an expiry date',
+    'مستندات التسليم': 'Handover Documents',
+    'إضافة مستند': 'Add Document',
+    'إضافة اعتماد جهة رسمية': 'Add Regulatory Approval',
+    'تقرير التسليم الموحّد (PDF)': 'Unified Handover Report (PDF)',
+    'النوع': 'Type',
+    'المستند': 'Document',
+    'ينتهي: ': 'Expires: ',
+    'لا مستندات بعد': 'No documents yet',
+    'الاعتمادات الرسمية': 'Regulatory Approvals',
+    'الجهة': 'Authority',
+    'لا اعتمادات مسجّلة بعد': 'No approvals recorded yet',
+    'تحديد كمعتمد': 'Mark as Approved',
+    'تحديد كمُقدَّم': 'Mark as Submitted',
+    'توليد PDF متاح فقط عند الاتصال بالخادم الفعلي': 'PDF generation is only available when connected to the real server',
+    '➕ إضافة مستند تسليم': '➕ Add Handover Document',
+    'المقاول (اختياري)': 'Contractor (optional)',
+    '— بلا —': '— None —',
+    'تاريخ انتهاء الضمان': 'Warranty Expiry Date',
+    'الملف': 'File',
+    '➕ إضافة اعتماد جهة رسمية': '➕ Add Regulatory Approval',
+    'الجهة (اختياري)': 'Authority (optional)',
+    'الملف (اختياري)': 'File (optional)',
+    'ملاحظات': 'Notes',
+    'أدخل عنوان المستند': 'Enter the document title',
+    '✅ أُضيف المستند': '✅ Document added',
+    '✅ أُضيف الاعتماد': '✅ Approval added',
+    '✅ تم التحديث': '✅ Updated',
+    'استيراد من CSV': 'Import from CSV',
+    'تنزيل نموذج CSV': 'Download CSV Template',
+    'الملف فارغ': 'The file is empty',
+    'لم يُعثر على عمود "الوصف" في الملف — راجع نموذج CSV': 'No "description" column found in the file — check the CSV template',
+    'تعذّرت قراءة الملف': 'Could not read the file',
+    'استُوردت': 'Imported',
+    'بند': 'item(s)',
+    'مثال: أعمال خرسانة الأساسات': 'Example: Foundation concrete works',
+
     'لا يوجد ملف مرفوع فعلياً (بيانات تجريبية)': 'No file actually uploaded (demo data)',
     '👁 فتح المستند': '👁 Open Document',
     '💬 المناقشة': '💬 Discussion',
@@ -668,7 +745,11 @@
       '<div class="grid g2"><div><label class="fl">' + I18n.t('تاريخ البدء') + '</label><input class="inp" id="nc-start" type="date"></div>' +
       '<div><label class="fl">' + I18n.t('تاريخ الانتهاء') + '</label><input class="inp" id="nc-end" type="date"></div></div>' +
       '<label class="fl">' + I18n.t('بنود جدول الكميات') + '</label><div id="nc-boq"></div>' +
+      '<div class="flex" style="gap:8px;flex-wrap:wrap">' +
       '<button class="btn ghost sm" id="nc-addrow">' + I18n.t('+ إضافة بند') + '</button>' +
+      '<button class="btn ghost sm" id="nc-csv-import">📤 ' + I18n.t('استيراد من CSV') + '</button>' +
+      '<button class="btn ghost sm" id="nc-csv-template">⬇ ' + I18n.t('تنزيل نموذج CSV') + '</button>' +
+      '<input type="file" id="nc-csv-file" accept=".csv,text/csv" style="display:none"></div>' +
       '<label class="fl">' + I18n.t('اسم مستخدم للمقاول (لإنشاء حساب دخول)') + '</label><input class="inp" id="nc-user" placeholder="cont-name">' +
       '<label class="fl">' + I18n.t('البريد الإلكتروني (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="nc-email" type="email" placeholder="name@example.com" dir="ltr">' +
       '<label class="fl">' + I18n.t('كلمة المرور (اتركها فارغة للتوليد التلقائي)') + '</label><input class="inp" id="nc-pass" placeholder="••••••••">' +
@@ -688,6 +769,83 @@
     }
     addRow();
     el.querySelector('#nc-addrow').addEventListener('click', addRow);
+
+    // ============ استيراد بنود الكميات من CSV ============
+    // بلا أي مكتبة خارجية (لتفادي ثغرات معروفة غير مُصلَحة في مكتبات قراءة Excel/xlsx على npm حالياً) —
+    // يدعم CSV مباشرة (يُصدَّر بسهولة من Excel عبر "حفظ باسم CSV")، بمطابقة عناوين أعمدة عربية/إنجليزية مرنة.
+    function parseCsv(text) {
+      const rows = [];
+      let row = [], field = '', inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i], next = text[i + 1];
+        if (inQuotes) {
+          if (c === '"' && next === '"') { field += '"'; i++; }
+          else if (c === '"') { inQuotes = false; }
+          else field += c;
+        } else if (c === '"') { inQuotes = true; }
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\r') { /* تجاهل */ }
+        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else field += c;
+      }
+      if (field.length || row.length) { row.push(field); rows.push(row); }
+      return rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
+    }
+    const COL_ALIASES = {
+      description: ['description', 'item', 'وصف', 'الوصف', 'وصف البند'],
+      unit: ['unit', 'وحدة', 'الوحدة'],
+      qty: ['qty', 'quantity', 'كمية', 'الكمية'],
+      unitPrice: ['unitprice', 'price', 'سعر', 'سعرالوحدة', 'سعر الوحدة'],
+      floor: ['floor', 'دور', 'الدور']
+    };
+    function norm(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ''); }
+    function matchColumn(header) {
+      const h = norm(header);
+      let found = null;
+      Object.keys(COL_ALIASES).forEach(function (key) {
+        if (COL_ALIASES[key].some(function (a) { return norm(a) === h; })) found = key;
+      });
+      return found;
+    }
+    function importCsvRows(rows) {
+      if (!rows.length) { toast(I18n.t('الملف فارغ'), true); return; }
+      const header = rows[0].map(matchColumn);
+      if (header.indexOf('description') === -1) { toast(I18n.t('لم يُعثر على عمود "الوصف" في الملف — راجع نموذج CSV'), true); return; }
+      const floorIds = ctx.S.projects[0].floors.map(function (f) { return f.id; });
+      let added = 0;
+      rows.slice(1).forEach(function (r) {
+        const rec = {};
+        header.forEach(function (key, i) { if (key) rec[key] = (r[i] || '').trim(); });
+        if (!rec.description) return;
+        addRow();
+        const last = boqWrap.lastElementChild;
+        if (rec.description) last.querySelector('[data-f="description"]').value = rec.description;
+        if (rec.unit) last.querySelector('[data-f="unit"]').value = rec.unit;
+        if (rec.qty) last.querySelector('[data-f="qty"]').value = rec.qty;
+        if (rec.unitPrice) last.querySelector('[data-f="unitPrice"]').value = rec.unitPrice;
+        if (rec.floor && floorIds.indexOf(rec.floor) !== -1) last.querySelector('[data-f="floor"]').value = rec.floor;
+        added++;
+      });
+      toast('✅ ' + I18n.t('استُوردت') + ' ' + added + ' ' + I18n.t('بند'));
+    }
+    el.querySelector('#nc-csv-import').addEventListener('click', function () { el.querySelector('#nc-csv-file').click(); });
+    el.querySelector('#nc-csv-file').addEventListener('change', async function (ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        importCsvRows(parseCsv(text));
+      } catch (e) { toast(I18n.t('تعذّرت قراءة الملف'), true); }
+      ev.target.value = '';
+    });
+    el.querySelector('#nc-csv-template').addEventListener('click', function () {
+      const csv = 'description,unit,qty,unitPrice,floor\n' +
+        (I18n.t('مثال: أعمال خرسانة الأساسات') + ',م3,120,450,' + (ctx.S.projects[0].floors[0] ? ctx.S.projects[0].floors[0].id : 'GF')) + '\n';
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'boq-template.csv'; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
 
     el.querySelector('#nc-save').addEventListener('click', async function () {
       const name = el.querySelector('#nc-name').value.trim();
@@ -1442,7 +1600,17 @@
   // ============ موديول المكتب الفني (خدمات استشاري المشروع) ============
   const HSE_KINDS = { violation: 'مخالفة سلامة', incident: 'حادث', observation: 'ملاحظة وقائية' };
   const SEVERITIES = { low: ['منخفضة', 'p-muted'], medium: ['متوسطة', 'p-warn'], high: ['عالية', 'p-danger'], minor: ['ثانوية', 'p-warn'], major: ['جوهرية', 'p-danger'], critical: ['حرجة', 'p-danger'] };
-  const HND_KINDS = { asbuilt: 'مخططات كما نُفذ', om: 'كتيبات تشغيل وصيانة', warranty: 'شهادات ضمان', dlp: 'فترة الضمان DLP' };
+  const HND_KINDS = {
+    prelim: 'شهادة تسليم ابتدائية', final: 'شهادة تسليم نهائية',
+    tc: 'شهادات فحص وتشغيل الأنظمة', inspection: 'تقرير المعاينة النهائية للاستشاري',
+    asbuilt: 'مخططات كما نُفذ', om: 'كتيبات تشغيل وصيانة', warranty: 'شهادات ضمان', dlp: 'ملاحظة فترة الضمان DLP'
+  };
+  // الاعتمادات الرسمية المطلوبة للتسليم (جهات حكومية/مرافق)
+  const REG_TYPES = {
+    municipality: 'شهادة إتمام البناء (البلدية)', civildefense: 'اعتماد الدفاع المدني',
+    sec: 'اعتماد الشركة السعودية للكهرباء', occupancy: 'شهادة إشغال', keys: 'سجل تسليم المفاتيح'
+  };
+  const REG_STATUS = { pending: ['لم يبدأ', 'p-muted'], submitted: ['مُقدَّم — بانتظار الجهة', 'p-warn'], approved: ['معتمد ✓', 'p-ok'], rejected: ['مرفوض', 'p-danger'] };
 
   function sev(s) { const v = SEVERITIES[s] || [s, 'p-muted']; return '<span class="pill ' + v[1] + '">' + esc(I18n.t(v[0])) + '</span>'; }
   function sigCell(it) { return it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : ''; }
@@ -1608,8 +1776,9 @@
         return { label: I18n.t('✍️ قرار'), run: function () { openReviewModal(ctx, 'valueEngineering', it); } };
       } },
 
-    { col: 'handoverDocs', name: 'التسليم والإغلاق', icon: '📦', desc: 'مخططات كما نُفذ، كتيبات التشغيل والصيانة، الضمانات، ومتابعة فترة الضمان',
+    { col: 'handoverDocs', name: 'التسليم والإغلاق', icon: '📦', desc: 'التسليم والإغلاق: الشهادات، الاعتمادات الرسمية، قائمة الملاحظات، الضمانات، وفترة الضمان DLP',
       pendingOf: function (x) { return x.status === 'pending'; },
+      custom: renderHandoverModule,
       cols: [
         { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + esc(I18n.t(HND_KINDS[it.kind] || it.kind)) + '</span>'; } },
         { h: 'المستند', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : ''); } },
@@ -1617,7 +1786,7 @@
       ],
       fields: [
         { k: 'contractorId', label: 'المقاول', type: 'contractor' },
-        { k: 'kind', label: 'النوع', type: 'select', options: [['asbuilt', 'مخططات كما نُفذ'], ['om', 'كتيبات O&M'], ['warranty', 'شهادات ضمان'], ['dlp', 'ملاحظة فترة ضمان DLP']] },
+        { k: 'kind', label: 'النوع', type: 'select', options: Object.keys(HND_KINDS).map(function (k) { return [k, HND_KINDS[k]]; }) },
         { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'العنوان', type: 'text' }
       ],
       action: function (ctx, it) {
@@ -1712,6 +1881,233 @@
     });
   }
 
+  // ============ التسليم والإغلاق (موديول موحّد) ============
+  function checklistItems(ctx) {
+    const hnd = ctx.S.handoverDocs || [], reg = ctx.S.regulatoryApprovals || [], snags = ctx.S.snags || [];
+    const openSnags = snags.filter(function (s) { return s.status === 'open'; }).length;
+    const hasApproved = function (kind) { return hnd.some(function (x) { return x.kind === kind && (x.status === 'approved' || x.status === 'approved_notes'); }); };
+    const regApproved = function (type) { return reg.some(function (x) { return x.type === type && x.status === 'approved'; }); };
+    const rows = Object.keys(HND_KINDS).filter(function (k) { return k !== 'dlp'; }).map(function (k) {
+      return { label: HND_KINDS[k], done: hasApproved(k) };
+    });
+    Object.keys(REG_TYPES).forEach(function (t) { rows.push({ label: REG_TYPES[t], done: regApproved(t) }); });
+    rows.push({ label: 'إغلاق قائمة الملاحظات (Punch List)', done: openSnags === 0, hint: openSnags ? (openSnags + ' ' + I18n.t('ملاحظة مفتوحة')) : '' });
+    return rows;
+  }
+
+  function punchSummary(ctx) {
+    const snags = ctx.S.snags || [], byC = {};
+    snags.forEach(function (s) {
+      const cid = s.contractorId || '—';
+      byC[cid] = byC[cid] || { open: 0, closed: 0 };
+      if (s.status === 'open') byC[cid].open++; else byC[cid].closed++;
+    });
+    return Object.keys(byC).map(function (cid) {
+      const t = byC[cid].open + byC[cid].closed;
+      return { name: contractorName(ctx, cid), open: byC[cid].open, closed: byC[cid].closed, pct: t ? Math.round(byC[cid].closed / t * 100) : 0 };
+    });
+  }
+
+  function warrantyTracker(ctx) {
+    const now = Date.now();
+    return (ctx.S.handoverDocs || []).filter(function (x) { return x.kind === 'warranty' && x.expiryDate; })
+      .map(function (x) {
+        const days = Math.round((new Date(x.expiryDate).getTime() - now) / 86400000);
+        return { title: x.title, expiryDate: x.expiryDate, days: days, state: days < 0 ? 'expired' : days <= 60 ? 'soon' : 'ok' };
+      }).sort(function (a, b) { return a.days - b.days; });
+  }
+
+  function dlpInfo(ctx) {
+    const P = ctx.S.projects[0];
+    const finalCert = (ctx.S.handoverDocs || []).find(function (x) { return x.kind === 'final' && (x.status === 'approved' || x.status === 'approved_notes'); });
+    const start = finalCert ? (finalCert.signDate || finalCert.date) : (P.endActual || P.endForecast);
+    if (!start) return null;
+    const startD = new Date(start);
+    if (isNaN(startD.getTime())) return null;
+    const endD = new Date(startD); endD.setFullYear(endD.getFullYear() + 1);
+    const now = new Date();
+    return {
+      start: start, end: endD.toISOString().slice(0, 10),
+      daysLeft: Math.round((endD - now) / 86400000),
+      notStarted: now < startD, ended: now > endD,
+      openSnags: (ctx.S.snags || []).filter(function (s) { return s.status === 'open'; }).length,
+      estimated: !finalCert
+    };
+  }
+
+  function openHandoverDocModal(ctx) {
+    const m = modal(
+      '<h3>' + I18n.t('➕ إضافة مستند تسليم') + '</h3>' +
+      '<label class="fl">' + I18n.t('النوع') + '</label><select class="inp" id="hd-kind">' +
+      Object.keys(HND_KINDS).map(function (k) { return '<option value="' + k + '">' + esc(I18n.t(HND_KINDS[k])) + '</option>'; }).join('') + '</select>' +
+      '<label class="fl">' + I18n.t('العنوان') + '</label><input class="inp" id="hd-title">' +
+      '<label class="fl">' + I18n.t('المقاول (اختياري)') + '</label><select class="inp" id="hd-cont"><option value="">' + I18n.t('— بلا —') + '</option>' +
+      ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>' +
+      '<div id="hd-expiry-wrap" style="display:none"><label class="fl">' + I18n.t('تاريخ انتهاء الضمان') + '</label><input class="inp" id="hd-expiry" type="date"></div>' +
+      '<label class="fl">' + I18n.t('الملف') + '</label><input class="inp" id="hd-file" type="file">' +
+      '<div class="m-actions"><button class="btn" id="hd-ok">' + I18n.t('حفظ') + '</button><button class="btn mutedb" id="hd-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    const kindSel = m.querySelector('#hd-kind'), expWrap = m.querySelector('#hd-expiry-wrap');
+    function syncExpiry() { expWrap.style.display = kindSel.value === 'warranty' ? '' : 'none'; }
+    kindSel.addEventListener('change', syncExpiry); syncExpiry();
+    m.querySelector('#hd-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#hd-ok').addEventListener('click', async function () {
+      const title = m.querySelector('#hd-title').value.trim();
+      if (!title) { toast(I18n.t('أدخل عنوان المستند'), true); return; }
+      const btn = m.querySelector('#hd-ok'); btn.disabled = true;
+      try {
+        const data = { kind: kindSel.value, title: title, contractorId: m.querySelector('#hd-cont').value || undefined };
+        const f = m.querySelector('#hd-file').files[0];
+        if (f) data.file = await Api.upload(f);
+        if (kindSel.value === 'warranty') data.expiryDate = m.querySelector('#hd-expiry').value || undefined;
+        await Api.create('handoverDocs', data);
+        m.remove(); toast(I18n.t('✅ أُضيف المستند')); ctx.refresh();
+      } catch (e) { toast(e.message, true); btn.disabled = false; }
+    });
+  }
+
+  function openRegApprovalModal(ctx) {
+    const m = modal(
+      '<h3>' + I18n.t('➕ إضافة اعتماد جهة رسمية') + '</h3>' +
+      '<label class="fl">' + I18n.t('النوع') + '</label><select class="inp" id="rg-type">' +
+      Object.keys(REG_TYPES).map(function (k) { return '<option value="' + k + '">' + esc(I18n.t(REG_TYPES[k])) + '</option>'; }).join('') + '</select>' +
+      '<label class="fl">' + I18n.t('الجهة (اختياري)') + '</label><input class="inp" id="rg-authority">' +
+      '<label class="fl">' + I18n.t('الملف (اختياري)') + '</label><input class="inp" id="rg-file" type="file">' +
+      '<label class="fl">' + I18n.t('ملاحظات') + '</label><textarea class="inp" id="rg-notes" rows="2"></textarea>' +
+      '<div class="m-actions"><button class="btn" id="rg-ok">' + I18n.t('حفظ') + '</button><button class="btn mutedb" id="rg-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#rg-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#rg-ok').addEventListener('click', async function () {
+      const btn = m.querySelector('#rg-ok'); btn.disabled = true;
+      try {
+        const type = m.querySelector('#rg-type').value;
+        const data = { type: type, title: REG_TYPES[type], authority: m.querySelector('#rg-authority').value, notes: m.querySelector('#rg-notes').value, status: 'pending' };
+        const f = m.querySelector('#rg-file').files[0];
+        if (f) data.file = await Api.upload(f);
+        await Api.create('regulatoryApprovals', data);
+        m.remove(); toast(I18n.t('✅ أُضيف الاعتماد')); ctx.refresh();
+      } catch (e) { toast(e.message, true); btn.disabled = false; }
+    });
+  }
+
+  function renderHandoverModule(el, ctx) {
+    const checklist = checklistItems(ctx);
+    const doneCount = checklist.filter(function (r) { return r.done; }).length;
+    const punch = punchSummary(ctx);
+    const warranties = warrantyTracker(ctx);
+    const dlp = dlpInfo(ctx);
+    const hnd = (ctx.S.handoverDocs || []).slice().reverse();
+    const reg = (ctx.S.regulatoryApprovals || []).slice().reverse();
+
+    el.innerHTML =
+      '<div class="grid g2 mb">' +
+      '<div class="card"><h3>✅ ' + I18n.t('قائمة تجهيز التسليم') + ' <span class="hint num">' + doneCount + '/' + checklist.length + '</span></h3>' +
+      checklist.map(function (r) {
+        return '<div class="flex" style="justify-content:space-between;padding:7px 2px;border-bottom:1px dashed var(--border)">' +
+          '<span class="small">' + (r.done ? '✅' : '⬜') + ' ' + esc(I18n.t(r.label)) + '</span>' +
+          (r.hint ? '<span class="small muted">' + esc(r.hint) + '</span>' : '') + '</div>';
+      }).join('') + '</div>' +
+
+      '<div class="card">' +
+      (dlp ?
+        '<h3>🛡️ ' + I18n.t('لوحة فترة الضمان (DLP)') + (dlp.estimated ? ' <span class="hint">' + I18n.t('تقديري — حتى اعتماد شهادة التسليم النهائية') + '</span>' : '') + '</h3>' +
+        '<div class="grid g2" style="gap:10px">' +
+        '<div class="kpi card" style="padding:10px"><div class="lbl small">' + I18n.t('بداية DLP') + '</div><div class="val num" style="font-size:16px">' + esc(dlp.start) + '</div></div>' +
+        '<div class="kpi card" style="padding:10px"><div class="lbl small">' + I18n.t('نهاية DLP') + '</div><div class="val num" style="font-size:16px">' + esc(dlp.end) + '</div></div>' +
+        '</div>' +
+        '<div class="small mt">' +
+        (dlp.notStarted ? '<span class="pill p-muted">' + I18n.t('لم تبدأ بعد') + '</span>'
+          : dlp.ended ? '<span class="pill p-ok">' + I18n.t('انتهت فترة الضمان') + '</span>'
+          : '<span class="pill p-warn num">' + dlp.daysLeft + ' ' + I18n.t('يوم متبقٍ') + '</span>') +
+        ' · ' + I18n.t('ملاحظات مفتوحة خلال الفترة: ') + '<b class="num">' + dlp.openSnags + '</b></div>'
+        : '<h3>🛡️ ' + I18n.t('لوحة فترة الضمان (DLP)') + '</h3><div class="empty small"><div class="e-ico">🛡️</div>' + I18n.t('تُحسب تلقائياً بعد اعتماد شهادة التسليم النهائية') + '</div>') +
+      '</div></div>' +
+
+      '<div class="grid g2 mb">' +
+      '<div class="card"><h3>📌 ' + I18n.t('ملخص قائمة الملاحظات (Punch List) حسب المقاول') + '</h3>' +
+      (punch.length ? punch.map(function (p) {
+        return '<div style="margin-bottom:10px"><div class="flex" style="justify-content:space-between;font-size:12.5px"><span>' + esc(p.name) + '</span>' +
+          '<span class="muted">' + p.closed + '/' + (p.closed + p.open) + '</span></div>' +
+          '<div class="bar" style="margin-top:4px"><i style="width:' + p.pct + '%"></i></div></div>';
+      }).join('') : '<div class="empty small"><div class="e-ico">📌</div>' + I18n.t('لا توجد ملاحظات مسجّلة') + '</div>') + '</div>' +
+
+      '<div class="card"><h3>⏳ ' + I18n.t('متابعة انتهاء الضمانات') + '</h3>' +
+      (warranties.length ? '<div class="tbl-wrap" style="max-height:220px;overflow-y:auto"><table class="tbl"><thead><tr><th>' + I18n.t('الضمان') + '</th><th>' + I18n.t('تاريخ الانتهاء') + '</th><th></th></tr></thead><tbody>' +
+        warranties.map(function (w) {
+          const pill2 = w.state === 'expired' ? '<span class="pill p-danger">' + I18n.t('منتهٍ') + '</span>'
+            : w.state === 'soon' ? '<span class="pill p-warn num">' + w.days + ' ' + I18n.t('يوم') + '</span>'
+            : '<span class="pill p-ok">' + I18n.t('ساري') + '</span>';
+          return '<tr><td class="small">' + esc(w.title) + '</td><td class="small muted num">' + esc(w.expiryDate) + '</td><td>' + pill2 + '</td></tr>';
+        }).join('') + '</tbody></table></div>' : '<div class="empty small"><div class="e-ico">⏳</div>' + I18n.t('لا توجد ضمانات مسجّلة بتاريخ انتهاء') + '</div>') + '</div>' +
+      '</div>' +
+
+      '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap;gap:8px">' +
+      '<h3 style="margin:0">📦 ' + I18n.t('مستندات التسليم') + '</h3>' +
+      '<div class="flex" style="gap:8px"><button class="btn ghost sm" id="ho-add-doc">➕ ' + I18n.t('إضافة مستند') + '</button>' +
+      '<button class="btn ghost sm" id="ho-add-reg">➕ ' + I18n.t('إضافة اعتماد جهة رسمية') + '</button>' +
+      '<button class="btn sm" id="ho-pdf">📄 ' + I18n.t('تقرير التسليم الموحّد (PDF)') + '</button></div></div>' +
+      (hnd.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>' + I18n.t('النوع') + '</th><th>' + I18n.t('المستند') + '</th><th>' + I18n.t('المقاول') + '</th><th>' + I18n.t('الحالة') + '</th><th></th></tr></thead><tbody>' +
+        hnd.map(function (it) {
+          return '<tr><td><span class="pill p-muted">' + esc(I18n.t(HND_KINDS[it.kind] || it.kind)) + '</span></td>' +
+            '<td class="small">' + esc(it.title) + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : '') + (it.expiryDate ? '<div class="small muted">' + I18n.t('ينتهي: ') + esc(it.expiryDate) + '</div>' : '') + '</td>' +
+            '<td class="small">' + (it.contractorId ? esc(contractorName(ctx, it.contractorId)) : '<span class="muted">—</span>') + '</td>' +
+            '<td>' + pill(it.status) + '</td>' +
+            '<td>' + (it.status === 'pending' ? '<button class="btn sm" data-hdreview="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') + '</td></tr>';
+        }).join('') + '</tbody></table></div>' : '<div class="empty small mt"><div class="e-ico">📦</div>' + I18n.t('لا مستندات بعد') + '</div>') + '</div>' +
+
+      '<div class="card"><h3>🏛️ ' + I18n.t('الاعتمادات الرسمية') + '</h3>' +
+      (reg.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>' + I18n.t('النوع') + '</th><th>' + I18n.t('الجهة') + '</th><th>' + I18n.t('الحالة') + '</th><th>' + I18n.t('التاريخ') + '</th><th></th></tr></thead><tbody>' +
+        reg.map(function (it) {
+          const st = REG_STATUS[it.status] || [it.status, 'p-muted'];
+          return '<tr><td class="small"><b>' + esc(I18n.t(REG_TYPES[it.type] || it.title)) + '</b>' + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : '') + '</td>' +
+            '<td class="small">' + esc(it.authority || '—') + '</td>' +
+            '<td><span class="pill ' + st[1] + '">' + esc(I18n.t(st[0])) + '</span></td>' +
+            '<td class="small muted num">' + esc(it.approvedDate || it.submittedDate || it.date || '') + '</td>' +
+            '<td>' + regStatusButtons(it) + '</td></tr>';
+        }).join('') + '</tbody></table></div>' : '<div class="empty small mt"><div class="e-ico">🏛️</div>' + I18n.t('لا اعتمادات مسجّلة بعد') + '</div>') + '</div>';
+
+    el.querySelector('#ho-add-doc').addEventListener('click', function () { openHandoverDocModal(ctx); });
+    el.querySelector('#ho-add-reg').addEventListener('click', function () { openRegApprovalModal(ctx); });
+    el.querySelectorAll('[data-hdreview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = hnd.find(function (x) { return x.id === b.getAttribute('data-hdreview'); });
+        if (it) openReviewModal(ctx, 'handoverDocs', it);
+      });
+    });
+    el.querySelectorAll('[data-regnext]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        const status = b.getAttribute('data-regstatus');
+        const patch = { status: status };
+        if (status === 'approved') patch.approvedDate = new Date().toISOString().slice(0, 10);
+        if (status === 'submitted') patch.submittedDate = new Date().toISOString().slice(0, 10);
+        try { await Api.update('regulatoryApprovals', b.getAttribute('data-regnext'), patch); toast(I18n.t('✅ تم التحديث')); ctx.refresh(); }
+        catch (e) { toast(e.message, true); }
+      });
+    });
+    const pdfBtn = el.querySelector('#ho-pdf');
+    pdfBtn.addEventListener('click', async function () {
+      if (Api.demo) { toast(I18n.t('توليد PDF متاح فقط عند الاتصال بالخادم الفعلي'), true); return; }
+      pdfBtn.disabled = true;
+      try {
+        const token = sessionStorage.getItem('bassir-token');
+        const res = await fetch('/api/actions/handover-report?lang=' + I18n.getLang(), { headers: { Authorization: 'Bearer ' + token } });
+        if (!res.ok) { const e = await res.json().catch(function () { return {}; }); throw new Error(e.error || 'فشل توليد التقرير'); }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'Handover-Report.pdf'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      } catch (e) { toast(e.message, true); }
+      pdfBtn.disabled = false;
+    });
+  }
+
+  function regStatusButtons(it) {
+    if (it.status === 'approved' || it.status === 'rejected') return '';
+    const next = it.status === 'submitted' ? 'approved' : 'submitted';
+    const label = next === 'approved' ? '✅ ' + I18n.t('تحديد كمعتمد') : '📤 ' + I18n.t('تحديد كمُقدَّم');
+    return '<button class="btn ghost sm" data-regnext="' + it.id + '" data-regstatus="' + next + '">' + label + '</button>';
+  }
+
   function renderTechOffice(el, ctx) {
     const t = TECH_TABS.find(function (x) { return x.col === techState.tab; }) || TECH_TABS[0];
     const items = (ctx.S[t.col] || []).slice().sort(function (a, b) {
@@ -1743,6 +2139,7 @@
           (n ? '<span class="n">' + n + '</span>' : '') + '</div>';
       }).join('') + '</div>' +
 
+      (t.custom ? '<div id="tech-custom"></div>' :
       '<div class="card"><div class="flex" style="justify-content:space-between;margin-bottom:4px">' +
       '<h3 style="margin:0">' + t.icon + ' ' + esc(I18n.t(t.name)) + '</h3>' +
       '<button class="btn sm" id="tt-add">' + I18n.t('➕ إضافة') + '</button></div>' +
@@ -1764,11 +2161,12 @@
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا سجلات بعد') + '</div>') +
-      '</div>';
+      '</div>');
 
     el.querySelectorAll('[data-ttab]').forEach(function (x) {
       x.addEventListener('click', function () { techState.tab = x.getAttribute('data-ttab'); renderTechOffice(el, ctx); });
     });
+    if (t.custom) { t.custom(el.querySelector('#tech-custom'), ctx); return; }
     el.querySelector('#tt-add').addEventListener('click', function () { techAddModal(ctx, t); });
     el.querySelectorAll('[data-tact]').forEach(function (b) {
       b.addEventListener('click', function () {

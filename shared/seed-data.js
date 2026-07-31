@@ -501,7 +501,8 @@
 
     db.notifications = [];
     db.comments = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 9, docSeq: docSeq };
+    db.regulatoryApprovals = [];
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 10, docSeq: docSeq };
 
     return db;
   }

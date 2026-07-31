@@ -17,7 +17,7 @@
   // مجموعات المكتب الفني المرتبطة بمقاول محدد (يرى المقاول ما يخصه فقط)
   const TECH_FILTERED = ['rfis', 'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests'];
   // مجموعات مكتب فني عامة لا تُعرض للمقاول
-  const TECH_INTERNAL = ['meetings', 'correspondence'];
+  const TECH_INTERNAL = ['meetings', 'correspondence', 'regulatoryApprovals'];
   // الردود/المناقشة على أي طلب — تخص المقاول صاحب الطلب فقط (تُرشَّح مثل بقية مجموعاته)
   const CONTRACTOR_OWNED = APPROVAL_COLLECTIONS.concat(TECH_FILTERED, ['comments']);
 
@@ -28,7 +28,8 @@
     changeOrders: 'CO', payments: 'PAY', methodStatements: 'MS', claims: 'CLM',
     valueEngineering: 'VE', handoverDocs: 'HND', planDrawings: 'DWG',
     rfis: 'RFI', ncrs: 'NCR', siteInstructions: 'SI', snags: 'SNG',
-    hseReports: 'HSE', materialTests: 'MTT', meetings: 'MOM', correspondence: 'COR'
+    hseReports: 'HSE', materialTests: 'MTT', meetings: 'MOM', correspondence: 'COR',
+    regulatoryApprovals: 'REG'
   };
 
   // الحالة الابتدائية الافتراضية لكل مجموعة
@@ -47,7 +48,8 @@
     materialTests: 'اختبار مواد', meetings: 'محضر اجتماع', correspondence: 'خطاب',
     dailyReports: 'تقرير يومي', weeklyReports: 'تقرير أسبوعي', monthlyReports: 'تقرير شهري',
     boqItems: 'بند كميات', planDrawings: 'مخطط مشروع', cameras: 'كاميرا',
-    users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة', comments: 'رد'
+    users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة', comments: 'رد',
+    scheduleTasks: 'مرحلة مشروع', regulatoryApprovals: 'اعتماد جهة رسمية'
   };
 
   function labelOf(collection, item) {
@@ -62,7 +64,7 @@
     valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
     siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
     meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
-    monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', files: 'FIL'
+    monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', files: 'FIL', regulatoryApprovals: 'REG'
   };
 
   // من يستطيع إنشاء عناصر في كل مجموعة
@@ -97,7 +99,9 @@
     materialTests: ['consultant', 'admin'],
     meetings: ['consultant', 'admin'],
     correspondence: ['consultant', 'admin'],
-    comments: ['contractor', 'consultant', 'admin']
+    comments: ['contractor', 'consultant', 'admin'],
+    scheduleTasks: ['consultant', 'admin'],
+    regulatoryApprovals: ['consultant', 'admin']
   };
 
   function createCore(db, persist, opts) {
@@ -302,6 +306,7 @@
         persist();
         return Object.assign(stripPassword(item), { password: plain }); // تُعرض مرة واحدة فقط
       }
+      db[collection] = db[collection] || []; // احتياط لأي مجموعة جديدة لم تُهيَّأ صراحةً في seed-data.js
       db[collection].push(item);
       audit(user, 'create', labelOf(collection, item));
       persist();

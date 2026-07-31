@@ -14,5 +14,9 @@
   "optionalDependencies": {
     "@anthropic-ai/sdk": "^0.112.0"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "arabic-reshaper": "^1.1.0",
+    "pdfkit": "^0.19.1"
+  }
 }
