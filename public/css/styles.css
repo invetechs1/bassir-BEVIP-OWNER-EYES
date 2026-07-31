@@ -1,0 +1,354 @@
+/* بصير - عيون المالك | التصميم الأساسي (RTL - داكن) */
+:root {
+  --bg: #0b0e14;
+  --bg2: #0f131c;
+  --panel: #131926;
+  --panel2: #182032;
+  --border: #222c40;
+  --accent: #e0a458;
+  --accent2: #f2c078;
+  --text: #e9ecf3;
+  --muted: #8b95a8;
+  --ok: #2dd4a0;
+  --warn: #f2c94c;
+  --danger: #ef5d75;
+  --info: #4cc9f0;
+  --radius: 14px;
+  --shadow: 0 10px 30px rgba(0, 0, 0, .35);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", Tahoma, "Noto Kufi Arabic", "Cairo", Arial, sans-serif;
+  font-size: 15px;
+}
+
+/* الاتجاه (RTL/LTR) يُضبط ديناميكياً عبر [dir] على <html> ويُورَّث تلقائياً */
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #2a3550; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ============ شاشة الدخول ============ */
+.login-wrap {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  background:
+    radial-gradient(900px 500px at 80% -10%, rgba(224, 164, 88, .12), transparent 60%),
+    radial-gradient(700px 500px at 10% 110%, rgba(76, 201, 240, .08), transparent 60%),
+    var(--bg);
+  padding: 24px;
+}
+
+.login-card {
+  width: 420px; max-width: 100%;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 36px 32px;
+  box-shadow: var(--shadow);
+}
+
+.login-logo { text-align: center; margin-bottom: 8px; font-size: 44px; }
+.login-title { text-align: center; font-size: 26px; font-weight: 800; letter-spacing: .5px; }
+.login-title small { display: block; color: var(--accent); font-size: 13px; font-weight: 600; margin-top: 6px; letter-spacing: 2px; }
+.login-sub { text-align: center; color: var(--muted); font-size: 13px; margin: 10px 0 26px; line-height: 1.8; }
+
+.demo-accounts { margin-top: 22px; border-top: 1px dashed var(--border); padding-top: 16px; }
+.demo-accounts h4 { font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.demo-chip {
+  display: inline-block; margin: 3px; padding: 6px 12px;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 999px;
+  font-size: 12px; cursor: pointer; color: var(--text); transition: .15s;
+}
+.demo-chip:hover { border-color: var(--accent); color: var(--accent2); }
+
+/* ============ الهيكل العام ============ */
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 258px; flex-shrink: 0;
+  background: linear-gradient(180deg, #101522, #0d111b);
+  border-inline-end: 1px solid var(--border);
+  padding: 20px 14px;
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+
+.brand { display: flex; align-items: center; gap: 12px; padding: 6px 10px 20px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.brand .eye { font-size: 30px; filter: drop-shadow(0 0 12px rgba(224, 164, 88, .6)); }
+.brand b { font-size: 19px; display: block; }
+.brand small { color: var(--accent); font-size: 10.5px; letter-spacing: 1.5px; }
+
+.nav-sec { font-size: 10.5px; color: var(--muted); margin: 14px 10px 6px; letter-spacing: 1px; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; border-radius: 10px; cursor: pointer;
+  color: #c6cdda; font-size: 14px; margin-bottom: 2px;
+  border: 1px solid transparent; transition: .15s;
+}
+.nav-item:hover { background: rgba(224, 164, 88, .07); color: var(--text); }
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(224, 164, 88, .16), rgba(224, 164, 88, .04));
+  border-color: rgba(224, 164, 88, .35); color: var(--accent2); font-weight: 700;
+}
+.nav-item .ico { width: 22px; text-align: center; }
+.nav-item .badge { margin-inline-start: auto; background: var(--danger); color: #fff; border-radius: 999px; font-size: 11px; padding: 1px 8px; }
+
+.side-user { margin-top: auto; border-top: 1px solid var(--border); padding-top: 14px; }
+.side-user .who { font-size: 13px; font-weight: 700; }
+.side-user .role { font-size: 11.5px; color: var(--accent); margin: 3px 0 10px; }
+
+/* ============ مبدّل اللغة ============ */
+.lang-switch { display: flex; gap: 6px; margin-bottom: 14px; }
+.lang-btn {
+  flex: 1; text-align: center; padding: 7px 8px; border-radius: 8px; cursor: pointer;
+  font-size: 12px; font-weight: 700; border: 1px solid var(--border); color: var(--muted);
+  background: var(--bg2); transition: .15s; font-family: inherit;
+}
+.lang-btn:hover { border-color: var(--accent); color: var(--text); }
+.lang-btn.active { background: rgba(224, 164, 88, .16); border-color: var(--accent); color: var(--accent2); }
+.login-lang-switch { position: absolute; top: 18px; inset-inline-end: 18px; }
+.login-wrap { position: relative; }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.topbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 18px 28px; border-bottom: 1px solid var(--border);
+  background: rgba(15, 19, 28, .8); backdrop-filter: blur(8px);
+  position: sticky; top: 0; z-index: 20;
+}
+.topbar h1 { font-size: 20px; font-weight: 800; }
+.topbar .proj { color: var(--muted); font-size: 13px; }
+.topbar .spacer { flex: 1; }
+
+.content { padding: 26px 28px 60px; }
+
+/* ============ مكونات ============ */
+.grid { display: grid; gap: 18px; }
+.g2 { grid-template-columns: repeat(2, 1fr); }
+.g3 { grid-template-columns: repeat(3, 1fr); }
+.g4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1100px) { .g4 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 760px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } .sidebar { display: none; } }
+
+.card {
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; box-shadow: 0 4px 18px rgba(0, 0, 0, .22);
+}
+.card h3 { font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.card h3 .hint { font-size: 11.5px; color: var(--muted); font-weight: 400; margin-inline-start: auto; }
+
+.kpi { position: relative; overflow: hidden; }
+.kpi .lbl { color: var(--muted); font-size: 12.5px; }
+.kpi .val { font-size: 26px; font-weight: 800; margin: 8px 0 4px; }
+.kpi .sub { font-size: 12px; color: var(--muted); }
+.kpi .trend-up { color: var(--ok); } .kpi .trend-down { color: var(--danger); }
+.kpi::after {
+  content: ''; position: absolute; inset-inline-start: 0; top: 0; bottom: 0; width: 4px;
+  background: var(--accent); opacity: .8; border-start-end-radius: 4px; border-end-end-radius: 4px;
+}
+.kpi.k-ok::after { background: var(--ok); } .kpi.k-warn::after { background: var(--warn); }
+.kpi.k-danger::after { background: var(--danger); } .kpi.k-info::after { background: var(--info); }
+
+table.tbl { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.tbl th { text-align: start; color: var(--muted); font-size: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.tbl td { padding: 11px 12px; border-bottom: 1px solid rgba(34, 44, 64, .55); vertical-align: middle; }
+.tbl tr:hover td { background: rgba(224, 164, 88, .04); }
+.tbl-wrap { overflow-x: auto; }
+
+.pill { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+.pill.p-ok { background: rgba(45, 212, 160, .14); color: var(--ok); }
+.pill.p-warn { background: rgba(242, 201, 76, .14); color: var(--warn); }
+.pill.p-danger { background: rgba(239, 93, 117, .14); color: var(--danger); }
+.pill.p-info { background: rgba(76, 201, 240, .14); color: var(--info); }
+.pill.p-muted { background: rgba(139, 149, 168, .14); color: var(--muted); }
+
+.bar { height: 8px; background: #1a2234; border-radius: 99px; overflow: hidden; min-width: 90px; }
+.bar > i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.bar.b-ok > i { background: linear-gradient(90deg, #1fae85, var(--ok)); }
+.bar.b-danger > i { background: linear-gradient(90deg, #d4405c, var(--danger)); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(180deg, var(--accent2), var(--accent));
+  color: #201505; font-weight: 800; font-size: 13.5px;
+  border: 0; border-radius: 10px; padding: 10px 18px; cursor: pointer;
+  transition: .15s; font-family: inherit;
+}
+.btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn.sm { padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+.btn.ghost { background: transparent; color: var(--accent2); border: 1px solid rgba(224, 164, 88, .5); }
+.btn.ok { background: linear-gradient(180deg, #35e0ac, #1fae85); color: #04241a; }
+.btn.danger { background: linear-gradient(180deg, #f27085, #d4405c); color: #2b0710; }
+.btn.mutedb { background: var(--panel2); color: var(--text); border: 1px solid var(--border); }
+.btn.block { width: 100%; justify-content: center; }
+
+input.inp, select.inp, textarea.inp {
+  width: 100%; background: var(--bg2); color: var(--text);
+  border: 1px solid var(--border); border-radius: 10px;
+  padding: 11px 14px; font-size: 14px; font-family: inherit; outline: none; transition: .15s;
+}
+.inp:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(224, 164, 88, .15); }
+label.fl { display: block; font-size: 12.5px; color: var(--muted); margin: 12px 0 6px; }
+textarea.inp { resize: vertical; min-height: 80px; }
+
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 18px; }
+.tab {
+  padding: 8px 16px; border-radius: 999px; cursor: pointer; font-size: 13px;
+  background: var(--panel); border: 1px solid var(--border); color: #c6cdda; transition: .15s;
+}
+.tab:hover { border-color: var(--accent); }
+.tab.active { background: rgba(224, 164, 88, .15); border-color: var(--accent); color: var(--accent2); font-weight: 700; }
+.tab .n { background: var(--danger); color: #fff; border-radius: 99px; padding: 0 7px; font-size: 11px; margin-inline-end: 6px; }
+
+/* ============ رؤية المشروع (المخططات) ============ */
+.disc-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.disc-chip {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 12px; cursor: pointer; font-size: 12.5px;
+  background: var(--panel); border: 1px solid var(--border); transition: .15s;
+}
+.disc-chip:hover { transform: translateY(-1px); }
+.disc-chip.active { border-color: var(--disc-color, var(--accent)); background: color-mix(in srgb, var(--disc-color, var(--accent)) 14%, transparent); font-weight: 700; }
+.disc-chip .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--disc-color, var(--accent)); }
+
+.floor-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+
+.plan-stage { background: #0a0d13; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; position: relative; }
+.plan-stage svg { width: 100%; height: auto; display: block; }
+
+.legend { display: flex; gap: 18px; align-items: center; font-size: 12px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
+.legend .sw { display: inline-block; width: 26px; height: 12px; border-radius: 4px; vertical-align: middle; margin-inline-end: 6px; }
+
+.zone-panel { max-height: 560px; overflow-y: auto; }
+
+/* مناطق المخطط */
+.zone-shape { cursor: pointer; transition: filter .2s; }
+.zone-shape:hover { filter: brightness(1.35); }
+
+/* ============ BIM ============ */
+.bim-stage { background: radial-gradient(600px 400px at 50% 20%, #131a2a, #0a0d13); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+.bim-floor { cursor: pointer; transition: .2s; }
+.bim-floor:hover { filter: brightness(1.3); }
+
+/* ============ AI ============ */
+.ai-item { display: flex; gap: 14px; padding: 14px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; background: var(--bg2); }
+.ai-item .ai-ico { font-size: 22px; }
+.ai-item.sev-warn { border-color: rgba(242, 201, 76, .4); }
+.ai-item.sev-alert { border-color: rgba(239, 93, 117, .5); background: rgba(239, 93, 117, .05); }
+.ai-item p { font-size: 13.5px; line-height: 1.9; }
+.ai-item .meta { font-size: 11.5px; color: var(--muted); margin-top: 6px; }
+
+.photo-card { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; background: var(--bg2); }
+.photo-card .ph { height: 130px; display: flex; align-items: center; justify-content: center; font-size: 40px; background: linear-gradient(135deg, #182032, #10151f); border-bottom: 1px solid var(--border); position: relative; }
+.photo-card .ph .scan { position: absolute; inset: 0; background: linear-gradient(180deg, transparent, rgba(76, 201, 240, .12), transparent); animation: scan 3s infinite; }
+@keyframes scan { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+.photo-card .info { padding: 12px; font-size: 12.5px; }
+.photo-card .aiTag { font-size: 11px; color: var(--info); margin-top: 6px; line-height: 1.7; }
+
+/* ============ كاميرات الموقع ============ */
+.cam-feed {
+  position: relative; height: 230px; overflow: hidden;
+  background:
+    radial-gradient(500px 200px at 50% 100%, rgba(224, 164, 88, .07), transparent),
+    linear-gradient(180deg, #0c111c 0%, #10182a 55%, #0b0f18 100%);
+  border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.cam-feed.cam-off { background: repeating-linear-gradient(0deg, #0b0e14, #0b0e14 3px, #10141d 3px, #10141d 6px); }
+.cam-scene { position: absolute; inset: 0; }
+.cam-scene span { position: absolute; }
+.cam-bld { font-size: 84px; bottom: 6px; inset-inline-start: 50%; transform: translateX(50%); opacity: .8; }
+.cam-crane { font-size: 56px; bottom: 60px; inset-inline-start: 22%; animation: sway 6s ease-in-out infinite; transform-origin: bottom; opacity: .85; }
+.cam-wrk { font-size: 22px; bottom: 10px; inset-inline-start: 68%; animation: walk 9s linear infinite; }
+@keyframes sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes walk { 0% { inset-inline-start: 72%; } 50% { inset-inline-start: 30%; } 100% { inset-inline-start: 72%; } }
+.cam-osd {
+  position: absolute; inset-inline: 0; bottom: 0; display: flex; justify-content: space-between;
+  padding: 6px 12px; font-size: 10.5px; color: #9fe8c9;
+  background: linear-gradient(0deg, rgba(5, 8, 14, .85), transparent);
+  font-family: Consolas, monospace; direction: ltr;
+}
+.rec-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ff4d4d; animation: blink 1.2s infinite; vertical-align: middle; }
+@keyframes blink { 0%, 60% { opacity: 1; } 61%, 100% { opacity: .2; } }
+@media (prefers-reduced-motion: reduce) { .cam-crane, .cam-wrk, .rec-dot, .photo-card .ph .scan { animation: none; } }
+
+/* شريط أدوار عين المالك */
+.eye-floor {
+  flex: 1; min-width: 74px; text-align: center; padding: 12px 6px;
+  border-radius: 10px; border: 1px solid #26314a; cursor: pointer; transition: .15s;
+  display: flex; flex-direction: column; gap: 4px; font-size: 11px;
+}
+.eye-floor:hover { transform: translateY(-3px); filter: brightness(1.2); }
+.eye-floor b { font-size: 15px; }
+
+/* ============ عارض المخططات مع الترميز ============ */
+.dv-wrap {
+  width: min(1200px, 96vw); max-height: 94vh; overflow-y: auto;
+  background: linear-gradient(180deg, var(--panel2), var(--panel));
+  border: 1px solid var(--border); border-radius: 18px; padding: 18px 20px;
+  box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px;
+}
+.dv-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.dv-tools {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px;
+}
+.dv-tool {
+  background: var(--panel); border: 1px solid var(--border); color: var(--text);
+  border-radius: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; font-family: inherit;
+}
+.dv-tool.active { border-color: var(--accent); color: var(--accent2); background: rgba(224, 164, 88, .12); font-weight: 700; }
+.dv-color { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; }
+.dv-color.active { border-color: #fff; box-shadow: 0 0 0 2px var(--accent); }
+.dv-stage-wrap { background: #0a0d13; border: 1px solid var(--border); border-radius: 12px; padding: 8px; overflow: auto; max-height: 58vh; }
+.dv-stage { position: relative; display: inline-block; min-width: 100%; }
+.dv-stage img { display: block; width: 100%; user-select: none; border-radius: 6px; }
+.dv-stage canvas { position: absolute; inset: 0; touch-action: none; }
+.dv-sheet {
+  min-height: 480px; background:
+    linear-gradient(#e9e5da 1px, transparent 1px), linear-gradient(90deg, #e9e5da 1px, transparent 1px),
+    #f5f2ea;
+  background-size: 28px 28px; border: 10px solid #fff; outline: 2px solid #c9c2b2;
+  border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+}
+.dv-sheet-title { color: #333; font-weight: 800; font-size: 20px; }
+.dv-sheet-sub { color: #666; font-size: 13px; direction: ltr; }
+.dv-sheet-note { color: #999; font-size: 11px; }
+.dv-side { display: flex; flex-direction: column; gap: 10px; }
+.dv-pins { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+.dv-pin-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.dv-pin-n {
+  min-width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  color: #10151f; font-weight: 800; font-size: 12px;
+}
+.dv-review { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+
+/* ============ نوافذ ورسائل ============ */
+.modal-back { position: fixed; inset: 0; background: rgba(5, 8, 14, .7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
+.modal { width: 560px; max-width: 100%; max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--border); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }
+.modal h3 { margin-bottom: 6px; }
+.modal .m-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; }
+.m-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+
+.toast-wrap { position: fixed; bottom: 24px; inset-inline-end: 24px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
+.toast { background: var(--panel2); border: 1px solid var(--border); border-inline-start: 4px solid var(--ok); border-radius: 12px; padding: 14px 18px; font-size: 13.5px; box-shadow: var(--shadow); animation: pop .25s; max-width: 380px; }
+.toast.t-err { border-inline-start-color: var(--danger); }
+@keyframes pop { from { transform: translateY(10px); opacity: 0; } }
+
+.empty { text-align: center; color: var(--muted); padding: 40px 10px; font-size: 13.5px; }
+.empty .e-ico { font-size: 36px; margin-bottom: 10px; }
+
+.sig { font-size: 12px; color: var(--accent2); border-top: 1px dashed var(--border); margin-top: 8px; padding-top: 8px; }
+
+.muted { color: var(--muted); } .small { font-size: 12px; }
+.mt { margin-top: 16px; } .mb { margin-bottom: 16px; }
+.flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.num { font-variant-numeric: tabular-nums; }

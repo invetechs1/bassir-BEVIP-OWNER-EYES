@@ -1,0 +1,9 @@
+node_modules/
+data/
+*.log
+.DS_Store
+.env
+
+# يحتوي كلمة مرور الخادم بنص صريح — لا يُرفَع لـ git (راجع DEPLOYMENT.md)
+deploy.sh
+*.tar
