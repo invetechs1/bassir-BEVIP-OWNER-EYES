@@ -206,8 +206,13 @@
     const total = items.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
     const earned = items.reduce(function (a, b) { return a + b.qty * b.unitPrice * b.progress / 100; }, 0);
 
+    const boqFiles = (ctx.S.files || []).filter(function (f) { return f.category === 'جداول الكميات BOQ'; });
     el.innerHTML =
-      '<div class="card"><h3>📊 جدول الكميات BOQ <span class="hint">تحديث نسب الإنجاز هنا يغيّر سطوع المخططات مباشرة</span></h3>' +
+      '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+      '<h3 style="margin:0">📊 جدول الكميات BOQ <span class="hint">تحديث نسب الإنجاز هنا يغيّر سطوع المخططات مباشرة</span></h3>' +
+      (canEdit ? '<div class="flex"><input class="inp" id="bq-file" type="file" accept=".xlsx,.xls,.csv,.pdf" style="max-width:220px">' +
+        '<button class="btn sm" id="bq-upload">⬆ رفع جدول كميات</button></div>' : '') + '</div>' +
+      (boqFiles.length ? '<div class="small muted mb">📎 جداول مرفوعة: ' + boqFiles.map(function (f) { return (f.url ? '<a href="' + esc(f.url) + '" target="_blank">' + esc(f.name) + '</a>' : esc(f.name)) + ' <span class="muted num">(' + esc(f.docCode || '') + ')</span>'; }).join(' · ') + '</div>' : '') +
       '<div class="flex mb"><select class="inp" id="bq-filter" style="max-width:320px"><option value="all">كل المقاولين</option>' +
       ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '"' + (boqState.contractor === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') +
       '</select>' +
@@ -231,6 +236,16 @@
 
     el.querySelector('#bq-filter').addEventListener('change', function (e) {
       boqState.contractor = e.target.value; renderBoq(el, ctx);
+    });
+    const bqUp = el.querySelector('#bq-upload');
+    if (bqUp) bqUp.addEventListener('click', async function () {
+      const f = el.querySelector('#bq-file').files[0];
+      if (!f) { toast('اختر ملف جدول الكميات أولاً', true); return; }
+      try {
+        await Api.upload(f, { category: 'جداول الكميات BOQ' });
+        toast('✅ رُفع جدول الكميات وكُوّد وربط بالمشروع — حدّث نسب البنود لتُربط بالإنجاز');
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
     });
     el.querySelectorAll('[data-bq]').forEach(function (r) {
       r.addEventListener('input', function () {
@@ -1320,7 +1335,9 @@
     ['dailyReports', '📝 تقرير يومي', 'DDR'], ['weeklyReports', '🗓️ تقرير أسبوعي', 'WKR'],
     ['monthlyReports', '📊 تقرير شهري', 'MOR'], ['planDrawings', '🏢 مخطط مشروع', 'DRW'],
     ['rfps', '📮 طلب عرض RFP', 'RFP'], ['bimModels', '🧊 نموذج BIM', 'BIM'],
-    ['bimDocs', '📚 وثيقة BIM', 'BDC'], ['files', '📎 ملف مرفوع', 'FIL']
+    ['bimDocs', '📚 وثيقة BIM', 'BDC'],
+    ['punchList', '📌 ملاحظة تسليم', 'PNL'], ['warranties', '🛡️ ضمان', 'WTY'],
+    ['incidents', '🚨 تقرير حادث', 'INC'], ['files', '📎 ملف مرفوع', 'FIL']
   ];
   const DONE_STATES = ['approved', 'approved_notes', 'answered', 'done', 'closed', 'pass'];
   const archState = { q: '', type: 'all', status: 'all', year: 'all' };

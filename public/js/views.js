@@ -247,7 +247,27 @@
         '<div><label class="fl">مسار البث (على خادم الوسائط)</label><input class="inp num" id="cm-path" placeholder="cam5" dir="ltr"></div>' +
         '<div><label class="fl">&nbsp;</label><button class="btn block" id="cm-add">ربط الكاميرا</button></div>' +
         '</div>' +
-        '<div class="small muted mt">💡 للبث الحي: شغّل خادم الوسائط MediaMTX واضبط فيه مصدر RTSP للكاميرا بنفس المسار، ثم عرّف MEDIA_SERVER_URL في .env — التفاصيل في صفحة التكامل والإعدادات.</div></div>' : '');
+        '<div class="small muted mt">💡 للبث الحي: شغّل خادم الوسائط MediaMTX واضبط فيه مصدر RTSP للكاميرا بنفس المسار، ثم عرّف MEDIA_SERVER_URL في .env — التفاصيل في صفحة التكامل والإعدادات.</div></div>' : '') +
+
+      // تنبيهات السلامة المرصودة من الكاميرات → تقارير حوادث قابلة للأرشفة والطباعة
+      (function () {
+        const safety = (ctx.S.aiInsights || []).filter(function (a) { return a.severity === 'alert' && (a.kind === 'safety' || a.source === 'camera'); });
+        if (!safety.length) return '';
+        return '<div class="card mt"><h3>🦺 تنبيهات السلامة من الكاميرات <span class="hint">حوّل أي تنبيه إلى تقرير حادث موثّق وقابل للطباعة</span></h3>' +
+          safety.map(function (a) {
+            return '<div class="flex" style="justify-content:space-between;border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;background:var(--bg2)">' +
+              '<div class="small" style="flex:1">🚨 ' + esc(a.note) + '<div class="muted num">' + esc(a.date) + (a.cameraId ? ' · ' + esc(a.cameraId) : '') + '</div></div>' +
+              (a.incidentId ? '<span class="pill p-ok">📋 تقرير محفوظ</span>' : '') +
+              (canManage ? '<button class="btn ghost sm" data-caminc="' + a.id + '">📋 تقرير حادث</button>' : '') + '</div>';
+          }).join('') + '</div>';
+      })();
+
+    el.querySelectorAll('[data-caminc]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const a = (ctx.S.aiInsights || []).find(function (x) { return x.id === b.getAttribute('data-caminc'); });
+        if (a) openIncidentModal(ctx, a);
+      });
+    });
 
     const addBtn = el.querySelector('#cm-add');
     if (addBtn) addBtn.addEventListener('click', async function () {
@@ -295,15 +315,26 @@
       (ctx.S.costCurve.length > 1 ? Charts.sCurve(ctx.S.costCurve, { maxY: 55, unit: 'م' }) : '<div class="empty"><div class="e-ico">💰</div>لا بيانات تكلفة لهذا المشروع بعد</div>') + '</div>' +
       '</div>' +
 
-      '<div class="grid g2">' +
-      '<div class="card"><h3>🗂️ مراحل المشروع</h3>' +
+      '<div class="grid g2 mb">' +
+      '<div class="card"><h3>💵 التدفق النقدي مقابل الإنجاز <span class="hint">الوارد من المالك مقابل المنصرف للمقاولين (مليون ر.س)</span></h3>' +
+      ((ctx.S.cashFlow || []).length > 1
+        ? Charts.sCurve((ctx.S.cashFlow || []).map(function (c) { return { month: c.month, planned: c.inflow, actual: c.outflow }; }),
+            { maxY: 55, unit: 'م', plannedLabel: 'الوارد', actualLabel: 'المنصرف' }) +
+          (function () {
+            const last = ctx.S.cashFlow[ctx.S.cashFlow.length - 1];
+            const net = Math.round((last.inflow - last.outflow) * 10) / 10;
+            return '<div class="small muted mt">الإنجاز المرتبط بآخر فترة <b class="num">' + last.progress + '%</b> · صافي التدفق <b class="num" style="color:' + (net >= 0 ? 'var(--ok)' : 'var(--danger)') + '">' + (net > 0 ? '+' : '') + net + ' م</b></div>';
+          })()
+        : '<div class="empty"><div class="e-ico">💵</div>لا بيانات تدفق نقدي بعد</div>') + '</div>' +
+      '<div class="card"><h3>🗂️ مراحل المشروع <span class="hint">' + (ctx.S.scheduleTasks || []).length + ' مرحلة</span></h3>' +
       (ctx.S.scheduleTasks.length ? Charts.compareBars(ctx.S.scheduleTasks.map(function (t) {
         return { label: t.name, actual: t.progress, planned: taskPlanned(t) };
       })) : '<div class="empty"><div class="e-ico">🗂️</div>لم تُسجل مراحل لهذا المشروع بعد</div>') + '</div>' +
+      '</div>' +
+
       '<div class="card"><h3>🔔 تنبيهات بصير الذكية <span class="hint">من تحليل الصور والكاميرات</span></h3>' +
-      (alerts.length ? alerts.map(aiItemHtml).join('') : '<div class="empty"><div class="e-ico">✨</div>لا توجد تنبيهات حرجة</div>') +
-      '<button class="btn ghost sm" data-nav="ai">فتح صفحة الذكاء الاصطناعي ←</button></div>' +
-      '</div>';
+      (alerts.length ? alerts.map(function (a) { return aiItemHtml(a, ctx); }).join('') : '<div class="empty"><div class="e-ico">✨</div>لا توجد تنبيهات حرجة</div>') +
+      '<button class="btn ghost sm" data-nav="ai">فتح صفحة الذكاء الاصطناعي ←</button></div>';
 
     el.querySelectorAll('[data-nav]').forEach(function (b) {
       b.addEventListener('click', function () { ctx.nav(b.getAttribute('data-nav')); });
@@ -320,13 +351,77 @@
   }
 
   // ============ الذكاء الاصطناعي ============
-  function aiItemHtml(a) {
+  function assigneeName(ctx, id) {
+    if (!id) return '';
+    const c = ctx && (ctx.Sall || ctx.S).contractors.find(function (x) { return x.id === id; });
+    return c ? c.name : id;
+  }
+
+  function aiItemHtml(a, ctx) {
     const ico = a.severity === 'alert' ? '🚨' : a.severity === 'warn' ? '⚠️' : '✅';
     const src = a.source === 'camera' ? 'كاميرات الموقع' : a.source === 'photos' ? 'تحليل الصور' : 'تحليل البيانات';
+    const assigned = a.assignedTo ? ' · <span class="pill p-info" style="font-size:10px">👤 مسند إلى: ' + esc(assigneeName(ctx, a.assignedTo)) + '</span>' : '';
     return '<div class="ai-item sev-' + a.severity + '"><div class="ai-ico">' + ico + '</div><div style="flex:1">' +
       '<p>' + esc(a.note) + '</p>' +
       '<div class="meta">' + esc(a.date) + ' · المصدر: ' + src + (a.area ? ' · الموقع: ' + esc(a.area) : '') +
-      (a.detected != null ? ' · الرصد البصري: <b class="num">' + a.detected + '%</b>' : '') + '</div></div></div>';
+      (a.detected != null ? ' · الرصد البصري: <b class="num">' + a.detected + '%</b>' : '') + assigned + '</div></div></div>';
+  }
+
+  // تقرير حادث من تنبيه سلامة: ينشئ سجلاً قابلاً للأرشفة ثم يطبعه
+  function incidentPrintHtml(ctx, inc) {
+    return '<h1>تقرير حادث/مخالفة سلامة — Incident Report</h1>' +
+      '<p class="muted">المشروع: ' + esc(ctx.S.projects[0].name) + ' · المرجع: <b>' + esc(inc.ref || '') + '</b>' + (inc.docCode ? ' · ' + esc(inc.docCode) : '') + '</p>' +
+      '<table><tbody>' +
+      '<tr><th style="width:180px">العنوان</th><td>' + esc(inc.title) + '</td></tr>' +
+      '<tr><th>النوع</th><td>' + esc(inc.kind === 'violation' ? 'مخالفة سلامة' : inc.kind === 'incident' ? 'حادث' : 'ملاحظة') + '</td></tr>' +
+      '<tr><th>الخطورة</th><td>' + esc(inc.severity === 'high' ? 'عالية' : inc.severity === 'medium' ? 'متوسطة' : 'منخفضة') + '</td></tr>' +
+      '<tr><th>الموقع</th><td>' + esc(inc.location || '') + '</td></tr>' +
+      '<tr><th>التاريخ/الوقت</th><td>' + esc((inc.date || '') + ' ' + (inc.time || '')) + '</td></tr>' +
+      '<tr><th>المصدر</th><td>' + esc(inc.source === 'camera' ? ('كاميرا ' + (inc.cameraId || '')) : inc.source || '') + '</td></tr>' +
+      '<tr><th>الجهة المسؤولة</th><td>' + esc(assigneeName(ctx, inc.assignedTo) || '—') + '</td></tr>' +
+      '<tr><th>الإجراء المتخذ</th><td>' + esc(inc.action || '') + '</td></tr>' +
+      '</tbody></table>';
+  }
+
+  function openIncidentModal(ctx, a) {
+    const existing = a.incidentId ? (ctx.S.incidents || []).find(function (x) { return x.id === a.incidentId; }) : null;
+    const m = modal(
+      '<h3>📋 تقرير حادث/سلامة</h3>' +
+      '<div class="m-sub">' + esc(a.note || '') + '</div>' +
+      '<label class="fl">عنوان التقرير</label><input class="inp" id="in-title" value="' + esc(existing ? existing.title : (a.note || '').slice(0, 80)) + '">' +
+      '<div class="grid g2"><div><label class="fl">النوع</label><select class="inp" id="in-kind">' +
+      [['violation', 'مخالفة سلامة'], ['incident', 'حادث'], ['observation', 'ملاحظة']].map(function (o) { return '<option value="' + o[0] + '"' + (existing && existing.kind === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div>' +
+      '<div><label class="fl">الخطورة</label><select class="inp" id="in-sev">' +
+      [['high', 'عالية'], ['medium', 'متوسطة'], ['low', 'منخفضة']].map(function (o) { return '<option value="' + o[0] + '"' + (existing && existing.severity === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></div></div>' +
+      '<label class="fl">الموقع</label><input class="inp" id="in-loc" value="' + esc(existing ? existing.location : (a.area || '')) + '">' +
+      '<label class="fl">الجهة المسؤولة</label><select class="inp" id="in-cont"><option value="">— غير محدد —</option>' +
+      ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '"' + ((existing ? existing.assignedTo : a.assignedTo) === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select>' +
+      '<label class="fl">الإجراء المتخذ / المطلوب</label><textarea class="inp" id="in-action" rows="3">' + esc(existing ? existing.action : '') + '</textarea>' +
+      '<div class="m-actions"><button class="btn" id="in-save">💾 حفظ وأرشفة</button><button class="btn ghost" id="in-print">🖨 طباعة</button><button class="btn mutedb" id="in-cancel">إغلاق</button></div>'
+    );
+    function collect() {
+      return {
+        title: m.querySelector('#in-title').value, kind: m.querySelector('#in-kind').value,
+        severity: m.querySelector('#in-sev').value, location: m.querySelector('#in-loc').value,
+        assignedTo: m.querySelector('#in-cont').value, action: m.querySelector('#in-action').value,
+        source: a.source || 'camera', cameraId: a.cameraId || null, date: a.date, time: a.time || '',
+        ref: existing ? existing.ref : 'INC-' + new Date().getFullYear() + '-' + Math.floor(Math.random() * 900 + 100)
+      };
+    }
+    m.querySelector('#in-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#in-print').addEventListener('click', function () {
+      window.ViewsHandover.printDoc('تقرير حادث', incidentPrintHtml(ctx, Object.assign({ docCode: existing ? existing.docCode : '' }, collect())));
+    });
+    m.querySelector('#in-save').addEventListener('click', async function () {
+      try {
+        if (existing) { await Api.update('incidents', existing.id, collect()); }
+        else {
+          const inc = await Api.create('incidents', collect());
+          await Api.update('aiInsights', a.id, { incidentId: inc.id, assignedTo: inc.assignedTo || a.assignedTo || '' });
+        }
+        m.remove(); toast('✅ حُفظ تقرير الحادث في الأرشيف'); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
   }
 
   function renderAi(el, ctx) {
@@ -375,7 +470,17 @@
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="grid g2">' +
-      '<div class="card"><h3>🧠 رؤى وتنبيهات بصير</h3>' + ctx.S.aiInsights.map(aiItemHtml).join('') + '</div>' +
+      '<div class="card"><h3>🧠 رؤى وتنبيهات بصير <span class="hint">إسناد التنبيهات للجهة المسؤولة وتحويلها لتقارير حوادث</span></h3>' +
+      ctx.S.aiInsights.map(function (a) {
+        const assignCtl = canAnalyze ?
+          '<div class="flex" style="gap:6px;margin:6px 0 4px">' +
+          '<select class="inp sm" data-assign="' + a.id + '" style="max-width:200px;padding:5px 10px;font-size:12px"><option value="">— إسناد إلى جهة —</option>' +
+          ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '"' + (a.assignedTo === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') + '</select>' +
+          (a.severity === 'alert' && (a.kind === 'safety' || a.source === 'camera') ?
+            '<button class="btn ghost sm" data-incident="' + a.id + '">📋 تقرير حادث</button>' : '') +
+          '</div>' : '';
+        return aiItemHtml(a, ctx) + assignCtl;
+      }).join('') + '</div>' +
       '<div class="card"><h3>📸 آخر الصور المُحلَّلة <span class="hint">رفع فريق الموقع</span></h3>' +
       '<div class="grid g2">' + ctx.S.photos.map(function (p) {
         return '<div class="photo-card"><div class="ph">' + (p.url ? '<img src="' + esc(p.url) + '" style="width:100%;height:100%;object-fit:cover" alt="">' : '🏗️') + '<div class="scan"></div></div><div class="info">' +
@@ -386,6 +491,23 @@
 
     el.querySelectorAll('[data-nav]').forEach(function (b) {
       b.addEventListener('click', function () { ctx.nav(b.getAttribute('data-nav')); });
+    });
+
+    // إسناد التنبيه لجهة مسؤولة (يُشعَر المقاول المسند إليه)
+    el.querySelectorAll('[data-assign]').forEach(function (s) {
+      s.addEventListener('change', async function () {
+        try {
+          await Api.update('aiInsights', s.getAttribute('data-assign'), { assignedTo: s.value });
+          toast(s.value ? '✅ أُسند التنبيه وأُشعرت الجهة' : 'أُلغي الإسناد'); ctx.refreshSilent();
+        } catch (e) { toast(e.message, true); }
+      });
+    });
+    // تحويل تنبيه سلامة إلى تقرير حادث قابل للأرشفة والطباعة
+    el.querySelectorAll('[data-incident]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const a = ctx.S.aiInsights.find(function (x) { return x.id === b.getAttribute('data-incident'); });
+        openIncidentModal(ctx, a);
+      });
     });
 
     const azGo = el.querySelector('#az-go');
@@ -433,6 +555,13 @@
       '<div class="card kpi ' + (delayed.length || overpaid.length ? 'k-danger' : 'k-ok') + '"><div class="lbl">مؤشرات الخطر</div><div class="val num">' + (delayed.length + overpaid.length) + '</div>' +
       '<div class="sub">' + delayed.length + ' متأخر · ' + overpaid.length + ' صرف أعلى من المستحق</div></div>' +
       '</div>' +
+
+      '<div class="card mb"><h3>📊 مقارنة الإنجاز الفعلي بالمخطط لكل مقاول <span class="hint">أزرق = المخطط · ذهبي = الفعلي</span></h3>' +
+      Charts.compareBars(sums.map(function (s) {
+        return { label: s.name, actual: s.progress, planned: s.plannedProgress };
+      })) +
+      '<div class="small muted mt">المقاول الذي يقل فعليه عن المخطط بأكثر من 3% يُعلَّم متأخراً — ' +
+      '<b style="color:var(--danger)">' + delayed.length + '</b> متأخر من ' + sums.length + '.</div></div>' +
 
       '<div class="card"><h3>👷 أداء المقاولين <span class="hint">الإنجاز محسوب من جداول الكميات المعتمدة</span></h3>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
@@ -770,9 +899,39 @@
   }
 
   // ============ التقارير والإرسال ============
+  // توليد تقرير تقدم موحّد بضغطة واحدة — عربي/إنجليزي — جاهز للإرسال للعميل
+  function progressReportHtml(ctx, period, lang) {
+    const P = ctx.S.projects[0] || {};
+    const sums = summarize(ctx);
+    const tasks = ctx.S.scheduleTasks || [];
+    const L = lang === 'en'
+      ? { title: 'Project Progress Report', period: period === 'monthly' ? 'Monthly' : 'Weekly', project: 'Project', kpi: 'Key Indicators', actual: 'Actual Progress', planned: 'Planned Progress', variance: 'Variance', cost: 'Cost to date', budget: 'Budget', phases: 'Phases', phase: 'Phase', contractors: 'Contractors', contractor: 'Contractor', prog: 'Progress', status: 'Status', delayed: 'Delayed', ontrack: 'On track' }
+      : { title: 'تقرير تقدم المشروع', period: period === 'monthly' ? 'شهري' : 'أسبوعي', project: 'المشروع', kpi: 'المؤشرات الرئيسية', actual: 'الإنجاز الفعلي', planned: 'الإنجاز المخطط', variance: 'الانحراف', cost: 'التكلفة حتى تاريخه', budget: 'الميزانية', phases: 'المراحل', phase: 'المرحلة', contractors: 'المقاولون', contractor: 'المقاول', prog: 'الإنجاز', status: 'الحالة', delayed: 'متأخر', ontrack: 'ضمن الجدول' };
+    const variance = Math.round((P.progressActual - P.progressPlanned) * 10) / 10;
+    return '<h1>' + L.title + ' — ' + L.period + '</h1>' +
+      '<p class="muted">' + L.project + ': <b>' + esc(P.name) + '</b>' + (P.location ? ' — ' + esc(P.location) : '') + '</p>' +
+      '<h2>' + L.kpi + '</h2><table><tbody>' +
+      '<tr><th style="width:220px">' + L.actual + '</th><td>' + P.progressActual + '%</td></tr>' +
+      '<tr><th>' + L.planned + '</th><td>' + P.progressPlanned + '%</td></tr>' +
+      '<tr><th>' + L.variance + '</th><td class="' + (variance < 0 ? 'bad' : 'ok') + '">' + (variance > 0 ? '+' : '') + variance + '%</td></tr>' +
+      '<tr><th>' + L.cost + '</th><td>' + (P.costActual / 1e6).toFixed(1) + 'M / ' + (P.budgetPlanned / 1e6).toFixed(1) + 'M</td></tr>' +
+      '</tbody></table>' +
+      '<h2>' + L.phases + '</h2><table><thead><tr><th>' + L.phase + '</th><th>' + L.prog + '</th></tr></thead><tbody>' +
+      tasks.map(function (t) { const nm = lang === 'en' ? ((ctx.S.phaseLibrary || []).find(function (l) { return l.key === t.phaseKey; }) || {}).en || t.name : t.name; return '<tr><td>' + esc(nm) + '</td><td>' + (t.progress || 0) + '%</td></tr>'; }).join('') + '</tbody></table>' +
+      '<h2>' + L.contractors + '</h2><table><thead><tr><th>' + L.contractor + '</th><th>' + L.actual + '</th><th>' + L.planned + '</th><th>' + L.status + '</th></tr></thead><tbody>' +
+      sums.map(function (s) { return '<tr><td>' + esc(s.name) + '</td><td>' + s.progress + '%</td><td>' + s.plannedProgress + '%</td><td class="' + (s.delayed ? 'bad' : 'ok') + '">' + (s.delayed ? L.delayed : L.ontrack) + '</td></tr>'; }).join('') + '</tbody></table>';
+  }
+
   function renderReports(el, ctx) {
     const canSend = ['consultant', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
     el.innerHTML =
+      '<div class="card mb"><h3>⚡ توليد تقرير تقدم بضغطة واحدة <span class="hint">جاهز للإرسال للعميل — عربي أو إنجليزي</span></h3>' +
+      '<div class="flex" style="flex-wrap:wrap;gap:8px">' +
+      '<button class="btn" data-genrep="weekly:ar">📄 تقرير أسبوعي (عربي)</button>' +
+      '<button class="btn ghost" data-genrep="weekly:en">📄 Weekly (English)</button>' +
+      '<button class="btn" data-genrep="monthly:ar">📊 تقرير شهري (عربي)</button>' +
+      '<button class="btn ghost" data-genrep="monthly:en">📊 Monthly (English)</button>' +
+      '</div><div class="small muted mt">يجمّع التقرير المؤشرات ونسب المراحل وأداء المقاولين تلقائياً من بيانات المشروع الحالية.</div></div>' +
       '<div class="grid g2 mb">' +
       '<div class="card"><h3>📅 التقارير اليومية</h3>' +
       ctx.S.dailyReports.map(function (r) {
@@ -822,6 +981,14 @@
             '<td>' + (m.channel === 'whatsapp' ? '💬 واتساب' : '📧 إيميل') + '</td><td class="num">' + esc(m.to || '') + '</td><td class="small">' + esc(m.title) + '</td><td class="small muted num">' + esc(m.date) + '</td><td>' + statusPill + '</td></tr>';
         }).join('') + '</tbody></table></div>' : '<div class="empty">لا رسائل بعد</div>') +
       '</div></div></div>';
+
+    el.querySelectorAll('[data-genrep]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const parts = b.getAttribute('data-genrep').split(':');
+        const title = (parts[1] === 'en' ? 'Progress Report' : 'تقرير التقدم') + ' — ' + ctx.S.projects[0].name;
+        window.ViewsHandover.printDoc(title, progressReportHtml(ctx, parts[0], parts[1]));
+      });
+    });
 
     const sendBtn = el.querySelector('#rp-send');
     if (sendBtn) sendBtn.addEventListener('click', async function () {

@@ -37,7 +37,9 @@
     dailyReports: 'تقرير يومي', weeklyReports: 'تقرير أسبوعي', monthlyReports: 'تقرير شهري',
     boqItems: 'بند كميات', planDrawings: 'مخطط مشروع', cameras: 'كاميرا',
     users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة',
-    bimModels: 'نموذج BIM', bimDocs: 'وثيقة BIM'
+    bimModels: 'نموذج BIM', bimDocs: 'وثيقة BIM',
+    handoverItems: 'بند تسليم', punchList: 'ملاحظة تسليم Punch', warranties: 'ضمان',
+    keysLog: 'تسليم مفاتيح', incidents: 'تقرير حادث', scheduleTasks: 'مرحلة مشروع'
   };
 
   function labelOf(collection, item) {
@@ -53,7 +55,8 @@
     siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
     meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
     monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', files: 'FIL',
-    bimModels: 'BIM', bimDocs: 'BDC'
+    bimModels: 'BIM', bimDocs: 'BDC',
+    punchList: 'PNL', warranties: 'WTY', incidents: 'INC', handoverItems: 'HND'
   };
 
   // من يستطيع إنشاء عناصر في كل مجموعة
@@ -90,7 +93,14 @@
     meetings: ['consultant', 'admin'],
     correspondence: ['consultant', 'admin'],
     bimModels: ['consultant', 'admin'],
-    bimDocs: ['consultant', 'admin']
+    bimDocs: ['consultant', 'admin'],
+    // وحدة التسليم والإغلاق ومراحل المشروع
+    handoverItems: ['consultant', 'admin'],
+    punchList: ['consultant', 'admin'],
+    warranties: ['contractor', 'consultant', 'admin'],
+    keysLog: ['consultant', 'admin', 'owner_rep'],
+    incidents: ['consultant', 'admin'],
+    scheduleTasks: ['consultant', 'admin']
   };
 
   function createCore(db, persist, opts) {
@@ -187,6 +197,15 @@
       s.planDrawings = db.planDrawings || [];
       s.bimModels = db.bimModels || [];
       s.bimDocs = db.bimDocs || [];
+      s.phaseLibrary = db.phaseLibrary || [];
+      s.phaseTemplates = db.phaseTemplates || {};
+      s.cashFlow = db.cashFlow || [];
+      // وحدة التسليم والإغلاق
+      s.handoverItems = db.handoverItems || [];
+      s.punchList = db.punchList || [];
+      s.warranties = db.warranties || [];
+      s.keysLog = db.keysLog || [];
+      s.incidents = db.incidents || [];
       // المالك يطلع على وثائق مشروعه (قراءة) — يقيدها نطاق المشروع أدناه
       s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant' || role === 'owner') ? (db.files || []) : [];
       s.messages = db.messages;
@@ -206,6 +225,13 @@
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
         s.messages = [];
         s.users = [];
+        // التسليم: المقاول يرى ما يخصه فقط (ملاحظاته وضماناته وحوادثه)
+        s.punchList = (db.punchList || []).filter(function (x) { return x.contractorId === cid; });
+        s.warranties = (db.warranties || []).filter(function (x) { return x.contractorId === cid; });
+        s.incidents = (db.incidents || []).filter(function (x) { return x.assignedTo === cid; });
+        s.handoverItems = [];
+        s.keysLog = [];
+        s.cashFlow = [];
       } else {
         // لا تُرسل كلمات المرور أو تجزئاتها لأي دور، بما فيهم الأدمن
         s.users = db.users.map(stripPassword);
@@ -346,6 +372,12 @@
           pushNotification({ role: 'owner' }, 'submit', '📮 طلب عرض موجه إليك: ' + (item.title || item.ref), collection, item.id);
         }
       }
+      // إشعار المقاول عند إسناد ملاحظة تسليم أو تقرير حادث إليه
+      if ((collection === 'punchList' || collection === 'incidents')) {
+        const cid = item.contractorId || item.assignedTo;
+        if (cid) pushNotification({ contractorId: cid }, 'assign',
+          (collection === 'punchList' ? '📌 ملاحظة تسليم مسندة إليك: ' : '🚨 تقرير حادث مسند إليك: ') + (item.title || item.ref), collection, item.id);
+      }
       audit(user, 'create', labelOf(collection, item));
       persist();
       return item;
@@ -366,11 +398,17 @@
         }
       }
       const wasOpen = item.status === 'open';
+      const prevAssignee = item.assignedTo;
       Object.assign(item, patch);
       // إشعار المقاول عند الرد على استفساره أو عرضه
       if (wasOpen && patch.status === 'answered' && (collection === 'rfis' || collection === 'rfps') && item.contractorId) {
         pushNotification({ contractorId: item.contractorId }, 'answer',
           '↩️ تم الرد على ' + labelOf(collection, item) + (patch.answer ? ' — ' + patch.answer : ''), collection, item.id);
+      }
+      // إشعار الطرف المسند إليه تنبيه ذكي أو حادث
+      if (patch.assignedTo && patch.assignedTo !== prevAssignee && (collection === 'aiInsights' || collection === 'incidents')) {
+        pushNotification({ contractorId: patch.assignedTo }, 'assign',
+          '📌 أُسند إليك: ' + (item.note || item.title || labelOf(collection, item)).slice(0, 80), collection, item.id);
       }
       audit(user, 'update', labelOf(collection, item));
       persist();

@@ -100,8 +100,40 @@
       startActual: '2025-03-15', endForecast: '2027-02-15',
       budgetPlanned: 52000000, costActual: 29800000, costPlannedToDate: 27200000,
       progressPlanned: 62, progressActual: 54.5,
+      type: 'برج تجاري / إداري',
+      dlpStart: '2027-02-15', dlpMonths: 12,
       floors: FLOORS, disciplines: DISCIPLINES
     }];
+
+    // ============ مكتبة المراحل وقوالبها حسب نوع المشروع ============
+    // كل مرحلة لها مفتاح ثابت واسم عربي وإنجليزي، تُستخدم في تكوين مراحل المشروع
+    db.phaseLibrary = [
+      { key: 'design_approvals', ar: 'التصميم واعتمادات الاستشاري', en: 'Design & Consultant Approvals' },
+      { key: 'tendering', ar: 'الطرح واختيار المقاول', en: 'Tendering & Contractor Selection' },
+      { key: 'mobilization', ar: 'التجهيز وتأسيس الموقع', en: 'Mobilization & Site Setup' },
+      { key: 'excavation', ar: 'الحفر والأساسات', en: 'Excavation & Foundations' },
+      { key: 'concrete', ar: 'الهيكل الخرساني', en: 'Concrete Structure' },
+      { key: 'steel', ar: 'الهيكل المعدني', en: 'Steel Structure (where applicable)' },
+      { key: 'blockwork', ar: 'المباني واللياسة', en: 'Blockwork & Plastering' },
+      { key: 'waterproofing', ar: 'العزل المائي والحراري والصوتي', en: 'Waterproofing, Thermal & Acoustic Insulation' },
+      { key: 'mep', ar: 'الأعمال الكهروميكانيكية MEP', en: 'MEP Works' },
+      { key: 'fitout', ar: 'التشطيبات الداخلية', en: 'Interior Fit-Out' },
+      { key: 'facades', ar: 'الواجهات والكسوة الخارجية', en: 'Facades & External Cladding' },
+      { key: 'external_works', ar: 'الأعمال الخارجية والمواقف', en: 'External Works & Parking Areas' },
+      { key: 'landscaping', ar: 'التنسيق والتشجير والهاردسكيب', en: 'Landscaping & Hardscape' },
+      { key: 'infrastructure', ar: 'البنية التحتية والخدمات', en: 'Infrastructure & Utilities' },
+      { key: 'ffe', ar: 'الفرش والتأثيث FF&E', en: 'FF&E (Furniture, Fixtures & Equipment)' },
+      { key: 'testing', ar: 'اختبار وتشغيل الأنظمة', en: 'Systems Testing & Commissioning' },
+      { key: 'handover', ar: 'تسليم المشروع', en: 'Project Handover' },
+      { key: 'dlp', ar: 'فترة ضمان العيوب DLP', en: 'Defects Liability Period (DLP)' }
+    ];
+    // قوالب المراحل الافتراضية حسب نوع المشروع (قابلة للتخصيص لكل مشروع)
+    db.phaseTemplates = {
+      'برج تجاري / إداري': ['design_approvals', 'tendering', 'mobilization', 'excavation', 'concrete', 'blockwork', 'waterproofing', 'mep', 'fitout', 'facades', 'external_works', 'ffe', 'testing', 'handover', 'dlp'],
+      'فيلا سكنية': ['design_approvals', 'tendering', 'mobilization', 'excavation', 'concrete', 'blockwork', 'waterproofing', 'mep', 'fitout', 'facades', 'landscaping', 'ffe', 'handover', 'dlp'],
+      'مجمع صناعي / مستودعات': ['design_approvals', 'tendering', 'mobilization', 'excavation', 'concrete', 'steel', 'blockwork', 'mep', 'infrastructure', 'external_works', 'testing', 'handover', 'dlp'],
+      'default': ['design_approvals', 'tendering', 'mobilization', 'excavation', 'concrete', 'blockwork', 'mep', 'fitout', 'facades', 'testing', 'handover', 'dlp']
+    };
 
     // ============ المقاولون ============
     db.contractors = [
@@ -177,14 +209,21 @@
     ];
 
     db.scheduleTasks = [
-      { projectId: 'P1', id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
-      { projectId: 'P1', id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
-      { projectId: 'P1', id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
-      { projectId: 'P1', id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
-      { projectId: 'P1', id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
-      { projectId: 'P1', id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
-      { projectId: 'P1', id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
-      { projectId: 'P1', id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
+      { projectId: 'P1', id: 'T1', phaseKey: 'design_approvals', name: 'التصميم واعتمادات الاستشاري', startPlanned: '2024-10-01', endPlanned: '2025-01-31', startActual: '2024-10-05', endActual: '2025-02-10', progress: 100 },
+      { projectId: 'P1', id: 'T2', phaseKey: 'tendering', name: 'الطرح واختيار المقاول', startPlanned: '2025-01-01', endPlanned: '2025-02-28', startActual: '2025-01-10', endActual: '2025-03-05', progress: 100 },
+      { projectId: 'P1', id: 'T3', phaseKey: 'mobilization', name: 'التجهيز وتأسيس الموقع', startPlanned: '2025-02-15', endPlanned: '2025-03-15', startActual: '2025-03-01', endActual: '2025-03-20', progress: 100 },
+      { projectId: 'P1', id: 'T4', phaseKey: 'excavation', name: 'الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
+      { projectId: 'P1', id: 'T5', phaseKey: 'concrete', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
+      { projectId: 'P1', id: 'T6', phaseKey: 'blockwork', name: 'المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
+      { projectId: 'P1', id: 'T7', phaseKey: 'waterproofing', name: 'العزل المائي والحراري والصوتي', startPlanned: '2026-01-01', endPlanned: '2026-07-31', startActual: '2026-01-20', endActual: null, progress: 55 },
+      { projectId: 'P1', id: 'T8', phaseKey: 'mep', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
+      { projectId: 'P1', id: 'T9', phaseKey: 'fitout', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
+      { projectId: 'P1', id: 'T10', phaseKey: 'facades', name: 'الواجهات والكسوة الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
+      { projectId: 'P1', id: 'T11', phaseKey: 'external_works', name: 'الأعمال الخارجية والمواقف', startPlanned: '2026-07-01', endPlanned: '2026-11-30', startActual: null, endActual: null, progress: 6 },
+      { projectId: 'P1', id: 'T12', phaseKey: 'ffe', name: 'الفرش والتأثيث FF&E', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
+      { projectId: 'P1', id: 'T13', phaseKey: 'testing', name: 'اختبار وتشغيل الأنظمة', startPlanned: '2026-10-01', endPlanned: '2026-12-20', startActual: null, endActual: null, progress: 0 },
+      { projectId: 'P1', id: 'T14', phaseKey: 'handover', name: 'تسليم المشروع', startPlanned: '2026-12-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 },
+      { projectId: 'P1', id: 'T15', phaseKey: 'dlp', name: 'فترة ضمان العيوب DLP', startPlanned: '2027-02-15', endPlanned: '2028-02-15', startActual: null, endActual: null, progress: 0 }
     ];
 
     // ============ منحنى التكلفة ============
@@ -300,9 +339,9 @@
       { projectId: 'P1', id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
         note: 'تركيب مضخات الحريق يسير وفق الجدول. يُنصح بجدولة اختبار التشغيل خلال أسبوعين.', severity: 'ok' },
       { projectId: 'P1', id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
-        note: 'تنبيه سلامة: رصدت الكاميرا 2 عمالة دون أحزمة أمان على حافة الدور الثالث يوم 10 يوليو الساعة 10:42 صباحاً. تم إشعار مدير السلامة.', severity: 'alert' },
+        note: 'تنبيه سلامة: رصدت الكاميرا 2 عمالة دون أحزمة أمان على حافة الدور الثالث يوم 10 يوليو الساعة 10:42 صباحاً. تم إشعار مدير السلامة.', severity: 'alert', kind: 'safety', cameraId: 'CAM2', assignedTo: 'C1', incidentId: 'INC1' },
       { projectId: 'P1', id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
-        note: 'تنبيه مالي: مقاول الحريق (أنظمة الأمان) استلم 46% من قيمة العقد مقابل إنجاز فعلي 31%. يُنصح بمراجعة الدفعات القادمة وربطها بمستخلصات موثقة بصرياً.', severity: 'alert' }
+        note: 'تنبيه مالي: مقاول الحريق (أنظمة الأمان) استلم 46% من قيمة العقد مقابل إنجاز فعلي 31%. يُنصح بمراجعة الدفعات القادمة وربطها بمستخلصات موثقة بصرياً.', severity: 'alert', kind: 'financial', assignedTo: '' }
     ];
 
     // ============ صور الموقع (مع تحليل AI محاكى) ============
@@ -383,6 +422,69 @@
         category: 'المواصفات', by: 'دار العمران للاستشارات', date: '2025-10-05', versions: [] },
       { id: 'FL5', projectId: 'P1', name: 'Owner-Requirements-Brief.pdf', url: '', size: 2100000,
         category: 'متطلبات المالك', by: 'م. سعود الجاسر', date: '2025-07-30', versions: [] }
+    ];
+
+    // ============ وحدة التسليم والإغلاق (Handover) ============
+    // قائمة التسليم التفاعلية: مستندات وتصاريح ومتطلبات — لكل بند حالة قابلة للتحديث
+    db.handoverItems = [
+      // المستندات والتسليمات
+      { id: 'HI1', projectId: 'P1', group: 'docs', title: 'شهادة التسليم الابتدائي', en: 'Preliminary Handover Certificate', status: 'in_progress', responsible: 'الاستشاري', file: null, notes: 'بانتظار إغلاق ملاحظات التسليم الحرجة', date: '2026-11-01' },
+      { id: 'HI2', projectId: 'P1', group: 'docs', title: 'شهادة التسليم النهائي', en: 'Final Handover Certificate', status: 'pending', responsible: 'الاستشاري', file: null, notes: '', date: '' },
+      { id: 'HI3', projectId: 'P1', group: 'docs', title: 'قائمة الملاحظات مع تتبع الإغلاق', en: 'Punch List with closure tracking', status: 'in_progress', responsible: 'الاستشاري', file: null, notes: 'انظر لوحة قائمة الملاحظات', date: '2026-10-20' },
+      { id: 'HI4', projectId: 'P1', group: 'docs', title: 'شهادات اختبار وتشغيل الأنظمة', en: 'Testing & Commissioning Certificates', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'أُنجزت أنظمة الحريق والكهرباء، بانتظار التكييف', date: '2026-10-15' },
+      { id: 'HI5', projectId: 'P1', group: 'docs', title: 'كتيبات التشغيل والصيانة (O&M)', en: 'Operation & Maintenance Manuals', status: 'pending', responsible: 'المقاول', file: null, notes: '', date: '' },
+      { id: 'HI6', projectId: 'P1', group: 'docs', title: 'مخططات كما نُفِّذ (As-Built)', en: 'As-Built Drawings', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'تسليم 60% من الحزم', date: '2026-10-10' },
+      { id: 'HI7', projectId: 'P1', group: 'docs', title: 'شهادات ضمان الموردين والمقاولين من الباطن', en: 'Supplier & Subcontractor Warranties', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'انظر سجل الضمانات', date: '2026-10-05' },
+      { id: 'HI8', projectId: 'P1', group: 'docs', title: 'تقرير الفحص النهائي للاستشاري', en: 'Consultant Final Inspection Report', status: 'pending', responsible: 'الاستشاري', file: null, notes: '', date: '' },
+      // المتطلبات النظامية والتشغيلية
+      { id: 'HI9', projectId: 'P1', group: 'regulatory', title: 'شهادة إتمام البناء (الأمانة/البلدية)', en: 'Municipality Building Completion Certificate', status: 'pending', responsible: 'الاستشاري', file: null, notes: 'مرتبطة بإغلاق ملاحظات الأمانة', date: '' },
+      { id: 'HI10', projectId: 'P1', group: 'regulatory', title: 'موافقة الدفاع المدني', en: 'Civil Defense Approval', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'تمت المعاينة الأولى، ملاحظتان مفتوحتان', date: '2026-10-18' },
+      { id: 'HI11', projectId: 'P1', group: 'regulatory', title: 'موافقة الشركة السعودية للكهرباء (SEC)', en: 'Saudi Electricity Company (SEC) Approval', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'اعتماد المحطة قيد المراجعة', date: '2026-10-12' },
+      { id: 'HI12', projectId: 'P1', group: 'regulatory', title: 'شهادة الإشغال', en: 'Occupancy Certificate', status: 'pending', responsible: 'الاستشاري', file: null, notes: '', date: '' },
+      { id: 'HI13', projectId: 'P1', group: 'regulatory', title: 'سجل تسليم المفاتيح', en: 'Keys Handover Log', status: 'in_progress', responsible: 'المالك', file: null, notes: 'انظر سجل المفاتيح', date: '2026-11-05' }
+    ];
+
+    // قائمة الملاحظات (Punch List) — مرتبطة بالمقاول المسؤول مع تتبع الإغلاق
+    db.punchList = [
+      { id: 'PL1', projectId: 'P1', contractorId: 'C2', ref: 'PL-ARC-001', title: 'خدش بواجهة الجرانيت — البهو الرئيسي', location: 'GF', severity: 'minor', status: 'open', raisedDate: '2026-10-10', closedDate: null, notes: '' },
+      { id: 'PL2', projectId: 'P1', contractorId: 'C2', ref: 'PL-ARC-002', title: 'فرق منسوب بلاط الممر — الدور الثاني', location: 'F2', severity: 'major', status: 'open', raisedDate: '2026-10-12', closedDate: null, notes: 'يتطلب إعادة تنفيذ جزئية' },
+      { id: 'PL3', projectId: 'P1', contractorId: 'C4', ref: 'PL-HVC-001', title: 'تسريب هواء عند وصلة دكت — الميزانين', location: 'MEZ', severity: 'major', status: 'closed', raisedDate: '2026-09-28', closedDate: '2026-10-14', notes: 'أُعيد إحكام الوصلة وأُعيد الاختبار' },
+      { id: 'PL4', projectId: 'P1', contractorId: 'C3', ref: 'PL-ELE-001', title: 'لوحة إنارة طوارئ غير مبرمجة — الدور الأول', location: 'F1', severity: 'minor', status: 'open', raisedDate: '2026-10-15', closedDate: null, notes: '' },
+      { id: 'PL5', projectId: 'P1', contractorId: 'C1', ref: 'PL-STR-001', title: 'تعشيش خرساني ظاهر — سلم الطوارئ', location: 'B1', severity: 'minor', status: 'closed', raisedDate: '2026-09-20', closedDate: '2026-10-02', notes: 'مُعالج بمونة إصلاح معتمدة' }
+    ];
+
+    // سجل الضمانات مع تواريخ الانتهاء (تنبيهات قرب الانتهاء)
+    db.warranties = [
+      { id: 'WR1', projectId: 'P1', contractorId: 'C4', item: 'مصاعد شركة أوتيس (4 مصاعد)', supplier: 'أوتيس العربية', startDate: '2026-09-01', endDate: '2028-09-01', months: 24, docCode: '', file: null },
+      { id: 'WR2', projectId: 'P1', contractorId: 'C4', item: 'وحدات التكييف المركزي (شيلر)', supplier: 'كاريير', startDate: '2026-08-15', endDate: '2027-08-15', months: 12, docCode: '', file: null },
+      { id: 'WR3', projectId: 'P1', contractorId: 'C3', item: 'مولد الطوارئ 800 كيلو', supplier: 'كاتربيلر', startDate: '2026-07-01', endDate: '2027-01-01', months: 6, docCode: '', file: null },
+      { id: 'WR4', projectId: 'P1', contractorId: 'C2', item: 'العزل المائي للأسطح', supplier: 'سيكا', startDate: '2026-06-01', endDate: '2031-06-01', months: 60, docCode: '', file: null },
+      { id: 'WR5', projectId: 'P1', contractorId: 'C5', item: 'نظام إنذار وإطفاء الحريق', supplier: 'أنظمة الأمان المتحدة', startDate: '2026-08-20', endDate: '2027-08-20', months: 12, docCode: '', file: null }
+    ];
+
+    // سجل تسليم المفاتيح
+    db.keysLog = [
+      { id: 'KL1', projectId: 'P1', area: 'مدخل الطابق الأرضي الرئيسي', count: 4, handedTo: 'إدارة تشغيل المبنى', by: 'المقاول', date: '2026-11-05', signature: 'م. عبدالله الراشد' },
+      { id: 'KL2', projectId: 'P1', area: 'غرف الكهرباء والميكانيكا', count: 12, handedTo: 'فريق الصيانة', by: 'المقاول', date: '', signature: '' }
+    ];
+
+    // تقارير الحوادث/السلامة (قابلة للأرشفة والطباعة) — مرتبطة بتنبيهات الكاميرات
+    db.incidents = [
+      { id: 'INC1', projectId: 'P1', ref: 'INC-2026-014', title: 'عمالة دون أحزمة أمان على حافة الدور الثالث', kind: 'violation', severity: 'high',
+        source: 'camera', cameraId: 'CAM2', location: 'الدور الثالث - الحافة الشمالية', date: '2026-07-10', time: '10:42',
+        assignedTo: 'C1', status: 'open', action: 'إيقاف العمل بالمنطقة وإشعار مدير السلامة، وإعادة تدريب على العمل بالمرتفعات', by: 'نظام بصير' }
+    ];
+
+    // التدفق النقدي المرتبط بنسب الإنجاز (مليون ريال): وارد من المالك ومنصرف للمقاولين
+    db.cashFlow = [
+      { projectId: 'P1', month: '2025-05', inflow: 3.0, outflow: 2.1, progress: 8 },
+      { projectId: 'P1', month: '2025-08', inflow: 6.5, outflow: 6.2, progress: 18 },
+      { projectId: 'P1', month: '2025-11', inflow: 13.0, outflow: 12.8, progress: 30 },
+      { projectId: 'P1', month: '2026-02', inflow: 20.0, outflow: 19.6, progress: 42 },
+      { projectId: 'P1', month: '2026-05', inflow: 25.5, outflow: 26.3, progress: 50 },
+      { projectId: 'P1', month: '2026-07', inflow: 28.0, outflow: 29.8, progress: 54.5 },
+      { projectId: 'P1', month: '2026-10', inflow: 37.0, outflow: 38.0, progress: 70 },
+      { projectId: 'P1', month: '2026-12', inflow: 50.0, outflow: 52.0, progress: 92 }
     ];
 
     // تقارير عدم المطابقة NCR
@@ -552,7 +654,7 @@
       siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
       meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
       monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', rfps: 'RFP', bimModels: 'BIM', bimDocs: 'BDC',
-      files: 'FIL'
+      files: 'FIL', punchList: 'PNL', warranties: 'WTY', incidents: 'INC', handoverItems: 'HND'
     };
     // سجل تتبع أولي لكل معاملة موجودة (تقديم ثم قرار إن وجد)
     ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
@@ -580,7 +682,7 @@
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 11, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 12, docSeq: docSeq };
 
     return db;
   }

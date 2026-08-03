@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const VS = window.ViewsShared, VR = window.ViewsRoles, VM = window.ViewsModules;
+  const VS = window.ViewsShared, VR = window.ViewsRoles, VM = window.ViewsModules, VH = window.ViewsHandover;
   const esc = VS.esc;
 
   const PAGES = [
@@ -17,10 +17,12 @@
     { id: 'submissions', title: 'تتبع التقديمات', icon: '📋', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VM.renderSubmissions },
     { id: 'variations', title: 'أوامر التغيير', icon: '🔁', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VM.renderVariations },
     { id: 'project-docs', title: 'وثائق المشروع', icon: '📁', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VM.renderProjectDocs },
+    { id: 'handover', title: 'التسليم والإغلاق', icon: '🏁', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VH.renderHandover },
     { id: 'archive', title: 'أرشيف المستندات', icon: '📚', sec: 'المتابعة', roles: ['admin', 'owner', 'owner_rep', 'consultant'], render: VR.renderArchive },
 
     { id: 'home', title: 'لوحة المقاول', icon: '🏗️', sec: 'أعمالي', roles: ['contractor'], render: VR.renderContractorHome },
     { id: 'submissions-c', title: 'تتبع تقديماتي', icon: '📋', sec: 'أعمالي', roles: ['contractor'], render: VM.renderSubmissions },
+    { id: 'handover-c', title: 'ملاحظاتي وضماناتي', icon: '🏁', sec: 'أعمالي', roles: ['contractor'], render: VH.renderHandover },
     { id: 'archive-c', title: 'أرشيف مستنداتي', icon: '📚', sec: 'أعمالي', roles: ['contractor'], render: VR.renderArchive },
 
     { id: 'approvals', title: 'الاعتمادات', icon: '✍️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderApprovals, badge: badgePending },
@@ -29,6 +31,7 @@
     { id: 'boq', title: 'جداول الكميات', icon: '📊', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBoq },
     { id: 'manage-contractors', title: 'إدارة المقاولين', icon: '🧰', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderManageContractors },
     { id: 'daily', title: 'إعداد التقارير', icon: '📝', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderDailyReport },
+    { id: 'phases', title: 'مراحل المشروع', icon: '🗂️', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VH.renderPhases },
     { id: 'bim-upload', title: 'المخططات والنماذج', icon: '🏢', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VR.renderBimUpload },
     { id: 'bim', title: 'إدارة BIM', icon: '🧊', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VM.renderBim },
     { id: 'contractor-db', title: 'قاعدة بيانات المقاولين', icon: '🗃️', sec: 'المكتب الفني', roles: ['admin', 'consultant', 'owner_rep'], render: VM.renderContractorDb },

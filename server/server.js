@@ -80,7 +80,8 @@ function deliverNotification(notif, recipients) {
   const subject = 'بصير · إشعار: ' + (notif.kind === 'submit' ? 'تقديم جديد'
     : notif.kind === 'decision' ? 'قرار اعتماد'
     : notif.kind === 'answer' ? 'رد على استفسار'
-    : notif.kind === 'resubmit' ? 'إعادة تقديم' : 'تحديث');
+    : notif.kind === 'resubmit' ? 'إعادة تقديم'
+    : notif.kind === 'assign' ? 'إسناد مهمة' : 'تحديث');
   const html = '<div dir="rtl" style="font-family:Tahoma,Arial;line-height:1.9">' +
     '<h3 style="color:#0b5">👁 بصير — عيون المالك</h3>' +
     '<p><b>' + escapeHtml(subject) + '</b></p><p>' + escapeHtml(notif.text) + '</p>' +
