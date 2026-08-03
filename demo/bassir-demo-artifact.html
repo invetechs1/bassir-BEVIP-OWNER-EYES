@@ -4901,8 +4901,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       (ctx.S[t[0]] || []).forEach(function (it) {
         rows.push({
           col: t[0], typeName: t[1], item: it,
-          docCode: it.docCode || '', ref: it.ref || '', title: it.title || it.name || '',
-          date: it.date || it.month || it.weekOf || '',
+          docCode: it.docCode || '', ref: it.ref || '', title: it.title || it.name || it.item || '',
+          date: it.date || it.month || it.weekOf || it.raisedDate || it.startDate || '',
           status: it.status || it.result || '',
           contractor: it.contractorId ? contractorName(ctx, it.contractorId) : (it.by || '—')
         });
