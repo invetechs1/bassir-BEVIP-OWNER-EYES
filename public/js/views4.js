@@ -102,12 +102,22 @@
             return '<tr><td><b>' + esc(it.title) + '</b><div class="small muted" dir="ltr" style="text-align:right">' + esc(it.en || '') + '</div></td>' +
               '<td class="small">' + esc(it.responsible || '—') + '</td>' +
               '<td>' + hndPill(it.status) + '</td>' +
-              '<td class="small">' + (it.file ? '📎 ' + VS.att(it.file) : '<span class="muted">—</span>') + '</td>' +
+              '<td class="small">' + (it.file
+                ? '📎 ' + VS.att(it.file) + ' <button class="btn ghost sm" data-hreview="' + it.id + '">🔍 مراجعة</button>'
+                : '<span class="muted">—</span>') + '</td>' +
               '<td class="small" style="max-width:220px">' + esc(it.notes || '') + (it.date ? '<div class="muted num">' + esc(it.date) + '</div>' : '') + '</td>' +
               (canEdit ? '<td><button class="btn ghost sm" data-hedit="' + it.id + '">تحديث</button></td>' : '') +
               '</tr>';
           }).join('') + '</tbody></table></div></div>';
       }).join('');
+
+    // مراجعة مستند التسليم المرفوع داخل المنصة (عارض PDF/صور مع الترميز)
+    el.querySelectorAll('[data-hreview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-hreview'); });
+        if (it && window.DrawingViewer) window.DrawingViewer.open(ctx, 'handoverItems', it, { canEdit: canEdit, canReview: false });
+      });
+    });
 
     el.querySelectorAll('[data-hedit]').forEach(function (b) {
       b.addEventListener('click', function () {

@@ -127,6 +127,33 @@
       '<div class="small muted" style="margin-top:6px;line-height:1.8">' + sub + '</div></div>';
   }
 
+  /** شريط جاهزية التسليم بنظرة — يظهر عند وجود بيانات تسليم للمشروع */
+  function handoverStrip(ctx, P, A) {
+    const hi = (A.handoverItems || []).filter(function (x) { return !x.projectId || x.projectId === P.id; });
+    if (!hi.length) return '';
+    const done = hi.filter(function (i) { return i.status === 'done'; }).length;
+    const pct = Math.round(done / hi.length * 100);
+    const openPunch = (A.punchList || []).filter(function (x) { return (!x.projectId || x.projectId === P.id) && x.status === 'open'; }).length;
+    const expSoon = (A.warranties || []).filter(function (x) {
+      if (x.projectId && x.projectId !== P.id) return null;
+      const d = x.endDate ? Math.round((new Date(x.endDate) - Date.now()) / 86400000) : null;
+      return d != null && d >= 0 && d <= 90;
+    }).length;
+    const reg = hi.filter(function (i) { return i.group === 'regulatory'; });
+    const regDone = reg.filter(function (i) { return i.status === 'done'; }).length;
+    const cls = pct >= 90 ? 'ok' : pct >= 50 ? 'warn' : '';
+    return '<div class="card" style="margin-top:12px"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+      '<h3 style="margin:0">🏁 جاهزية التسليم بنظرة</h3>' +
+      '<button class="btn ghost sm" data-nav="handover">فتح وحدة التسليم ←</button></div>' +
+      '<div class="grid g4" style="margin-top:12px">' +
+      '<div class="card kpi ' + (cls === 'ok' ? 'k-ok' : cls === 'warn' ? 'k-warn' : '') + '"><div class="lbl">اكتمال بنود التسليم</div>' +
+      '<div class="val num">' + pct + '%</div><div class="sub num">' + done + '/' + hi.length + ' بند</div></div>' +
+      '<div class="card kpi ' + (openPunch ? 'k-warn' : 'k-ok') + '"><div class="lbl">ملاحظات مفتوحة</div><div class="val num">' + openPunch + '</div><div class="sub">Punch List</div></div>' +
+      '<div class="card kpi ' + (regDone < reg.length ? 'k-warn' : 'k-ok') + '"><div class="lbl">الموافقات النظامية</div><div class="val num">' + regDone + '/' + reg.length + '</div><div class="sub">أمانة · دفاع مدني · SEC · إشغال</div></div>' +
+      '<div class="card kpi ' + (expSoon ? 'k-warn' : 'k-ok') + '"><div class="lbl">ضمانات قرب الانتهاء</div><div class="val num">' + expSoon + '</div><div class="sub">خلال 90 يوماً</div></div>' +
+      '</div></div>';
+  }
+
   function renderOwnerEye(el, ctx) {
     const A = ctx.Sall || ctx.S; // كل مشاريع المستخدم
     const html = A.projects.map(function (P) {
@@ -170,7 +197,7 @@
           'الفعلي ' + millions(P.costActual || 0) + ' مقابل ' + millions(P.costPlannedToDate || 0) + ' مخطط (' + (g.costVarPct > 0 ? '+' : '') + g.costVarPct + '%)' +
           '<br>الميزانية الكلية ' + millions(P.budgetPlanned || 0),
           g.costVarPct > 10 ? 'danger' : g.costVarPct > 0 ? 'warn' : 'ok') +
-        '</div>' + floorsStrip;
+        '</div>' + floorsStrip + handoverStrip(ctx, P, A);
     }).join('<hr style="border:none;border-top:1px dashed var(--border);margin:26px 0">');
 
     el.innerHTML =
