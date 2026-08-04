@@ -505,6 +505,7 @@
     if (['consultant', 'admin', 'owner'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
       Api.recordHealth(ctx.projectId).then(function (r) {
         if (r && r.dropped) { toast('📉 تنبيه: تراجعت درجة صحة المشروع — راجع الإشعارات'); ctx.refresh(); }
+        else if (r && r.improved) { toast('📈 تحسّنت درجة صحة المشروع — راجع الإشعارات'); ctx.refresh(); }
       }).catch(function () { /* تجاهل */ });
     }
   }

@@ -698,19 +698,27 @@
       if (!db.meta.lastHealthGrade) db.meta.lastHealthGrade = {};
       const prev = db.meta.lastHealthGrade[projectId];
       const tierOf = { A: 4, B: 3, C: 2, D: 1 };
-      let dropped = false;
+      const P = db.projects.find(function (p) { return p.id === projectId; });
+      const pname = P ? P.name : projectId;
+      let dropped = false, improved = false;
       if (prev && tierOf[prev] && h.tier < tierOf[prev]) {
         dropped = true;
-        const P = db.projects.find(function (p) { return p.id === projectId; });
-        const msg = '📉 تراجع مؤشر صحة المشروع "' + (P ? P.name : projectId) + '" من الفئة ' + prev + ' إلى ' + h.grade +
+        const msg = '📉 تراجع مؤشر صحة المشروع "' + pname + '" من الفئة ' + prev + ' إلى ' + h.grade +
           ' (' + h.score + '/100) — ' + h.gradeAr;
         pushNotification({ role: 'owner' }, 'health', msg, 'projects', projectId);
         pushNotification({ role: 'consultant' }, 'health', msg, 'projects', projectId);
         audit(user || { name: 'النظام', role: 'system' }, 'update', 'تنبيه هبوط صحة المشروع إلى ' + h.grade);
+      } else if (prev && tierOf[prev] && h.tier > tierOf[prev]) {
+        improved = true;
+        const msg = '📈 تحسّن مؤشر صحة المشروع "' + pname + '" من الفئة ' + prev + ' إلى ' + h.grade +
+          ' (' + h.score + '/100) — ' + h.gradeAr;
+        pushNotification({ role: 'owner' }, 'recovery', msg, 'projects', projectId);
+        pushNotification({ role: 'consultant' }, 'recovery', msg, 'projects', projectId);
+        audit(user || { name: 'النظام', role: 'system' }, 'update', 'تنبيه تحسّن صحة المشروع إلى ' + h.grade);
       }
       db.meta.lastHealthGrade[projectId] = h.grade;
       persist();
-      return { recorded: true, dropped: dropped, score: h.score, grade: h.grade };
+      return { recorded: true, dropped: dropped, improved: improved, score: h.score, grade: h.grade };
     }
 
     function genPassword() {
