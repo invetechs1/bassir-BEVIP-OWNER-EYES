@@ -487,6 +487,17 @@
       { projectId: 'P1', month: '2026-12', inflow: 50.0, outflow: 52.0, progress: 92 }
     ];
 
+    // سجل مؤشر صحة المشروع الشهري (لقطات مسجّلة — يُلحق بها المؤشر الحالي في الواجهة)
+    db.healthHistory = [
+      { projectId: 'P1', month: '2026-01', score: 82 },
+      { projectId: 'P1', month: '2026-02', score: 80 },
+      { projectId: 'P1', month: '2026-03', score: 78 },
+      { projectId: 'P1', month: '2026-04', score: 74 },
+      { projectId: 'P1', month: '2026-05', score: 71 },
+      { projectId: 'P1', month: '2026-06', score: 69 },
+      { projectId: 'P1', month: '2026-07', score: 67 }
+    ];
+
     // تقارير عدم المطابقة NCR
     db.ncrs = [
       { id: 'NCR1', projectId: 'P1', contractorId: 'C2', ref: 'NCR-ARC-009', title: 'لياسة غير مستوية بالجناح الغربي - الدور الثاني',
@@ -682,7 +693,7 @@
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 12, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 13, docSeq: docSeq };
 
     return db;
   }

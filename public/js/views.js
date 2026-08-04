@@ -222,7 +222,30 @@
       '📅 ' + forecastTxt +
       (chips.length ? '<div style="margin-top:8px">' + chips.map(function (c) { return '<span class="pill p-warn" style="font-size:11px;margin:2px">' + esc(c) + '</span>'; }).join(' ') + '</div>'
         : '<div class="small" style="color:var(--ok);margin-top:8px">✓ لا مخاطر جودة أو سلامة أو تعثّر مقاولين مفتوحة</div>') +
-      '</div></div>';
+      '</div>' + healthTrend(ctx, P, A, h) + '</div>';
+  }
+
+  /** اتجاه مؤشر الصحة شهرياً: يلحق المؤشر الحالي بالسجل ويبرز التحسّن/التراجع */
+  function healthTrend(ctx, P, A, h) {
+    const hist = ((A || ctx.S).healthHistory || [])
+      .filter(function (x) { return !x.projectId || x.projectId === P.id; })
+      .slice().sort(function (a, b) { return String(a.month).localeCompare(String(b.month)); });
+    if (!hist.length) return '';
+    const points = hist.map(function (x) { return { month: x.month, actual: x.score }; }).concat([{ month: 'الآن', actual: h.score }]);
+    const prev = hist[hist.length - 1].score;
+    const delta = h.score - prev;
+    const first = hist[0].score;
+    const overall = h.score - first;
+    const arrow = delta > 0 ? '<span style="color:var(--ok)">▲ +' + delta + '</span>' : delta < 0 ? '<span style="color:var(--danger)">▼ ' + delta + '</span>' : '<span class="muted">— ثابت</span>';
+    let trendMsg;
+    if (overall <= -8) trendMsg = '<span style="color:var(--danger)">📉 اتجاه هابط منذ بداية العام (' + overall + ' نقطة) — يتطلب خطة تصحيحية</span>';
+    else if (overall >= 8) trendMsg = '<span style="color:var(--ok)">📈 اتجاه صاعد منذ بداية العام (+' + overall + ' نقطة)</span>';
+    else trendMsg = '<span class="muted">مستقر نسبياً منذ بداية العام (' + (overall > 0 ? '+' : '') + overall + ' نقطة)</span>';
+    return '<div style="border-top:1px solid var(--border);padding-top:12px;margin-top:10px">' +
+      '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">📊 اتجاه مؤشر الصحة شهرياً</b>' +
+      '<span class="small">مقارنة بالشهر السابق: ' + arrow + ' نقطة</span></div>' +
+      '<div style="margin-top:6px">' + Charts.sCurve(points, { maxY: 100, unit: '', actualLabel: 'المؤشر', plannedLabel: '' }) + '</div>' +
+      '<div class="small mt">' + trendMsg + '</div></div>';
   }
 
   function verdictTile(ico, title, main, sub, cls) {

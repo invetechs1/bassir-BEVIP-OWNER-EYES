@@ -200,6 +200,7 @@
       s.phaseLibrary = db.phaseLibrary || [];
       s.phaseTemplates = db.phaseTemplates || {};
       s.cashFlow = db.cashFlow || [];
+      s.healthHistory = db.healthHistory || [];
       // وحدة التسليم والإغلاق
       s.handoverItems = db.handoverItems || [];
       s.punchList = db.punchList || [];
