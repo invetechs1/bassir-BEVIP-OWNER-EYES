@@ -56,6 +56,7 @@
     if (path === '/api/actions/resubmit') return c.resubmit(demoUser, body);
     if (path === '/api/actions/notify-read') return c.markNotificationsRead(demoUser);
     if (path === '/api/actions/profile') return c.updateProfile(demoUser, body);
+    if (path === '/api/actions/record-health') return c.recordHealthSnapshot(demoUser, body);
     if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
     if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
     if (path === '/api/actions/send-report') return c.sendReport(demoUser, body);
@@ -126,6 +127,7 @@
     resubmit(p) { return call('/api/actions/resubmit', 'POST', p); },
     notifyRead() { return call('/api/actions/notify-read', 'POST', {}); },
     updateProfile(p) { return call('/api/actions/profile', 'POST', p); },
+    recordHealth(projectId) { return call('/api/actions/record-health', 'POST', { projectId: projectId }); },
     backup() {
       if (DEMO) return Promise.reject(new Error('النسخ الاحتياطي متاح في نسخة الخادم'));
       return call('/api/actions/backup', 'POST', {});

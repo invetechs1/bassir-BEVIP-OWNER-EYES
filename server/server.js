@@ -81,7 +81,8 @@ function deliverNotification(notif, recipients) {
     : notif.kind === 'decision' ? 'قرار اعتماد'
     : notif.kind === 'answer' ? 'رد على استفسار'
     : notif.kind === 'resubmit' ? 'إعادة تقديم'
-    : notif.kind === 'assign' ? 'إسناد مهمة' : 'تحديث');
+    : notif.kind === 'assign' ? 'إسناد مهمة'
+    : notif.kind === 'health' ? 'تراجع صحة المشروع' : 'تحديث');
   const html = '<div dir="rtl" style="font-family:Tahoma,Arial;line-height:1.9">' +
     '<h3 style="color:#0b5">👁 بصير — عيون المالك</h3>' +
     '<p><b>' + escapeHtml(subject) + '</b></p><p>' + escapeHtml(notif.text) + '</p>' +
@@ -455,6 +456,9 @@ const server = http.createServer(async function (req, res) {
     }
     if (u === '/api/actions/profile' && req.method === 'POST') {
       return json(res, 200, core.updateProfile(user, await readBody(req)));
+    }
+    if (u === '/api/actions/record-health' && req.method === 'POST') {
+      return json(res, 200, core.recordHealthSnapshot(user, await readBody(req)));
     }
 
     // النسخ الاحتياطي (أدمن): نسخة مؤرخة من قاعدة البيانات في data/backups

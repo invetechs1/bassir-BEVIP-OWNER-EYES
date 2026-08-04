@@ -201,6 +201,9 @@
       s.phaseTemplates = db.phaseTemplates || {};
       s.cashFlow = db.cashFlow || [];
       s.healthHistory = db.healthHistory || [];
+      // مؤشر صحة كل مشروع في نطاق المستخدم (مصدر موثوق للواجهة)
+      s.projectHealth = {};
+      (db.projects || []).forEach(function (p) { s.projectHealth[p.id] = computeProjectHealth(p.id); });
       // وحدة التسليم والإغلاق
       s.handoverItems = db.handoverItems || [];
       s.punchList = db.punchList || [];
@@ -630,6 +633,86 @@
       return total ? Math.round((earned / total) * 100) : 0;
     }
 
+    // ============ مؤشر صحة المشروع (مصدر موثوق للحساب والتنبيه) ============
+    function clampScore(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+    const HEALTH_GRADES = [
+      { min: 85, grade: 'A', ar: 'ممتاز', cls: 'ok', tier: 4 },
+      { min: 70, grade: 'B', ar: 'جيد', cls: 'ok', tier: 3 },
+      { min: 55, grade: 'C', ar: 'مقبول — يحتاج متابعة', cls: 'warn', tier: 2 },
+      { min: 0, grade: 'D', ar: 'حرج — تدخّل عاجل', cls: 'danger', tier: 1 }
+    ];
+    function gradeOf(score) { return HEALTH_GRADES.find(function (g) { return score >= g.min; }); }
+
+    /** يحسب صحة مشروع من بياناته الحالية (نفس صيغة الواجهة تماماً) */
+    function computeProjectHealth(projectId) {
+      const P = db.projects.find(function (p) { return p.id === projectId; });
+      if (!P) return null;
+      const inP = function (x) { return !x.projectId || x.projectId === projectId; };
+      const progVar = Math.round(((P.progressActual || 0) - (P.progressPlanned || 0)) * 10) / 10;
+      const costVar = (P.costActual || 0) - (P.costPlannedToDate || 0);
+      const costVarPct = P.costPlannedToDate ? Math.round(costVar / P.costPlannedToDate * 100) : 0;
+      const openNcr = (db.ncrs || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
+      const failedTests = (db.materialTests || []).filter(function (x) { return inP(x) && x.result === 'fail'; }).length;
+      const openPunch = (db.punchList || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
+      const openHse = (db.hseReports || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
+      const openInc = (db.incidents || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
+      const conts = (db.contractors || []).filter(inP);
+      let delayed = 0, overpaid = 0;
+      conts.forEach(function (c) {
+        const items = (db.boqItems || []).filter(function (b) { return b.contractorId === c.id; });
+        let earned = 0, total = 0;
+        items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
+        const progress = total ? earned / total * 100 : 0;
+        if (progress < (c.plannedProgress || 0) - 3) delayed++;
+        if (c.amountReceived > (c.contractValue * progress / 100) * 1.05) overpaid++;
+      });
+      const schedule = clampScore(100 + progVar * 3);
+      const cost = clampScore(100 - Math.max(0, costVarPct) * 3);
+      const quality = clampScore(100 - openNcr * 8 - failedTests * 6 - openPunch * 3);
+      const safety = clampScore(100 - openHse * 10 - openInc * 12);
+      const contractor = clampScore(100 - delayed * 10 - overpaid * 8);
+      const score = Math.round(schedule * 0.30 + cost * 0.25 + quality * 0.20 + safety * 0.15 + contractor * 0.10);
+      const g = gradeOf(score);
+      return {
+        projectId: projectId, score: score, grade: g.grade, gradeAr: g.ar, cls: g.cls, tier: g.tier,
+        components: { schedule: schedule, cost: cost, quality: quality, safety: safety, contractor: contractor },
+        issues: { openNcr: openNcr, failedTests: failedTests, openPunch: openPunch, openHse: openHse, openInc: openInc, delayed: delayed, overpaid: overpaid }
+      };
+    }
+
+    /**
+     * يسجّل لقطة صحة شهرية للمشروع، ويطلق تنبيهاً تلقائياً عند هبوط الدرجة
+     * لفئة أدنى (يصل للمالك والاستشاري داخل النظام وبالبريد/واتساب).
+     */
+    function recordHealthSnapshot(user, opts) {
+      opts = opts || {};
+      const projectId = opts.projectId || (db.projects[0] && db.projects[0].id);
+      const h = computeProjectHealth(projectId);
+      if (!h) return { recorded: false };
+      if (!db.healthHistory) db.healthHistory = [];
+      const month = todayStr().slice(0, 7);
+      const existing = db.healthHistory.find(function (x) { return x.projectId === projectId && x.month === month; });
+      if (existing) { existing.score = h.score; existing.grade = h.grade; }
+      else db.healthHistory.push({ projectId: projectId, month: month, score: h.score, grade: h.grade });
+
+      if (!db.meta.lastHealthGrade) db.meta.lastHealthGrade = {};
+      const prev = db.meta.lastHealthGrade[projectId];
+      const tierOf = { A: 4, B: 3, C: 2, D: 1 };
+      let dropped = false;
+      if (prev && tierOf[prev] && h.tier < tierOf[prev]) {
+        dropped = true;
+        const P = db.projects.find(function (p) { return p.id === projectId; });
+        const msg = '📉 تراجع مؤشر صحة المشروع "' + (P ? P.name : projectId) + '" من الفئة ' + prev + ' إلى ' + h.grade +
+          ' (' + h.score + '/100) — ' + h.gradeAr;
+        pushNotification({ role: 'owner' }, 'health', msg, 'projects', projectId);
+        pushNotification({ role: 'consultant' }, 'health', msg, 'projects', projectId);
+        audit(user || { name: 'النظام', role: 'system' }, 'update', 'تنبيه هبوط صحة المشروع إلى ' + h.grade);
+      }
+      db.meta.lastHealthGrade[projectId] = h.grade;
+      persist();
+      return { recorded: true, dropped: dropped, score: h.score, grade: h.grade };
+    }
+
     function genPassword() {
       const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
       let p = '';
@@ -653,6 +736,8 @@
       markNotificationsRead: markNotificationsRead,
       updateProfile: updateProfile,
       myProfile: myProfile,
+      computeProjectHealth: computeProjectHealth,
+      recordHealthSnapshot: recordHealthSnapshot,
       addContractor: addContractor,
       addProject: addProject,
       sendReport: sendReport,

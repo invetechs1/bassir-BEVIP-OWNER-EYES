@@ -3,3 +3,6 @@ data/
 *.log
 .DS_Store
 .env
+
+# لقطات الاختبار المؤقتة
+shot-*.png
