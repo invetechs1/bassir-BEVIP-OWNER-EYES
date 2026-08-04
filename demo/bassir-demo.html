@@ -496,6 +496,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       progressPlanned: 62, progressActual: 54.5,
       type: 'برج تجاري / إداري',
       dlpStart: '2027-02-15', dlpMonths: 12,
+      thresholds: { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' },
       floors: FLOORS, disciplines: DISCIPLINES
     }, {
       id: 'P2',
@@ -510,6 +511,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       progressPlanned: 39, progressActual: 41,
       type: 'فيلا سكنية',
       dlpStart: '2026-12-15', dlpMonths: 12,
+      thresholds: { slaReviewDays: 10, warrantyWarnDays: 60, contractorDelayPct: 5, healthAlertGrade: 'B' },
       floors: FLOORS, disciplines: DISCIPLINES
     }];
 
@@ -1152,7 +1154,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 14, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 15, docSeq: docSeq };
 
     return db;
   }
@@ -1776,12 +1778,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       });
       const progress = total ? Math.round((earned / total) * 1000) / 10 : 0;
       const earnedValue = c.contractValue * progress / 100;
+      const delayPct = thresholdsOf(c.projectId || 'P1').contractorDelayPct;
       return {
         id: c.id, name: c.name, type: c.type,
         contractValue: c.contractValue, amountReceived: c.amountReceived,
         startDate: c.startDate, endDate: c.endDate,
         progress: progress, plannedProgress: c.plannedProgress || 0,
-        delayed: progress < (c.plannedProgress || 0) - 3,
+        delayed: progress < (c.plannedProgress || 0) - delayPct,
         overpaid: c.amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
@@ -1801,6 +1804,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       return total ? Math.round((earned / total) * 100) : 0;
     }
 
+    // ============ عتبات التنبيه القابلة للضبط لكل مشروع ============
+    const DEFAULT_THRESHOLDS = { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' };
+    function thresholdsOf(projectId) {
+      const P = db.projects.find(function (p) { return p.id === projectId; });
+      return Object.assign({}, DEFAULT_THRESHOLDS, (P && P.thresholds) || {});
+    }
+
     // ============ مؤشر صحة المشروع (مصدر موثوق للحساب والتنبيه) ============
     function clampScore(v) { return Math.max(0, Math.min(100, Math.round(v))); }
     const HEALTH_GRADES = [
@@ -1816,6 +1826,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const P = db.projects.find(function (p) { return p.id === projectId; });
       if (!P) return null;
       const inP = function (x) { return !x.projectId || x.projectId === projectId; };
+      const th = thresholdsOf(projectId);
       const progVar = Math.round(((P.progressActual || 0) - (P.progressPlanned || 0)) * 10) / 10;
       const costVar = (P.costActual || 0) - (P.costPlannedToDate || 0);
       const costVarPct = P.costPlannedToDate ? Math.round(costVar / P.costPlannedToDate * 100) : 0;
@@ -1831,7 +1842,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         let earned = 0, total = 0;
         items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
         const progress = total ? earned / total * 100 : 0;
-        if (progress < (c.plannedProgress || 0) - 3) delayed++;
+        if (progress < (c.plannedProgress || 0) - th.contractorDelayPct) delayed++;
         if (c.amountReceived > (c.contractValue * progress / 100) * 1.05) overpaid++;
       });
       const schedule = clampScore(100 + progVar * 3);
@@ -1866,17 +1877,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (!db.meta.lastHealthGrade) db.meta.lastHealthGrade = {};
       const prev = db.meta.lastHealthGrade[projectId];
       const tierOf = { A: 4, B: 3, C: 2, D: 1 };
+      const alertTier = tierOf[thresholdsOf(projectId).healthAlertGrade] || 2; // العتبة القابلة للضبط
       const P = db.projects.find(function (p) { return p.id === projectId; });
       const pname = P ? P.name : projectId;
+      const prevTier = prev ? tierOf[prev] : null;
       let dropped = false, improved = false;
-      if (prev && tierOf[prev] && h.tier < tierOf[prev]) {
+      // تنبيه هبوط: تراجعت الدرجة ودخلت منطقة القلق (عند العتبة أو أدنى)
+      if (prevTier && h.tier < prevTier && h.tier <= alertTier) {
         dropped = true;
         const msg = '📉 تراجع مؤشر صحة المشروع "' + pname + '" من الفئة ' + prev + ' إلى ' + h.grade +
           ' (' + h.score + '/100) — ' + h.gradeAr;
         pushNotification({ role: 'owner' }, 'health', msg, 'projects', projectId);
         pushNotification({ role: 'consultant' }, 'health', msg, 'projects', projectId);
         audit(user || { name: 'النظام', role: 'system' }, 'update', 'تنبيه هبوط صحة المشروع إلى ' + h.grade);
-      } else if (prev && tierOf[prev] && h.tier > tierOf[prev]) {
+      } else if (prevTier && h.tier > prevTier && prevTier <= alertTier) {
+        // تنبيه تعافٍ: تحسّنت الدرجة بعد أن كانت في منطقة القلق
         improved = true;
         const msg = '📈 تحسّن مؤشر صحة المشروع "' + pname + '" من الفئة ' + prev + ' إلى ' + h.grade +
           ' (' + h.score + '/100) — ' + h.gradeAr;
@@ -2811,13 +2826,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function clampScore(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 
   /** حساب تقدم مقاول ومؤشراته من جداول الكميات (نسخة عميل خفيفة) */
-  function contractorHealth(A, c) {
+  function contractorHealth(A, c, delayPct) {
     const items = (A.boqItems || []).filter(function (b) { return b.contractorId === c.id; });
     let earned = 0, total = 0;
     items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
     const progress = total ? earned / total * 100 : 0;
     const earnedValue = c.contractValue * progress / 100;
-    return { delayed: progress < (c.plannedProgress || 0) - 3, overpaid: c.amountReceived > earnedValue * 1.05 };
+    return { delayed: progress < (c.plannedProgress || 0) - (delayPct == null ? 3 : delayPct), overpaid: c.amountReceived > earnedValue * 1.05 };
   }
 
   /**
@@ -2834,8 +2849,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const openHse = (A.hseReports || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
     const openInc = (A.incidents || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
     const conts = (A.contractors || []).filter(inP);
+    const th = window.ViewsShared.thresholds(P);
     let delayed = 0, overpaid = 0;
-    conts.forEach(function (c) { const h = contractorHealth(A, c); if (h.delayed) delayed++; if (h.overpaid) overpaid++; });
+    conts.forEach(function (c) { const h = contractorHealth(A, c, th.contractorDelayPct); if (h.delayed) delayed++; if (h.overpaid) overpaid++; });
 
     const schedule = clampScore(100 + g.progVar * 3);
     const cost = clampScore(100 - Math.max(0, g.costVarPct) * 3);
@@ -2954,10 +2970,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const done = hi.filter(function (i) { return i.status === 'done'; }).length;
     const pct = Math.round(done / hi.length * 100);
     const openPunch = (A.punchList || []).filter(function (x) { return (!x.projectId || x.projectId === P.id) && x.status === 'open'; }).length;
+    const warnDays = window.ViewsShared.thresholds(P).warrantyWarnDays;
     const expSoon = (A.warranties || []).filter(function (x) {
       if (x.projectId && x.projectId !== P.id) return null;
       const d = x.endDate ? Math.round((new Date(x.endDate) - Date.now()) / 86400000) : null;
-      return d != null && d >= 0 && d <= 90;
+      return d != null && d >= 0 && d <= warnDays;
     }).length;
     const reg = hi.filter(function (i) { return i.group === 'regulatory'; });
     const regDone = reg.filter(function (i) { return i.status === 'done'; }).length;
@@ -3863,9 +3880,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
   }
 
+  const DEFAULT_THRESHOLDS = { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' };
+  function thresholdsOf(P) { return Object.assign({}, DEFAULT_THRESHOLDS, (P && P.thresholds) || {}); }
+
   window.ViewsShared = {
     pill: pill, money: money, millions: millions, toast: toast, modal: modal,
     discOf: discOf, floorName: floorName, weightedProgress: weightedProgress,
+    thresholds: thresholdsOf, DEFAULT_THRESHOLDS: DEFAULT_THRESHOLDS,
     summarize: summarize, STATUS: STATUS, esc: esc, att: att,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
@@ -5471,6 +5492,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   function renderSubmissions(el, ctx) {
+    const SLA_DAYS = VS.thresholds(ctx.S.projects[0]).slaReviewDays; // عتبة المشروع الحالي
     const all = submissionRows(ctx);
     const rows = all.filter(function (r) {
       if (subState.type !== 'all' && r.col !== subState.type) return false;
@@ -5585,6 +5607,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   function renderRfx(el, ctx) {
+    const SLA_DAYS = VS.thresholds(ctx.S.projects[0]).slaReviewDays; // عتبة المشروع الحالي
     const tab = rfxState.tab;
     const isRfp = tab === 'rfps';
     const items = (ctx.S[tab] || []).slice().sort(function (a, b) {
@@ -6623,13 +6646,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderWarranties(el, ctx) {
     const items = (ctx.S.warranties || []).slice().sort(function (a, b) { return String(a.endDate).localeCompare(String(b.endDate)); });
     const canAdd = ['contractor', 'consultant', 'admin'].indexOf(ctx.U.role) !== -1;
-    const expiringSoon = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d >= 0 && d <= 90; });
+    const warnDays = VS.thresholds(ctx.S.projects[0]).warrantyWarnDays;
+    const expiringSoon = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d >= 0 && d <= warnDays; });
     const expired = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d < 0; });
 
     el.innerHTML =
       '<div class="grid g4 mb">' +
       '<div class="card kpi"><div class="lbl">إجمالي الضمانات</div><div class="val num">' + items.length + '</div></div>' +
-      '<div class="card kpi ' + (expiringSoon.length ? 'k-warn' : 'k-ok') + '"><div class="lbl">قرب الانتهاء (≤90 يوم)</div><div class="val num">' + expiringSoon.length + '</div></div>' +
+      '<div class="card kpi ' + (expiringSoon.length ? 'k-warn' : 'k-ok') + '"><div class="lbl">قرب الانتهاء (≤العتبة)</div><div class="val num">' + expiringSoon.length + '</div></div>' +
       '<div class="card kpi ' + (expired.length ? 'k-danger' : 'k-ok') + '"><div class="lbl">منتهية</div><div class="val num">' + expired.length + '</div></div>' +
       '<div class="card kpi k-info"><div class="lbl">سارية</div><div class="val num">' + (items.length - expired.length) + '</div></div>' +
       '</div>' +
@@ -6832,6 +6856,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<button class="btn sm" id="ph-add">➕ مرحلة</button></div>' : '') + '</div>' +
       '<div class="small muted">أضف أو احذف المراحل بما يناسب طبيعة المشروع — تنعكس في لوحة القيادة ومقارنات الإنجاز.</div></div>' +
 
+      (canEdit ? (function () {
+        const th = VS.thresholds(P);
+        return '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+          '<h3 style="margin:0">⚙️ عتبات التنبيه لهذا المشروع <span class="hint">تضبط متى تُطلق التنبيهات وتُحتسب المؤشرات</span></h3>' +
+          '<button class="btn sm" id="th-save">💾 حفظ العتبات</button></div>' +
+          '<div class="grid g4" style="margin-top:12px">' +
+          '<div><label class="fl">مهلة المراجعة (SLA) — يوم</label><input class="inp num" id="th-sla" type="number" min="1" value="' + th.slaReviewDays + '"></div>' +
+          '<div><label class="fl">تنبيه قرب انتهاء الضمان — يوم</label><input class="inp num" id="th-warr" type="number" min="1" value="' + th.warrantyWarnDays + '"></div>' +
+          '<div><label class="fl">حد تأخر المقاول — %</label><input class="inp num" id="th-delay" type="number" min="0" value="' + th.contractorDelayPct + '"></div>' +
+          '<div><label class="fl">درجة تنبيه الصحة (عند/دون)</label><select class="inp" id="th-grade">' +
+          ['A', 'B', 'C', 'D'].map(function (g) { return '<option value="' + g + '"' + (th.healthAlertGrade === g ? ' selected' : '') + '>' + g + (g === 'B' ? ' — جيد فأدنى' : g === 'C' ? ' — مقبول فأدنى' : g === 'D' ? ' — حرج فقط' : ' — أي هبوط') + '</option>'; }).join('') + '</select></div>' +
+          '</div>' +
+          '<div class="small muted mt">تُطبَّق فوراً على تتبع التقديمات (SLA)، وتنبيهات الضمانات، ومقارنة المقاولين، وتنبيه هبوط/تحسّن صحة المشروع.</div></div>';
+      })() : '') +
+
       '<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>المرحلة</th><th>مخطط</th><th>فعلي</th><th>الإنجاز</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       tasks.map(function (t, i) {
         return '<tr><td class="num small">' + (i + 1) + '</td>' +
@@ -6843,6 +6882,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '</tr>';
       }).join('') + '</tbody></table></div>' +
       (tasks.length ? '' : '<div class="empty"><div class="e-ico">🗂️</div>لا مراحل — طبّق قالباً أو أضف مرحلة</div>') + '</div>';
+
+    const thSave = el.querySelector('#th-save');
+    if (thSave) thSave.addEventListener('click', async function () {
+      try {
+        await Api.update('projects', P.id, {
+          thresholds: {
+            slaReviewDays: Math.max(1, Number(el.querySelector('#th-sla').value) || 7),
+            warrantyWarnDays: Math.max(1, Number(el.querySelector('#th-warr').value) || 90),
+            contractorDelayPct: Math.max(0, Number(el.querySelector('#th-delay').value) || 3),
+            healthAlertGrade: el.querySelector('#th-grade').value || 'C'
+          }
+        });
+        toast('✅ حُفظت عتبات التنبيه — طُبّقت على مؤشرات هذا المشروع'); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
 
     const tmpl = el.querySelector('#ph-tmpl');
     if (tmpl) tmpl.addEventListener('change', async function () {

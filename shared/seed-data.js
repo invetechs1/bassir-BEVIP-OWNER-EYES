@@ -102,6 +102,7 @@
       progressPlanned: 62, progressActual: 54.5,
       type: 'برج تجاري / إداري',
       dlpStart: '2027-02-15', dlpMonths: 12,
+      thresholds: { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' },
       floors: FLOORS, disciplines: DISCIPLINES
     }, {
       id: 'P2',
@@ -116,6 +117,7 @@
       progressPlanned: 39, progressActual: 41,
       type: 'فيلا سكنية',
       dlpStart: '2026-12-15', dlpMonths: 12,
+      thresholds: { slaReviewDays: 10, warrantyWarnDays: 60, contractorDelayPct: 5, healthAlertGrade: 'B' },
       floors: FLOORS, disciplines: DISCIPLINES
     }];
 
@@ -758,7 +760,7 @@
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 14, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 15, docSeq: docSeq };
 
     return db;
   }

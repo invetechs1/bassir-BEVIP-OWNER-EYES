@@ -249,13 +249,14 @@
   function renderWarranties(el, ctx) {
     const items = (ctx.S.warranties || []).slice().sort(function (a, b) { return String(a.endDate).localeCompare(String(b.endDate)); });
     const canAdd = ['contractor', 'consultant', 'admin'].indexOf(ctx.U.role) !== -1;
-    const expiringSoon = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d >= 0 && d <= 90; });
+    const warnDays = VS.thresholds(ctx.S.projects[0]).warrantyWarnDays;
+    const expiringSoon = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d >= 0 && d <= warnDays; });
     const expired = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d < 0; });
 
     el.innerHTML =
       '<div class="grid g4 mb">' +
       '<div class="card kpi"><div class="lbl">إجمالي الضمانات</div><div class="val num">' + items.length + '</div></div>' +
-      '<div class="card kpi ' + (expiringSoon.length ? 'k-warn' : 'k-ok') + '"><div class="lbl">قرب الانتهاء (≤90 يوم)</div><div class="val num">' + expiringSoon.length + '</div></div>' +
+      '<div class="card kpi ' + (expiringSoon.length ? 'k-warn' : 'k-ok') + '"><div class="lbl">قرب الانتهاء (≤العتبة)</div><div class="val num">' + expiringSoon.length + '</div></div>' +
       '<div class="card kpi ' + (expired.length ? 'k-danger' : 'k-ok') + '"><div class="lbl">منتهية</div><div class="val num">' + expired.length + '</div></div>' +
       '<div class="card kpi k-info"><div class="lbl">سارية</div><div class="val num">' + (items.length - expired.length) + '</div></div>' +
       '</div>' +
@@ -458,6 +459,21 @@
         '<button class="btn sm" id="ph-add">➕ مرحلة</button></div>' : '') + '</div>' +
       '<div class="small muted">أضف أو احذف المراحل بما يناسب طبيعة المشروع — تنعكس في لوحة القيادة ومقارنات الإنجاز.</div></div>' +
 
+      (canEdit ? (function () {
+        const th = VS.thresholds(P);
+        return '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+          '<h3 style="margin:0">⚙️ عتبات التنبيه لهذا المشروع <span class="hint">تضبط متى تُطلق التنبيهات وتُحتسب المؤشرات</span></h3>' +
+          '<button class="btn sm" id="th-save">💾 حفظ العتبات</button></div>' +
+          '<div class="grid g4" style="margin-top:12px">' +
+          '<div><label class="fl">مهلة المراجعة (SLA) — يوم</label><input class="inp num" id="th-sla" type="number" min="1" value="' + th.slaReviewDays + '"></div>' +
+          '<div><label class="fl">تنبيه قرب انتهاء الضمان — يوم</label><input class="inp num" id="th-warr" type="number" min="1" value="' + th.warrantyWarnDays + '"></div>' +
+          '<div><label class="fl">حد تأخر المقاول — %</label><input class="inp num" id="th-delay" type="number" min="0" value="' + th.contractorDelayPct + '"></div>' +
+          '<div><label class="fl">درجة تنبيه الصحة (عند/دون)</label><select class="inp" id="th-grade">' +
+          ['A', 'B', 'C', 'D'].map(function (g) { return '<option value="' + g + '"' + (th.healthAlertGrade === g ? ' selected' : '') + '>' + g + (g === 'B' ? ' — جيد فأدنى' : g === 'C' ? ' — مقبول فأدنى' : g === 'D' ? ' — حرج فقط' : ' — أي هبوط') + '</option>'; }).join('') + '</select></div>' +
+          '</div>' +
+          '<div class="small muted mt">تُطبَّق فوراً على تتبع التقديمات (SLA)، وتنبيهات الضمانات، ومقارنة المقاولين، وتنبيه هبوط/تحسّن صحة المشروع.</div></div>';
+      })() : '') +
+
       '<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>المرحلة</th><th>مخطط</th><th>فعلي</th><th>الإنجاز</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       tasks.map(function (t, i) {
         return '<tr><td class="num small">' + (i + 1) + '</td>' +
@@ -469,6 +485,21 @@
           '</tr>';
       }).join('') + '</tbody></table></div>' +
       (tasks.length ? '' : '<div class="empty"><div class="e-ico">🗂️</div>لا مراحل — طبّق قالباً أو أضف مرحلة</div>') + '</div>';
+
+    const thSave = el.querySelector('#th-save');
+    if (thSave) thSave.addEventListener('click', async function () {
+      try {
+        await Api.update('projects', P.id, {
+          thresholds: {
+            slaReviewDays: Math.max(1, Number(el.querySelector('#th-sla').value) || 7),
+            warrantyWarnDays: Math.max(1, Number(el.querySelector('#th-warr').value) || 90),
+            contractorDelayPct: Math.max(0, Number(el.querySelector('#th-delay').value) || 3),
+            healthAlertGrade: el.querySelector('#th-grade').value || 'C'
+          }
+        });
+        toast('✅ حُفظت عتبات التنبيه — طُبّقت على مؤشرات هذا المشروع'); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
 
     const tmpl = el.querySelector('#ph-tmpl');
     if (tmpl) tmpl.addEventListener('change', async function () {

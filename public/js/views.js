@@ -121,13 +121,13 @@
   function clampScore(v) { return Math.max(0, Math.min(100, Math.round(v))); }
 
   /** حساب تقدم مقاول ومؤشراته من جداول الكميات (نسخة عميل خفيفة) */
-  function contractorHealth(A, c) {
+  function contractorHealth(A, c, delayPct) {
     const items = (A.boqItems || []).filter(function (b) { return b.contractorId === c.id; });
     let earned = 0, total = 0;
     items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
     const progress = total ? earned / total * 100 : 0;
     const earnedValue = c.contractValue * progress / 100;
-    return { delayed: progress < (c.plannedProgress || 0) - 3, overpaid: c.amountReceived > earnedValue * 1.05 };
+    return { delayed: progress < (c.plannedProgress || 0) - (delayPct == null ? 3 : delayPct), overpaid: c.amountReceived > earnedValue * 1.05 };
   }
 
   /**
@@ -144,8 +144,9 @@
     const openHse = (A.hseReports || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
     const openInc = (A.incidents || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
     const conts = (A.contractors || []).filter(inP);
+    const th = window.ViewsShared.thresholds(P);
     let delayed = 0, overpaid = 0;
-    conts.forEach(function (c) { const h = contractorHealth(A, c); if (h.delayed) delayed++; if (h.overpaid) overpaid++; });
+    conts.forEach(function (c) { const h = contractorHealth(A, c, th.contractorDelayPct); if (h.delayed) delayed++; if (h.overpaid) overpaid++; });
 
     const schedule = clampScore(100 + g.progVar * 3);
     const cost = clampScore(100 - Math.max(0, g.costVarPct) * 3);
@@ -264,10 +265,11 @@
     const done = hi.filter(function (i) { return i.status === 'done'; }).length;
     const pct = Math.round(done / hi.length * 100);
     const openPunch = (A.punchList || []).filter(function (x) { return (!x.projectId || x.projectId === P.id) && x.status === 'open'; }).length;
+    const warnDays = window.ViewsShared.thresholds(P).warrantyWarnDays;
     const expSoon = (A.warranties || []).filter(function (x) {
       if (x.projectId && x.projectId !== P.id) return null;
       const d = x.endDate ? Math.round((new Date(x.endDate) - Date.now()) / 86400000) : null;
-      return d != null && d >= 0 && d <= 90;
+      return d != null && d >= 0 && d <= warnDays;
     }).length;
     const reg = hi.filter(function (i) { return i.group === 'regulatory'; });
     const regDone = reg.filter(function (i) { return i.status === 'done'; }).length;
@@ -1173,9 +1175,13 @@
     });
   }
 
+  const DEFAULT_THRESHOLDS = { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' };
+  function thresholdsOf(P) { return Object.assign({}, DEFAULT_THRESHOLDS, (P && P.thresholds) || {}); }
+
   window.ViewsShared = {
     pill: pill, money: money, millions: millions, toast: toast, modal: modal,
     discOf: discOf, floorName: floorName, weightedProgress: weightedProgress,
+    thresholds: thresholdsOf, DEFAULT_THRESHOLDS: DEFAULT_THRESHOLDS,
     summarize: summarize, STATUS: STATUS, esc: esc, att: att,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,

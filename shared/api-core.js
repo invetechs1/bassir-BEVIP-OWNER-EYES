@@ -612,12 +612,13 @@
       });
       const progress = total ? Math.round((earned / total) * 1000) / 10 : 0;
       const earnedValue = c.contractValue * progress / 100;
+      const delayPct = thresholdsOf(c.projectId || 'P1').contractorDelayPct;
       return {
         id: c.id, name: c.name, type: c.type,
         contractValue: c.contractValue, amountReceived: c.amountReceived,
         startDate: c.startDate, endDate: c.endDate,
         progress: progress, plannedProgress: c.plannedProgress || 0,
-        delayed: progress < (c.plannedProgress || 0) - 3,
+        delayed: progress < (c.plannedProgress || 0) - delayPct,
         overpaid: c.amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
@@ -637,6 +638,13 @@
       return total ? Math.round((earned / total) * 100) : 0;
     }
 
+    // ============ عتبات التنبيه القابلة للضبط لكل مشروع ============
+    const DEFAULT_THRESHOLDS = { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' };
+    function thresholdsOf(projectId) {
+      const P = db.projects.find(function (p) { return p.id === projectId; });
+      return Object.assign({}, DEFAULT_THRESHOLDS, (P && P.thresholds) || {});
+    }
+
     // ============ مؤشر صحة المشروع (مصدر موثوق للحساب والتنبيه) ============
     function clampScore(v) { return Math.max(0, Math.min(100, Math.round(v))); }
     const HEALTH_GRADES = [
@@ -652,6 +660,7 @@
       const P = db.projects.find(function (p) { return p.id === projectId; });
       if (!P) return null;
       const inP = function (x) { return !x.projectId || x.projectId === projectId; };
+      const th = thresholdsOf(projectId);
       const progVar = Math.round(((P.progressActual || 0) - (P.progressPlanned || 0)) * 10) / 10;
       const costVar = (P.costActual || 0) - (P.costPlannedToDate || 0);
       const costVarPct = P.costPlannedToDate ? Math.round(costVar / P.costPlannedToDate * 100) : 0;
@@ -667,7 +676,7 @@
         let earned = 0, total = 0;
         items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
         const progress = total ? earned / total * 100 : 0;
-        if (progress < (c.plannedProgress || 0) - 3) delayed++;
+        if (progress < (c.plannedProgress || 0) - th.contractorDelayPct) delayed++;
         if (c.amountReceived > (c.contractValue * progress / 100) * 1.05) overpaid++;
       });
       const schedule = clampScore(100 + progVar * 3);
@@ -702,17 +711,21 @@
       if (!db.meta.lastHealthGrade) db.meta.lastHealthGrade = {};
       const prev = db.meta.lastHealthGrade[projectId];
       const tierOf = { A: 4, B: 3, C: 2, D: 1 };
+      const alertTier = tierOf[thresholdsOf(projectId).healthAlertGrade] || 2; // العتبة القابلة للضبط
       const P = db.projects.find(function (p) { return p.id === projectId; });
       const pname = P ? P.name : projectId;
+      const prevTier = prev ? tierOf[prev] : null;
       let dropped = false, improved = false;
-      if (prev && tierOf[prev] && h.tier < tierOf[prev]) {
+      // تنبيه هبوط: تراجعت الدرجة ودخلت منطقة القلق (عند العتبة أو أدنى)
+      if (prevTier && h.tier < prevTier && h.tier <= alertTier) {
         dropped = true;
         const msg = '📉 تراجع مؤشر صحة المشروع "' + pname + '" من الفئة ' + prev + ' إلى ' + h.grade +
           ' (' + h.score + '/100) — ' + h.gradeAr;
         pushNotification({ role: 'owner' }, 'health', msg, 'projects', projectId);
         pushNotification({ role: 'consultant' }, 'health', msg, 'projects', projectId);
         audit(user || { name: 'النظام', role: 'system' }, 'update', 'تنبيه هبوط صحة المشروع إلى ' + h.grade);
-      } else if (prev && tierOf[prev] && h.tier > tierOf[prev]) {
+      } else if (prevTier && h.tier > prevTier && prevTier <= alertTier) {
+        // تنبيه تعافٍ: تحسّنت الدرجة بعد أن كانت في منطقة القلق
         improved = true;
         const msg = '📈 تحسّن مؤشر صحة المشروع "' + pname + '" من الفئة ' + prev + ' إلى ' + h.grade +
           ' (' + h.score + '/100) — ' + h.gradeAr;

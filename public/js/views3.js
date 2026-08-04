@@ -106,6 +106,7 @@
   }
 
   function renderSubmissions(el, ctx) {
+    const SLA_DAYS = VS.thresholds(ctx.S.projects[0]).slaReviewDays; // عتبة المشروع الحالي
     const all = submissionRows(ctx);
     const rows = all.filter(function (r) {
       if (subState.type !== 'all' && r.col !== subState.type) return false;
@@ -220,6 +221,7 @@
   }
 
   function renderRfx(el, ctx) {
+    const SLA_DAYS = VS.thresholds(ctx.S.projects[0]).slaReviewDays; // عتبة المشروع الحالي
     const tab = rfxState.tab;
     const isRfp = tab === 'rfps';
     const items = (ctx.S[tab] || []).slice().sort(function (a, b) {
