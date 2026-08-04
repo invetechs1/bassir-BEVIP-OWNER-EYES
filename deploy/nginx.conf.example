@@ -1,0 +1,44 @@
+# بصير — عيون المالك | وكيل عكسي Nginx مع HTTPS
+# انسخه إلى /etc/nginx/sites-available/bassir واربطه، ثم أصدر شهادة عبر:
+#   sudo certbot --nginx -d bassir.example.com
+# التطبيق يستمع محلياً على 127.0.0.1:3000
+
+server {
+    listen 80;
+    server_name bassir.example.com;
+    # يحوّل certbot هذا تلقائياً إلى إعادة توجيه HTTPS
+    location / { return 301 https://$host$request_uri; }
+}
+
+server {
+    listen 443 ssl http2;
+    server_name bassir.example.com;
+
+    # شهادات Let's Encrypt (يديرها certbot)
+    ssl_certificate     /etc/letsencrypt/live/bassir.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/bassir.example.com/privkey.pem;
+
+    # رفع ملفات BIM كبيرة (حتى 500MB يدعمها الخادم)
+    client_max_body_size 512M;
+
+    # ترويسات أمان أساسية
+    add_header X-Content-Type-Options nosniff always;
+    add_header X-Frame-Options SAMEORIGIN always;
+    add_header Referrer-Policy strict-origin-when-cross-origin always;
+
+    location / {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 300s;   # لرفع الملفات الكبيرة والتحليل
+    }
+
+    # فحص الصحة بلا تسجيل
+    location = /healthz {
+        proxy_pass http://127.0.0.1:3000/healthz;
+        access_log off;
+    }
+}

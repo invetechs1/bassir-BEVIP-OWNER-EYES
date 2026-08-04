@@ -257,9 +257,22 @@ function serveStatic(req, res) {
 }
 
 // ============ الموجّه ============
+const SERVER_STARTED = Date.now();
 const server = http.createServer(async function (req, res) {
   try {
     const u = req.url.split('?')[0];
+
+    // فحص الصحة (عام، بلا مصادقة) — لموازِن الأحمال و Docker healthcheck
+    if (u === '/healthz' || u === '/api/health') {
+      return json(res, 200, {
+        status: 'ok',
+        uptime: Math.round((Date.now() - SERVER_STARTED) / 1000),
+        storage: storage.kind,
+        projects: (db.projects || []).length,
+        version: (db.meta && db.meta.version) || null,
+        time: new Date().toISOString()
+      });
+    }
 
     // مدخل لقطات الكاميرات: الكاميرا/NVR تدفع JPEG عبر HTTP بمفتاح CAMERA_KEY
     let m0 = u.match(/^\/api\/cameras\/([\w-]+)\/snapshot$/);

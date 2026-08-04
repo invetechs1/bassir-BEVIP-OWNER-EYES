@@ -1,0 +1,30 @@
+# بصير — عيون المالك | وحدة systemd للتشغيل على خادم مباشر (بلا Docker)
+# التركيب:
+#   sudo cp deploy/bassir.service /etc/systemd/system/bassir.service
+#   (عدّل المسار والمستخدم أدناه)
+#   sudo systemctl daemon-reload && sudo systemctl enable --now bassir
+#   sudo journalctl -u bassir -f      # لمتابعة السجل
+
+[Unit]
+Description=Bassir Owner Eyes Platform
+After=network.target
+
+[Service]
+Type=simple
+User=bassir
+WorkingDirectory=/opt/bassir
+EnvironmentFile=/opt/bassir/.env
+Environment=NODE_ENV=production
+Environment=PORT=3000
+ExecStart=/usr/bin/node --no-warnings server/server.js
+Restart=on-failure
+RestartSec=5
+# تقوية أمنية
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/bassir/data
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

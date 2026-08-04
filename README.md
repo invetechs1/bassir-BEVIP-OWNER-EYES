@@ -19,6 +19,14 @@ node server/server.js  # ثم افتح http://localhost:3000
 
 - `npm run seed` — إعادة ضبط بيانات الديمو
 - `npm run build:demo` — توليد ديمو تفاعلي بملف واحد `demo/bassir-demo.html` يعمل بلا خادم (يفتح مباشرة في المتصفح)
+- `npm run preflight` — فحص جاهزية النشر الحي (إصدار Node، قاعدة البيانات، التكاملات)
+
+### النشر الحي 🚀
+دليل نشر إنتاجي كامل في **[DEPLOY.md](DEPLOY.md)** — يشمل:
+- **Docker** بحاوية واحدة (`docker compose up -d`) مع ثبات البيانات وفحص صحة، أو تشغيل مباشر عبر **systemd**.
+- **وكيل عكسي Nginx + HTTPS** (`deploy/nginx.conf.example`) بدعم رفع نماذج BIM الكبيرة (512MB).
+- نقطة فحص صحة عامة **`GET /healthz`** لموازِن الأحمال و Docker.
+- ربط الكاميرات (استقبال اللقطات + بث RTSP عبر MediaMTX)، والنسخ الاحتياطي، وملاحظات الأمان.
 
 ## حسابات الديمو
 
