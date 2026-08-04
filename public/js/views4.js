@@ -538,9 +538,94 @@
     });
   }
 
+  // ============ لوحة محفظة المشاريع (ممثل المالك / الأدمن) ============
+  const GRADE_PILL = { A: 'p-ok', B: 'p-ok', C: 'p-warn', D: 'p-danger' };
+  const HC = { ok: '#2dd4a0', warn: '#ffcc00', danger: '#ff3b30' };
+
+  function renderPortfolio(el, ctx) {
+    const A = ctx.Sall || ctx.S;
+    const projects = A.projects || [];
+    const ph = A.projectHealth || {};
+    const hist = A.healthHistory || [];
+
+    function trendArrow(pid, score) {
+      const h = hist.filter(function (x) { return x.projectId === pid; }).sort(function (a, b) { return String(a.month).localeCompare(String(b.month)); });
+      if (!h.length) return '';
+      const d = score - h[h.length - 1].score;
+      return d > 0 ? '<span style="color:var(--ok)">▲ +' + d + '</span>' : d < 0 ? '<span style="color:var(--danger)">▼ ' + d + '</span>' : '<span class="muted">—</span>';
+    }
+
+    const rows = projects.map(function (p) {
+      const h = ph[p.id] || { score: 0, grade: '—', cls: 'warn', gradeAr: '', issues: {} };
+      const g = projectGlanceLite(p);
+      return { p: p, h: h, g: g };
+    });
+    const avg = rows.length ? Math.round(rows.reduce(function (a, r) { return a + r.h.score; }, 0) / rows.length) : 0;
+    const atRisk = rows.filter(function (r) { return r.h.cls === 'warn' || r.h.cls === 'danger'; }).length;
+    const totalBudget = rows.reduce(function (a, r) { return a + (r.p.budgetPlanned || 0); }, 0);
+    const totalCost = rows.reduce(function (a, r) { return a + (r.p.costActual || 0); }, 0);
+    const wProg = totalBudget ? Math.round(rows.reduce(function (a, r) { return a + (r.p.progressActual || 0) * (r.p.budgetPlanned || 0); }, 0) / totalBudget) : 0;
+
+    el.innerHTML =
+      '<div class="grid g4 mb">' +
+      '<div class="card kpi"><div class="lbl">عدد المشاريع</div><div class="val num">' + rows.length + '</div><div class="sub">تحت الإشراف</div></div>' +
+      '<div class="card kpi ' + (avg >= 70 ? 'k-ok' : avg >= 55 ? 'k-warn' : 'k-danger') + '"><div class="lbl">متوسط صحة المحفظة</div><div class="val num">' + avg + '</div><div class="sub">من 100</div></div>' +
+      '<div class="card kpi ' + (atRisk ? 'k-warn' : 'k-ok') + '"><div class="lbl">مشاريع تحت المخاطرة</div><div class="val num">' + atRisk + '</div><div class="sub">فئة C أو D</div></div>' +
+      '<div class="card kpi k-info"><div class="lbl">إجمالي الميزانيات</div><div class="val" style="font-size:19px">' + VS.millions(totalBudget) + '</div><div class="sub num">الإنجاز المرجّح ' + wProg + '%</div></div>' +
+      '</div>' +
+
+      '<div class="card mb"><h3>🗂️ محفظة المشاريع — مقارنة الصحة <span class="hint">اضغط "فتح" للعمل على أي مشروع</span></h3>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+      '<th>المشروع</th><th>النوع</th><th>الإنجاز (فعلي/مخطط)</th><th>التكلفة</th><th>مؤشر الصحة</th><th>الاتجاه</th><th>مخاطر مفتوحة</th><th></th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        const p = r.p, h = r.h;
+        const risks = (h.issues.openNcr || 0) + (h.issues.failedTests || 0) + (h.issues.openPunch || 0) + (h.issues.openHse || 0) + (h.issues.openInc || 0);
+        const active = ctx.projectId === p.id;
+        return '<tr>' +
+          '<td><b>🏗️ ' + esc(p.name) + '</b><div class="small muted">' + esc(p.location || '') + '</div></td>' +
+          '<td class="small">' + esc(p.type || '—') + '</td>' +
+          '<td><div class="flex" style="gap:6px"><div class="bar ' + (r.g.behind ? 'b-danger' : 'b-ok') + '" style="flex:1;min-width:90px"><i style="width:' + (p.progressActual || 0) + '%"></i></div>' +
+          '<b class="num small">' + (p.progressActual || 0) + '%</b></div><div class="small muted num">مخطط ' + (p.progressPlanned || 0) + '%</div></td>' +
+          '<td class="small num">' + VS.millions(p.costActual || 0) + '<div class="muted">من ' + VS.millions(p.budgetPlanned || 0) + '</div></td>' +
+          '<td><div class="flex" style="gap:8px;align-items:center"><b class="num" style="font-size:17px;color:' + (HC[h.cls] || HC.warn) + '">' + h.score + '</b>' +
+          '<span class="pill ' + (GRADE_PILL[h.grade] || 'p-muted') + '">' + h.grade + '</span></div></td>' +
+          '<td class="small">' + trendArrow(p.id, h.score) + '</td>' +
+          '<td>' + (risks ? '<span class="pill p-warn">' + risks + '</span>' : '<span class="pill p-ok">0</span>') + '</td>' +
+          '<td>' + (active ? '<span class="pill p-ok">الحالي</span>' : '<button class="btn sm" data-openp="' + p.id + '">فتح ←</button>') + '</td>' +
+          '</tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="flex mt"><button class="btn ghost sm" id="pf-print">🖨 تصدير تقرير المحفظة PDF</button></div></div>';
+
+    el.querySelectorAll('[data-openp]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        ctx.setProject(b.getAttribute('data-openp'));
+        ctx.nav('dashboard');
+      });
+    });
+    el.querySelector('#pf-print').addEventListener('click', function () {
+      printDoc('تقرير محفظة المشاريع', portfolioHtml(rows, { avg: avg, atRisk: atRisk, totalBudget: totalBudget, wProg: wProg }));
+    });
+  }
+
+  function projectGlanceLite(p) {
+    const progVar = (p.progressActual || 0) - (p.progressPlanned || 0);
+    return { behind: progVar < -3, progVar: Math.round(progVar * 10) / 10 };
+  }
+
+  function portfolioHtml(rows, agg) {
+    return '<h1>تقرير محفظة المشاريع</h1>' +
+      '<p class="muted">عدد المشاريع: <b>' + rows.length + '</b> · متوسط الصحة: <b>' + agg.avg + '/100</b> · تحت المخاطرة: <b>' + agg.atRisk + '</b> · إجمالي الميزانيات: <b>' + (agg.totalBudget / 1e6).toFixed(1) + 'M</b> · الإنجاز المرجّح: <b>' + agg.wProg + '%</b></p>' +
+      '<table><thead><tr><th>المشروع</th><th>النوع</th><th>الإنجاز الفعلي</th><th>المخطط</th><th>مؤشر الصحة</th><th>الفئة</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        return '<tr><td>' + esc(r.p.name) + '</td><td>' + esc(r.p.type || '') + '</td><td>' + (r.p.progressActual || 0) + '%</td><td>' + (r.p.progressPlanned || 0) + '%</td>' +
+          '<td>' + r.h.score + '</td><td class="' + (r.h.cls === 'ok' ? 'ok' : 'bad') + '">' + r.h.grade + ' — ' + esc(r.h.gradeAr) + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
   window.ViewsHandover = {
     renderHandover: renderHandover,
     renderPhases: renderPhases,
+    renderPortfolio: renderPortfolio,
     printDoc: printDoc
   };
 })();

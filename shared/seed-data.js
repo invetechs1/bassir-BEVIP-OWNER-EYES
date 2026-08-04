@@ -103,6 +103,20 @@
       type: 'برج تجاري / إداري',
       dlpStart: '2027-02-15', dlpMonths: 12,
       floors: FLOORS, disciplines: DISCIPLINES
+    }, {
+      id: 'P2',
+      name: 'فيلا الياسمين السكنية',
+      location: 'جدة - حي الشاطئ',
+      description: 'فيلا سكنية فاخرة من دورين وملحق وقبو، بمساحة بناء 1,150 م² مع مسبح وحديقة.',
+      ownerName: 'م. عبدالله الراشد',
+      consultantName: 'دار العمران للاستشارات الهندسية',
+      startPlanned: '2025-09-01', endPlanned: '2026-11-30',
+      startActual: '2025-09-10', endForecast: '2026-11-20',
+      budgetPlanned: 8500000, costActual: 3350000, costPlannedToDate: 3450000,
+      progressPlanned: 39, progressActual: 41,
+      type: 'فيلا سكنية',
+      dlpStart: '2026-12-15', dlpMonths: 12,
+      floors: FLOORS, disciplines: DISCIPLINES
     }];
 
     // ============ مكتبة المراحل وقوالبها حسب نوع المشروع ============
@@ -167,7 +181,18 @@
         amountReceived: 1300000, plannedProgress: 45, phone: '0506667788' },
       { id: 'C7', projectId: 'P1', name: 'دار الفرش الراقي', type: 'furniture',
         contractValue: 4000000, startDate: '2026-05-01', endDate: '2026-12-20',
-        amountReceived: 350000, plannedProgress: 12, phone: '0507778899' }
+        amountReceived: 350000, plannedProgress: 12, phone: '0507778899' },
+      // مقاولو المشروع الثاني (فيلا الياسمين)
+      { id: 'C10', projectId: 'P2', name: 'مقاولات الشاطئ للإنشاءات', type: 'structural',
+        contractValue: 3500000, startDate: '2025-09-10', endDate: '2026-06-30',
+        amountReceived: 1400000, plannedProgress: 42, phone: '0508889900',
+        address: 'جدة - حي الحمراء', contactPerson: 'م. وليد باناجه', email: 'info@shatea-const.sa',
+        crNumber: '4030112233', licenses: ['رخصة مقاولات درجة ثالثة - أبنية'], certifications: ['ISO 9001:2015'], legalDocs: [] },
+      { id: 'C11', projectId: 'P2', name: 'لمسات التشطيب الحديثة', type: 'architectural',
+        contractValue: 2600000, startDate: '2026-01-01', endDate: '2026-11-15',
+        amountReceived: 780000, plannedProgress: 30, phone: '0509990011',
+        address: 'جدة - حي السلامة', contactPerson: 'م. ريم الغامدي', email: 'projects@lamsat.sa',
+        crNumber: '4030445566', licenses: ['رخصة مقاولات درجة ثالثة - تشطيبات'], certifications: [], legalDocs: [] }
     ];
 
     // ============ جدول الكميات BOQ (مرتبط بالأدوار والتخصصات) ============
@@ -187,7 +212,7 @@
           const qty = Math.max(1, Math.round(t[2] / FLOORS.length + (rand() - 0.5) * 6));
           db.boqItems.push({
             id: 'BQ' + (boqSeq++),
-            projectId: 'P1', contractorId: c.id, discipline: c.type,
+            projectId: c.projectId || 'P1', contractorId: c.id, discipline: c.type,
             floor: fl.id, zone: ti % 6,
             code: c.type.substring(0, 2).toUpperCase() + '-' + fl.id + '-' + String(ti + 1).padStart(2, '0'),
             description: t[0], unit: t[1], qty: qty, unitPrice: t[3],
@@ -495,8 +520,43 @@
       { projectId: 'P1', month: '2026-04', score: 74 },
       { projectId: 'P1', month: '2026-05', score: 71 },
       { projectId: 'P1', month: '2026-06', score: 69 },
-      { projectId: 'P1', month: '2026-07', score: 67 }
+      { projectId: 'P1', month: '2026-07', score: 67 },
+      // فيلا الياسمين: اتجاه صاعد (أداء جيد)
+      { projectId: 'P2', month: '2026-03', score: 76 },
+      { projectId: 'P2', month: '2026-04', score: 79 },
+      { projectId: 'P2', month: '2026-05', score: 82 },
+      { projectId: 'P2', month: '2026-06', score: 84 },
+      { projectId: 'P2', month: '2026-07', score: 86 }
     ];
+
+    // ============ بيانات المشروع الثاني (فيلا الياسمين) ============
+    db.scheduleCurve.push(
+      { projectId: 'P2', month: '2025-09', planned: 3, actual: 3 }, { projectId: 'P2', month: '2025-12', planned: 14, actual: 15 },
+      { projectId: 'P2', month: '2026-03', planned: 26, actual: 28 }, { projectId: 'P2', month: '2026-05', planned: 34, actual: 36 },
+      { projectId: 'P2', month: '2026-07', planned: 39, actual: 41 }, { projectId: 'P2', month: '2026-09', planned: 58, actual: null },
+      { projectId: 'P2', month: '2026-11', planned: 100, actual: null }
+    );
+    db.costCurve.push(
+      { projectId: 'P2', month: '2025-12', planned: 1.2, actual: 1.1 }, { projectId: 'P2', month: '2026-03', planned: 2.2, actual: 2.1 },
+      { projectId: 'P2', month: '2026-07', planned: 3.45, actual: 3.35 }, { projectId: 'P2', month: '2026-11', planned: 8.5, actual: null }
+    );
+    db.cashFlow.push(
+      { projectId: 'P2', month: '2025-12', inflow: 1.3, outflow: 1.1, progress: 15 },
+      { projectId: 'P2', month: '2026-03', inflow: 2.3, outflow: 2.1, progress: 28 },
+      { projectId: 'P2', month: '2026-07', inflow: 3.6, outflow: 3.35, progress: 41 }
+    );
+    db.scheduleTasks.push(
+      { projectId: 'P2', id: 'P2T1', phaseKey: 'design_approvals', name: 'التصميم واعتمادات الاستشاري', startPlanned: '2025-05-01', endPlanned: '2025-08-15', startActual: '2025-05-05', endActual: '2025-08-20', progress: 100 },
+      { projectId: 'P2', id: 'P2T2', phaseKey: 'mobilization', name: 'التجهيز وتأسيس الموقع', startPlanned: '2025-08-15', endPlanned: '2025-09-15', startActual: '2025-09-01', endActual: '2025-09-18', progress: 100 },
+      { projectId: 'P2', id: 'P2T3', phaseKey: 'excavation', name: 'الحفر والأساسات', startPlanned: '2025-09-01', endPlanned: '2025-11-30', startActual: '2025-09-10', endActual: '2025-12-05', progress: 100 },
+      { projectId: 'P2', id: 'P2T4', phaseKey: 'concrete', name: 'الهيكل الخرساني', startPlanned: '2025-11-01', endPlanned: '2026-04-30', startActual: '2025-11-15', endActual: null, progress: 78 },
+      { projectId: 'P2', id: 'P2T5', phaseKey: 'blockwork', name: 'المباني واللياسة', startPlanned: '2026-03-01', endPlanned: '2026-07-31', startActual: '2026-03-20', endActual: null, progress: 40 },
+      { projectId: 'P2', id: 'P2T6', phaseKey: 'mep', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-04-15', endActual: null, progress: 22 },
+      { projectId: 'P2', id: 'P2T7', phaseKey: 'fitout', name: 'التشطيبات الداخلية', startPlanned: '2026-06-01', endPlanned: '2026-10-31', startActual: null, endActual: null, progress: 5 },
+      { projectId: 'P2', id: 'P2T8', phaseKey: 'landscaping', name: 'التنسيق والتشجير', startPlanned: '2026-09-01', endPlanned: '2026-11-15', startActual: null, endActual: null, progress: 0 },
+      { projectId: 'P2', id: 'P2T9', phaseKey: 'handover', name: 'تسليم المشروع', startPlanned: '2026-11-01', endPlanned: '2026-11-30', startActual: null, endActual: null, progress: 0 },
+      { projectId: 'P2', id: 'P2T10', phaseKey: 'dlp', name: 'فترة ضمان العيوب DLP', startPlanned: '2026-12-15', endPlanned: '2027-12-15', startActual: null, endActual: null, progress: 0 }
+    );
 
     // تقارير عدم المطابقة NCR
     db.ncrs = [
@@ -657,6 +717,11 @@
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
 
+    // إشارات جودة/تسليم خفيفة للمشروع الثاني (تجعل صحته واقعية)
+    db.ncrs.push({ id: 'NCR-P2-1', projectId: 'P2', contractorId: 'C11', ref: 'NCR-VIL-002', title: 'فرق لون في دهان الواجهة الأمامية',
+      description: 'تباين ظاهر في درجة اللون بين دفعتي الدهان بالواجهة الجنوبية.', date: '2026-07-06', status: 'open', severity: 'minor', correctiveAction: '' });
+    db.punchList.push({ id: 'PL-P2-1', projectId: 'P2', contractorId: 'C10', ref: 'PL-VIL-001', title: 'تعشيش بسيط بسلم القبو', location: 'B1', severity: 'minor', status: 'open', raisedDate: '2026-07-02', closedDate: null, notes: '' });
+
     // ============ تكويد كل المستندات (حتمي حسب تاريخ كل مستند) ============
     const DOC_TYPES = {
       shopDrawings: 'SD', materials: 'MAT', scheduleSubmittals: 'SCH', wirs: 'WIR',
@@ -693,7 +758,7 @@
     });
 
     db.notifications = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 13, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 14, docSeq: docSeq };
 
     return db;
   }

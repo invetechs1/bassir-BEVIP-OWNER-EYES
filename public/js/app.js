@@ -36,6 +36,7 @@
     { id: 'bim', title: 'إدارة BIM', icon: '🧊', sec: 'المكتب الفني', roles: ['admin', 'consultant'], render: VM.renderBim },
     { id: 'contractor-db', title: 'قاعدة بيانات المقاولين', icon: '🗃️', sec: 'المكتب الفني', roles: ['admin', 'consultant', 'owner_rep'], render: VM.renderContractorDb },
 
+    { id: 'portfolio', title: 'محفظة المشاريع', icon: '📈', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VH.renderPortfolio },
     { id: 'file-server', title: 'خادم الملفات المركزي', icon: '🗄️', sec: 'الإدارة', roles: ['admin', 'consultant', 'owner_rep'], render: VM.renderFileServer },
     { id: 'rep-projects', title: 'المشاريع والاستشاريون', icon: '🗂️', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderRepProjects },
     { id: 'users', title: 'المستخدمون والصلاحيات', icon: '👥', sec: 'الإدارة', roles: ['admin', 'owner_rep'], render: VR.renderUsers },

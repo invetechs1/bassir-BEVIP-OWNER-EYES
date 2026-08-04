@@ -201,9 +201,6 @@
       s.phaseTemplates = db.phaseTemplates || {};
       s.cashFlow = db.cashFlow || [];
       s.healthHistory = db.healthHistory || [];
-      // مؤشر صحة كل مشروع في نطاق المستخدم (مصدر موثوق للواجهة)
-      s.projectHealth = {};
-      (db.projects || []).forEach(function (p) { s.projectHealth[p.id] = computeProjectHealth(p.id); });
       // وحدة التسليم والإغلاق
       s.handoverItems = db.handoverItems || [];
       s.punchList = db.punchList || [];
@@ -227,6 +224,9 @@
         s.bimDocs = [];
         s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
+        // المقاول يرى مشروعه فقط
+        const myC = db.contractors.find(function (x) { return x.id === cid; });
+        if (myC && myC.projectId) s.projects = db.projects.filter(function (p) { return p.id === myC.projectId; });
         s.messages = [];
         s.users = [];
         // التسليم: المقاول يرى ما يخصه فقط (ملاحظاته وضماناته وحوادثه)
@@ -260,6 +260,10 @@
           if (Array.isArray(s[k])) s[k] = s[k].filter(inScope);
         });
       }
+
+      // مؤشر صحة كل مشروع في نطاق المستخدم (يُحسب بعد تقييد النطاق)
+      s.projectHealth = {};
+      (s.projects || []).forEach(function (p) { s.projectHealth[p.id] = computeProjectHealth(p.id); });
       return s;
     }
 
