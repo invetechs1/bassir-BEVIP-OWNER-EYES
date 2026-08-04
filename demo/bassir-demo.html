@@ -2632,6 +2632,113 @@ textarea.inp { resize: vertical; min-height: 80px; }
     };
   }
 
+  function clampScore(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+
+  /** حساب تقدم مقاول ومؤشراته من جداول الكميات (نسخة عميل خفيفة) */
+  function contractorHealth(A, c) {
+    const items = (A.boqItems || []).filter(function (b) { return b.contractorId === c.id; });
+    let earned = 0, total = 0;
+    items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
+    const progress = total ? earned / total * 100 : 0;
+    const earnedValue = c.contractValue * progress / 100;
+    return { delayed: progress < (c.plannedProgress || 0) - 3, overpaid: c.amountReceived > earnedValue * 1.05 };
+  }
+
+  /**
+   * مؤشر صحة المشروع المركّب: يدمج الجدول والتكلفة والجودة والسلامة وأداء
+   * المقاولين في درجة 0-100 مع تقدير آلي لتاريخ الإنجاز حسب الوتيرة الحالية.
+   */
+  function projectHealth(ctx, P, A) {
+    A = A || ctx.S;
+    const inP = function (x) { return !x.projectId || x.projectId === P.id; };
+    const g = projectGlance(ctx, P);
+    const openNcr = (A.ncrs || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
+    const failedTests = (A.materialTests || []).filter(function (x) { return inP(x) && x.result === 'fail'; }).length;
+    const openPunch = (A.punchList || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
+    const openHse = (A.hseReports || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
+    const openInc = (A.incidents || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
+    const conts = (A.contractors || []).filter(inP);
+    let delayed = 0, overpaid = 0;
+    conts.forEach(function (c) { const h = contractorHealth(A, c); if (h.delayed) delayed++; if (h.overpaid) overpaid++; });
+
+    const schedule = clampScore(100 + g.progVar * 3);
+    const cost = clampScore(100 - Math.max(0, g.costVarPct) * 3);
+    const quality = clampScore(100 - openNcr * 8 - failedTests * 6 - openPunch * 3);
+    const safety = clampScore(100 - openHse * 10 - openInc * 12);
+    const contractor = clampScore(100 - delayed * 10 - overpaid * 8);
+    const score = Math.round(schedule * 0.30 + cost * 0.25 + quality * 0.20 + safety * 0.15 + contractor * 0.10);
+
+    let grade, gradeAr, cls;
+    if (score >= 85) { grade = 'A'; gradeAr = 'ممتاز'; cls = 'ok'; }
+    else if (score >= 70) { grade = 'B'; gradeAr = 'جيد'; cls = 'ok'; }
+    else if (score >= 55) { grade = 'C'; gradeAr = 'مقبول — يحتاج متابعة'; cls = 'warn'; }
+    else { grade = 'D'; gradeAr = 'حرج — تدخّل عاجل'; cls = 'danger'; }
+
+    // تقدير الإنجاز حسب الوتيرة الفعلية
+    let forecastDate = P.endForecast || null, forecastDelta = null;
+    const pa = P.progressActual || 0;
+    if (pa > 2 && g.elapsed > 0) {
+      const velocity = pa / g.elapsed; // نسبة/يوم
+      const remDays = velocity > 0 ? Math.round((100 - pa) / velocity) : null;
+      if (remDays != null) {
+        const fd = new Date(Date.now() + remDays * DAY);
+        forecastDate = fd.toISOString().slice(0, 10);
+        if (P.endPlanned) forecastDelta = daysDiff(forecastDate, P.endPlanned);
+      }
+    }
+    return {
+      score: score, grade: grade, gradeAr: gradeAr, cls: cls,
+      components: [
+        { key: 'الجدول الزمني', val: schedule, w: 30 },
+        { key: 'التكلفة', val: cost, w: 25 },
+        { key: 'الجودة', val: quality, w: 20 },
+        { key: 'السلامة', val: safety, w: 15 },
+        { key: 'أداء المقاولين', val: contractor, w: 10 }
+      ],
+      issues: { openNcr: openNcr, failedTests: failedTests, openPunch: openPunch, openHse: openHse, openInc: openInc, delayed: delayed, overpaid: overpaid },
+      forecastDate: forecastDate, forecastDelta: forecastDelta
+    };
+  }
+
+  const HEALTH_COLORS = { ok: '#2dd4a0', warn: '#ffcc00', danger: '#ff3b30' };
+
+  function healthCard(ctx, P, A) {
+    const h = projectHealth(ctx, P, A);
+    const col = HEALTH_COLORS[h.cls];
+    const barFor = function (c) {
+      const bc = c.val >= 70 ? HEALTH_COLORS.ok : c.val >= 50 ? HEALTH_COLORS.warn : HEALTH_COLORS.danger;
+      return '<div style="margin:7px 0"><div class="flex" style="justify-content:space-between"><span class="small">' + esc(c.key) +
+        ' <span class="muted">(' + c.w + '%)</span></span><b class="num small">' + c.val + '</b></div>' +
+        '<div class="bar" style="height:8px"><i style="width:' + c.val + '%;background:' + bc + '"></i></div></div>';
+    };
+    const forecastTxt = h.forecastDate
+      ? 'التقدير الآلي للإنجاز حسب الوتيرة الحالية: <b class="num">' + esc(h.forecastDate) + '</b>' +
+        (h.forecastDelta != null ? ' — <b class="num" style="color:' + (h.forecastDelta > 7 ? 'var(--danger)' : h.forecastDelta < -7 ? 'var(--ok)' : 'var(--warn)') + '">' +
+          (h.forecastDelta > 0 ? 'تأخّر متوقع ' + h.forecastDelta + ' يوماً' : h.forecastDelta < 0 ? 'تقدّم متوقع ' + Math.abs(h.forecastDelta) + ' يوماً' : 'مطابق للخطة') + '</b>' : '')
+      : 'التقدير الآلي يظهر بعد تسجيل بداية التنفيذ ونسبة إنجاز.';
+    const chips = [];
+    if (h.issues.openNcr) chips.push('🚫 ' + h.issues.openNcr + ' عدم مطابقة');
+    if (h.issues.failedTests) chips.push('🧪 ' + h.issues.failedTests + ' اختبار راسب');
+    if (h.issues.openPunch) chips.push('📌 ' + h.issues.openPunch + ' ملاحظة تسليم');
+    if (h.issues.openHse || h.issues.openInc) chips.push('🦺 ' + (h.issues.openHse + h.issues.openInc) + ' سلامة/حوادث');
+    if (h.issues.delayed) chips.push('👷 ' + h.issues.delayed + ' مقاول متأخر');
+    if (h.issues.overpaid) chips.push('💰 ' + h.issues.overpaid + ' صرف يفوق المستحق');
+
+    return '<div class="card mb" style="border-color:' + col + '55;background:linear-gradient(120deg,' + col + '10,transparent 55%),linear-gradient(180deg,var(--panel2),var(--panel))">' +
+      '<div class="flex" style="justify-content:space-between;flex-wrap:wrap;align-items:flex-start;gap:16px">' +
+      '<div style="text-align:center;min-width:170px">' +
+      '<h3 style="justify-content:center;margin-bottom:6px">🧭 مؤشر صحة المشروع</h3>' +
+      Charts.donut(h.score, { label: 'من 100', color: col, size: 128 }) +
+      '<div style="margin-top:8px"><span class="pill ' + (h.cls === 'ok' ? 'p-ok' : h.cls === 'warn' ? 'p-warn' : 'p-danger') + '" style="font-size:13px;padding:4px 14px">' + h.grade + ' · ' + esc(h.gradeAr) + '</span></div></div>' +
+      '<div style="flex:1;min-width:260px"><div class="small muted mb">مؤشر مركّب من خمسة أبعاد بأوزانها:</div>' +
+      h.components.map(barFor).join('') + '</div></div>' +
+      '<div class="small mt" style="border-top:1px solid var(--border);padding-top:10px;line-height:1.9">' +
+      '📅 ' + forecastTxt +
+      (chips.length ? '<div style="margin-top:8px">' + chips.map(function (c) { return '<span class="pill p-warn" style="font-size:11px;margin:2px">' + esc(c) + '</span>'; }).join(' ') + '</div>'
+        : '<div class="small" style="color:var(--ok);margin-top:8px">✓ لا مخاطر جودة أو سلامة أو تعثّر مقاولين مفتوحة</div>') +
+      '</div></div>';
+  }
+
   function verdictTile(ico, title, main, sub, cls) {
     const color = cls === 'danger' ? 'var(--danger)' : cls === 'warn' ? 'var(--warn)' : 'var(--ok)';
     return '<div class="card" style="text-align:center;border-color:' + color + '55">' +
@@ -2697,6 +2804,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<div class="small muted">' + esc(P.location || '') + ' · الاستشاري: ' + esc(P.consultantName || '—') + '</div></div>' +
         '<div style="text-align:center">' + Charts.donut(Math.round(P.progressActual || 0), { label: 'الإنجاز الفعلي', size: 120 }) + '</div>' +
         '</div></div>' +
+
+        healthCard(ctx, P, A) +
 
         '<div class="grid g3 mb">' +
         verdictTile(g.timeIco, 'الوقت: المخطط مقابل الفعلي', esc(g.timeVerdict),
@@ -2848,6 +2957,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="card kpi ' + (delayedCount ? 'k-warn' : 'k-ok') + '"><div class="lbl">المقاولون</div><div class="val num">' + sums.length + '</div>' +
       '<div class="sub">' + (delayedCount ? '<span class="trend-down">' + delayedCount + ' متأخر عن الجدول</span>' : '<span class="trend-up">الجميع ضمن الجدول</span>') + '</div></div>' +
       '</div>' +
+
+      healthCard(ctx, P, ctx.S) +
 
       '<div class="grid g2 mb">' +
       '<div class="card"><h3>📈 الجدول الزمني: المخطط مقابل الفعلي <span class="hint">منحنى S التراكمي</span></h3>' +
