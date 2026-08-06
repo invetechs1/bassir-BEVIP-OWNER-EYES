@@ -20,6 +20,8 @@ const SCRIPTS = [
   'public/js/viewer.js',
   'public/js/views.js',
   'public/js/views2.js',
+  'public/js/views3.js',
+  'public/js/views4.js',
   'public/js/app.js'
 ];
 

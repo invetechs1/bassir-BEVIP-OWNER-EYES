@@ -76,61 +76,63 @@ db.users.forEach(function (u) {
 if (migrated) console.log('🔐 شُفِّرت كلمات مرور ' + migrated + ' مستخدم (scrypt)');
 persist();
 
+/**
+ * تسليم الإشعارات فعلياً عبر البريد وواتساب لكل مستلم حسب تفضيلاته.
+ * غير معطِّل للمسار الأساسي: يُطلق بلا انتظار، وأي فشل يوثَّق فقط.
+ * القنوات غير المهيأة (بلا مفاتيح .env) تُسجَّل كمحاكاة موثّقة.
+ */
+function deliverNotification(notif, recipients) {
+  const projectName = db.projects && db.projects[0] ? db.projects[0].name : '';
+  const subject = 'بصير · إشعار: ' + (notif.kind === 'submit' ? 'تقديم جديد'
+    : notif.kind === 'decision' ? 'قرار اعتماد'
+    : notif.kind === 'answer' ? 'رد على استفسار'
+    : notif.kind === 'resubmit' ? 'إعادة تقديم'
+    : notif.kind === 'assign' ? 'إسناد مهمة'
+    : notif.kind === 'health' ? 'تراجع صحة المشروع'
+    : notif.kind === 'recovery' ? 'تحسّن صحة المشروع' : 'تحديث');
+  const html = '<div dir="rtl" style="font-family:Tahoma,Arial;line-height:1.9">' +
+    '<h3 style="color:#0b5">👁 بصير — عيون المالك</h3>' +
+    '<p><b>' + escapeHtml(subject) + '</b></p><p>' + escapeHtml(notif.text) + '</p>' +
+    (projectName ? '<p style="color:#888">المشروع: ' + escapeHtml(projectName) + '</p>' : '') +
+    '<p style="color:#aaa;font-size:12px">' + escapeHtml(notif.time) + '</p></div>';
+
+  recipients.forEach(function (u) {
+    if (u.notifyEmail !== false && u.email) {
+      integrations.sendEmail(u.email, subject, html)
+        .then(function () { logDelivery('email', u, notif, 'sent'); })
+        .catch(function (e) { logDelivery('email', u, notif, e.notConfigured ? 'sent_demo' : 'failed'); });
+    }
+    if (u.notifyWhatsapp && u.phone) {
+      integrations.sendWhatsapp(u.phone, subject + '\n' + notif.text + (projectName ? '\nالمشروع: ' + projectName : ''))
+        .then(function () { logDelivery('whatsapp', u, notif, 'sent'); })
+        .catch(function (e) { logDelivery('whatsapp', u, notif, e.notConfigured ? 'sent_demo' : 'failed'); });
+    }
+  });
+}
+
+function logDelivery(channel, user, notif, status) {
+  if (!db.messages) db.messages = [];
+  db.messages.push({
+    id: 'MSGN' + Date.now() + Math.floor(Math.random() * 1000),
+    channel: channel, to: channel === 'email' ? user.email : user.phone,
+    title: 'إشعار آلي: ' + notif.text.slice(0, 60), auto: true,
+    date: new Date().toISOString().slice(0, 16).replace('T', ' '),
+    status: status, by: 'النظام'
+  });
+  if (db.messages.length > 500) db.messages.splice(0, db.messages.length - 500);
+  persist();
+}
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
 const core = coreModule.createCore(db, persist, {
-  password: { hash: hashPassword, verify: verifyPassword }
+  password: { hash: hashPassword, verify: verifyPassword },
+  onNotify: deliverNotification
 });
-
-// ============ إشعارات البريد التلقائية ============
-// أفضل جهد وغير معطِّل: لا تنتظرها الاستجابة، وفشلها لا يفشّل الطلب الأصلي.
-// إن لم يكن البريد مهيأً (لا RESEND_API_KEY ولا SENDGRID_API_KEY) تُتجاهل بصمت — بلا ضجيج في وضع المحاكاة.
-function consultantsForProject(projectId) {
-  return db.users.filter(function (u) {
-    return u.role === 'consultant' && (!u.projectIds || u.projectIds.indexOf(projectId) !== -1);
-  });
-}
-function contractorUsers(contractorId) {
-  return db.users.filter(function (u) { return u.role === 'contractor' && u.contractorId === contractorId; });
-}
-function notify(recipients, subject, bodyHtml) {
-  if (!integrations.emailProvider()) return;
-  recipients.filter(function (u) { return u && u.email; }).forEach(function (u) {
-    integrations.sendEmail(u.email, subject, '<div dir="rtl">' + bodyHtml + '</div>')
-      .catch(function (e) { console.error('فشل إرسال إشعار إلى ' + u.email + ': ' + e.message); });
-  });
-}
-function appUrl() { return process.env.APP_URL || ('http://localhost:' + PORT); }
-function escHtml(s) { return String(s == null ? '' : s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
-
-/** إشعار تلقائي عند إنشاء عنصر: طلب اعتماد جديد يُشعِر الاستشاري، ورد جديد يُشعِر الطرف الآخر */
-function notifyOnCreate(collection, item, user) {
-  const link = '<p><a href="' + appUrl() + '">↗ فتح بصير</a></p>';
-
-  if (collection === 'comments') {
-    const parent = (db[item.collection] || []).find(function (x) { return x.id === item.itemId; });
-    const label = escHtml(parent ? core.labelOf(item.collection, parent) : item.collection);
-    const html = '<p>رد جديد من <b>' + escHtml(user.name) + '</b> على: ' + label + '</p>' +
-      '<blockquote style="color:#555;border-inline-start:3px solid #ccc;padding-inline-start:10px">' + escHtml(item.text) + '</blockquote>' + link;
-    const recipients = user.role === 'contractor' ? consultantsForProject(item.projectId) : contractorUsers(item.contractorId);
-    notify(recipients, 'رد جديد على ' + label, html);
-    return;
-  }
-
-  if (user.role === 'contractor' && core.APPROVAL_COLLECTIONS.indexOf(collection) !== -1) {
-    const label = escHtml(core.labelOf(collection, item));
-    const html = '<p>قدّم <b>' + escHtml(user.name) + '</b> طلباً جديداً بانتظار مراجعتك واعتمادك:</p><p><b>' + label + '</b></p>' + link;
-    notify(consultantsForProject(item.projectId), 'طلب جديد بانتظار المراجعة: ' + label, html);
-  }
-}
-
-/** إشعار تلقائي عند بتّ الاستشاري بقرار اعتماد/رفض — يصل للمقاول صاحب الطلب */
-function notifyOnReview(collection, item, user) {
-  const decisionAr = item.status === 'rejected' ? 'رَفَض' : item.status === 'approved_notes' ? 'اعتمد مع ملاحظات' : 'اعتمد';
-  const label = escHtml(core.labelOf(collection, item));
-  const html = '<p><b>' + escHtml(user.name) + '</b> ' + decisionAr + ' طلبك:</p><p><b>' + label + '</b></p>' +
-    (item.notes ? '<blockquote style="color:#555;border-inline-start:3px solid #ccc;padding-inline-start:10px">' + escHtml(item.notes) + '</blockquote>' : '') +
-    '<p><a href="' + appUrl() + '">↗ فتح بصير</a></p>';
-  notify(contractorUsers(item.contractorId), decisionAr + ': ' + label, html);
-}
 
 // ============ توكنات موقعة (JWT HS256) تبقى صالحة بعد إعادة التشغيل ============
 const SECRET_FILE = path.join(DATA_DIR, '.jwt-secret');
@@ -258,6 +260,7 @@ function countUploads() {
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.mjs': 'text/javascript; charset=utf-8', '.pdf': 'application/pdf',
   '.css': 'text/css; charset=utf-8', '.json': 'application/json',
   '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
   '.ico': 'image/x-icon', '.gif': 'image/gif', '.webp': 'image/webp',
@@ -284,9 +287,22 @@ function serveStatic(req, res) {
 }
 
 // ============ الموجّه ============
+const SERVER_STARTED = Date.now();
 const server = http.createServer(async function (req, res) {
   try {
     const u = req.url.split('?')[0];
+
+    // فحص الصحة (عام، بلا مصادقة) — لموازِن الأحمال و Docker healthcheck
+    if (u === '/healthz' || u === '/api/health') {
+      return json(res, 200, {
+        status: 'ok',
+        uptime: Math.round((Date.now() - SERVER_STARTED) / 1000),
+        storage: storage.kind,
+        projects: (db.projects || []).length,
+        version: (db.meta && db.meta.version) || null,
+        time: new Date().toISOString()
+      });
+    }
 
     // مدخل لقطات الكاميرات: الكاميرا/NVR تدفع JPEG عبر HTTP بمفتاح CAMERA_KEY
     let m0 = u.match(/^\/api\/cameras\/([\w-]+)\/snapshot$/);
@@ -314,11 +330,14 @@ const server = http.createServer(async function (req, res) {
       persist();
       // تحليل غير متزامن إن كان الذكاء الاصطناعي مهيأ
       if (integrations.aiConfigured()) {
-        integrations.analyzeImage(buf, rec.mime, { area: cam.name }).then(function (a) {
+        // نسبة النموذج (BOQ) للعنصر المرتبط بالكاميرا — أساس المقارنة الآلية
+        const bimReported = cam.bimFloor ? core.floorDisciplineProgress(cam.bimFloor, cam.bimDiscipline || null) : null;
+        integrations.analyzeImage(buf, rec.mime, { area: cam.name, reported: bimReported }).then(function (a) {
           photo.ai = a.summary; photo.detected = a.progress;
           db.aiInsights.unshift({
-            id: 'AI' + Date.now(), projectId: photo.projectId, date: photo.date, source: 'camera', area: cam.name,
-            detected: a.progress, reported: null,
+            id: 'AI' + Date.now(), projectId: photo.projectId, date: photo.date, source: 'camera',
+            area: cam.name + (cam.bimFloor ? ' ← نموذج BIM' : ''),
+            detected: a.progress, reported: bimReported,
             note: a.summary + (a.safety.length ? ' — سلامة: ' + a.safety.join('؛ ') : ''),
             severity: a.safety.length ? 'alert' : 'ok'
           });
@@ -370,7 +389,6 @@ const server = http.createServer(async function (req, res) {
     if (m && req.method === 'POST') {
       const body = await readBody(req);
       const item = core.createItem(user, m[1], body);
-      notifyOnCreate(m[1], item, user);
       return json(res, 201, item);
     }
     m = u.match(/^\/api\/collections\/(\w+)\/([\w-]+)$/);
@@ -382,17 +400,40 @@ const server = http.createServer(async function (req, res) {
       return json(res, 200, core.deleteItem(user, m[1], m[2]));
     }
 
-    // رفع الملفات (صور، مخططات، مستندات) — تخزين فعلي على القرص
+    // رفع الملفات (صور، مخططات، مستندات، نماذج BIM كبيرة) — تخزين فعلي مع فئات ونسخ
     if (u === '/api/upload' && req.method === 'POST') {
-      const buf = await readRawBody(req);
+      const buf = await readRawBody(req, 500e6); // يدعم نماذج BIM حتى 500MB
       if (!buf.length) return json(res, 400, { error: 'لا يوجد محتوى' });
       const name = decodeURIComponent(req.headers['x-filename'] || 'file');
-      const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
-      rec.projectId = inferProjectId(user);
-      rec.docCode = core.docCode('files', rec.projectId);
+      const category = decodeURIComponent(req.headers['x-category'] || '') || 'أخرى';
+      const versionOf = req.headers['x-version-of'] || null;
       if (!db.files) db.files = [];
+
+      // نسخة جديدة لملف موجود: يؤرشف السابق في versions بلا تكرار سجلات
+      if (versionOf) {
+        const existing = db.files.find(function (f) { return f.id === versionOf; });
+        if (!existing) return json(res, 404, { error: 'الملف الأصلي غير موجود' });
+        const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
+        if (!existing.versions) existing.versions = [];
+        existing.versions.push({
+          v: existing.versions.length + 1, name: existing.name, url: existing.url,
+          size: existing.size, by: existing.by, date: existing.date
+        });
+        existing.name = rec.name; existing.url = rec.url; existing.stored = rec.stored;
+        existing.size = rec.size; existing.mime = rec.mime;
+        existing.by = user.name; existing.date = rec.date;
+        core.audit(user, 'upload', 'نسخة جديدة (' + (existing.versions.length + 1) + ') من الملف ' + existing.docCode);
+        persist();
+        return json(res, 201, existing);
+      }
+
+      const rec = storeUpload(buf, name, req.headers['content-type'], user.name);
+      rec.projectId = req.headers['x-project'] || inferProjectId(user);
+      rec.docCode = core.docCode('files', rec.projectId);
+      rec.category = category;
+      rec.versions = [];
       db.files.unshift(rec);
-      core.audit(user, 'upload', 'رفع ملف: ' + rec.name + ' (' + rec.docCode + ')');
+      core.audit(user, 'upload', 'رفع ملف: ' + rec.name + ' (' + rec.docCode + ' · ' + category + ')');
       persist();
       return json(res, 201, rec);
     }
@@ -448,7 +489,6 @@ const server = http.createServer(async function (req, res) {
     if (u === '/api/actions/review' && req.method === 'POST') {
       const body = await readBody(req);
       const item = core.review(user, body);
-      notifyOnReview(body.collection, item, user);
       return json(res, 200, item);
     }
     if (u === '/api/actions/add-contractor' && req.method === 'POST') {
@@ -457,6 +497,40 @@ const server = http.createServer(async function (req, res) {
     if (u === '/api/actions/add-project' && req.method === 'POST') {
       return json(res, 201, core.addProject(user, await readBody(req)));
     }
+    if (u === '/api/actions/resubmit' && req.method === 'POST') {
+      return json(res, 200, core.resubmit(user, await readBody(req)));
+    }
+    if (u === '/api/actions/notify-read' && req.method === 'POST') {
+      return json(res, 200, core.markNotificationsRead(user));
+    }
+    if (u === '/api/actions/profile' && req.method === 'POST') {
+      return json(res, 200, core.updateProfile(user, await readBody(req)));
+    }
+    if (u === '/api/actions/record-health' && req.method === 'POST') {
+      return json(res, 200, core.recordHealthSnapshot(user, await readBody(req)));
+    }
+
+    // النسخ الاحتياطي (أدمن): نسخة مؤرخة من قاعدة البيانات في data/backups
+    if (u === '/api/actions/backup' && req.method === 'POST') {
+      if (user.role !== 'admin') return json(res, 403, { error: 'النسخ الاحتياطي صلاحية الأدمن' });
+      const bdir = path.join(DATA_DIR, 'backups');
+      if (!fs.existsSync(bdir)) fs.mkdirSync(bdir, { recursive: true });
+      const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 19);
+      const dest = path.join(bdir, 'bassir-' + stamp + '.json');
+      fs.writeFileSync(dest, JSON.stringify(db));
+      core.audit(user, 'update', 'نسخة احتياطية: ' + path.basename(dest));
+      persist();
+      return json(res, 201, { ok: true, file: path.basename(dest), size: fs.statSync(dest).size });
+    }
+    if (u === '/api/backups') {
+      if (user.role !== 'admin') return json(res, 403, { error: 'غير مصرح' });
+      const bdir = path.join(DATA_DIR, 'backups');
+      const list = fs.existsSync(bdir) ? fs.readdirSync(bdir).sort().reverse().map(function (f) {
+        return { file: f, size: fs.statSync(path.join(bdir, f)).size };
+      }) : [];
+      return json(res, 200, list);
+    }
+
     if (u === '/api/actions/send-report' && req.method === 'POST') {
       const body = await readBody(req);
       // إرسال حقيقي إن كانت القناة مهيأة، وإلا يوثق في السجل كمحاكاة
@@ -474,17 +548,6 @@ const server = http.createServer(async function (req, res) {
     }
 
     // تقارير PDF ثنائية اللغة — تُبنى من بيانات الخادم الحقيقية مباشرة (لا تعمل في وضع الديمو بالمتصفح)
-    if (u === '/api/actions/handover-report' && req.method === 'GET') {
-      if (['admin', 'consultant', 'owner', 'owner_rep'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
-      const lang = new URL(req.url, 'http://x').searchParams.get('lang') === 'en' ? 'en' : 'ar';
-      const pdfDoc = reportsModule.buildHandoverReport(db, lang);
-      res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="Handover-Report.pdf"' });
-      pdfDoc.pipe(res);
-      pdfDoc.end();
-      core.audit(user, 'export', 'تصدير تقرير التسليم الموحّد (PDF)');
-      persist();
-      return;
-    }
     if (u === '/api/actions/progress-report' && req.method === 'GET') {
       if (['admin', 'consultant', 'owner', 'owner_rep'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
       const qs = new URL(req.url, 'http://x').searchParams;

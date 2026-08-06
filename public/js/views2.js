@@ -888,8 +888,13 @@
     const total = items.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
     const earned = items.reduce(function (a, b) { return a + b.qty * b.unitPrice * b.progress / 100; }, 0);
 
+    const boqFiles = (ctx.S.files || []).filter(function (f) { return f.category === 'جداول الكميات BOQ'; });
     el.innerHTML =
-      '<div class="card"><h3>' + I18n.t('📊 جدول الكميات BOQ ') + '<span class="hint">' + I18n.t('تحديث نسب الإنجاز هنا يغيّر سطوع المخططات مباشرة') + '</span></h3>' +
+      '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+      '<h3 style="margin:0">' + I18n.t('📊 جدول الكميات BOQ ') + '<span class="hint">' + I18n.t('تحديث نسب الإنجاز هنا يغيّر سطوع المخططات مباشرة') + '</span></h3>' +
+      (canEdit ? '<div class="flex"><input class="inp" id="bq-file" type="file" accept=".xlsx,.xls,.csv,.pdf" style="max-width:220px">' +
+        '<button class="btn sm" id="bq-upload">⬆ ' + I18n.t('رفع جدول كميات') + '</button></div>' : '') + '</div>' +
+      (boqFiles.length ? '<div class="small muted mb">📎 ' + I18n.t('جداول مرفوعة: ') + boqFiles.map(function (f) { return (f.url ? '<a href="' + esc(f.url) + '" target="_blank">' + esc(f.name) + '</a>' : esc(f.name)) + ' <span class="muted num">(' + esc(f.docCode || '') + ')</span>'; }).join(' · ') + '</div>' : '') +
       '<div class="flex mb"><select class="inp" id="bq-filter" style="max-width:320px"><option value="all">' + I18n.t('كل المقاولين') + '</option>' +
       ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '"' + (boqState.contractor === c.id ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('') +
       '</select>' +
@@ -913,6 +918,16 @@
 
     el.querySelector('#bq-filter').addEventListener('change', function (e) {
       boqState.contractor = e.target.value; renderBoq(el, ctx);
+    });
+    const bqUp = el.querySelector('#bq-upload');
+    if (bqUp) bqUp.addEventListener('click', async function () {
+      const f = el.querySelector('#bq-file').files[0];
+      if (!f) { toast(I18n.t('اختر ملف جدول الكميات أولاً'), true); return; }
+      try {
+        await Api.upload(f, { category: 'جداول الكميات BOQ' });
+        toast(I18n.t('✅ رُفع جدول الكميات وكُوّد وربط بالمشروع — حدّث نسب البنود لتُربط بالإنجاز'));
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
     });
     el.querySelectorAll('[data-bq]').forEach(function (r) {
       r.addEventListener('input', function () {
@@ -1196,12 +1211,16 @@
       '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
       '<div class="card"><h3>👥 ' + I18n.t('مستخدمو النظام ') + '<span class="hint">' + I18n.t('كلمات المرور مشفرة ولا تظهر لأحد') + '</span></h3>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      '<th>' + I18n.t('الاسم') + '</th><th>' + I18n.t('اسم المستخدم') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('النطاق') + '</th><th></th></tr></thead><tbody>' +
+      '<th>' + I18n.t('الاسم') + '</th><th>' + I18n.t('اسم المستخدم') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('النطاق') + '</th><th>' + I18n.t('قنوات الإشعار') + '</th><th></th></tr></thead><tbody>' +
       (ctx.S.users || []).map(function (u) {
         const m = ROLE_META[u.role] || { icon: '👤', color: 'p-muted' };
+        const chans = [];
+        if (u.notifyEmail !== false && u.email) chans.push('<span class="pill p-info" style="font-size:10px" title="' + esc(u.email) + '">📧 بريد</span>');
+        if (u.notifyWhatsapp && u.phone) chans.push('<span class="pill p-ok" style="font-size:10px" title="' + esc(u.phone) + '">💬 واتساب</span>');
         return '<tr><td><b>' + esc(u.name) + '</b></td><td class="num">' + esc(u.username) + '</td>' +
           '<td><span class="pill ' + m.color + '">' + m.icon + ' ' + esc(I18n.t(ROLE_NAMES[u.role] || u.role)) + '</span></td>' +
           '<td class="small">' + userScopeLabel(ctx, u) + '</td>' +
+          '<td class="small">' + (chans.length ? chans.join(' ') : '<span class="muted">' + I18n.t('داخل النظام فقط') + '</span>') + '</td>' +
           '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">' + I18n.t('حذف') + '</button>' : '') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
@@ -1213,8 +1232,9 @@
       '<div class="small muted" id="nu-desc" style="margin-top:8px;line-height:1.8"></div>' +
       '<label class="fl">' + I18n.t('الاسم الكامل') + '</label><input class="inp" id="nu-name" placeholder="' + I18n.t('م. فلان الفلاني') + '">' +
       '<label class="fl">' + I18n.t('اسم المستخدم') + '</label><input class="inp num" id="nu-user" placeholder="username" dir="ltr">' +
-      '<label class="fl">' + I18n.t('البريد الإلكتروني (لإشعارات الطلبات الجديدة والردود)') + '</label><input class="inp num" id="nu-email" type="email" placeholder="name@example.com" dir="ltr">' +
       '<label class="fl">' + I18n.t('كلمة المرور (اتركها فارغة للتوليد التلقائي)') + '</label><input class="inp num" id="nu-pass" placeholder="••••••••" dir="ltr">' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('البريد الإلكتروني (للإشعارات)') + '</label><input class="inp num" id="nu-email" type="email" dir="ltr" placeholder="you@company.com"></div>' +
+      '<div><label class="fl">' + I18n.t('الجوال (واتساب)') + '</label><input class="inp num" id="nu-phone" dir="ltr" placeholder="05xxxxxxxx"></div></div>' +
       '<div id="nu-scope"></div>' +
       '<div class="m-actions"><button class="btn block" id="nu-save">' + I18n.t('إنشاء المستخدم وتسليم بياناته') + '</button></div></div></div>';
 
@@ -1249,7 +1269,10 @@
       const data = {
         name: name, username: username,
         password: el.querySelector('#nu-pass').value || Math.random().toString(36).slice(2, 10),
-        role: role, email: el.querySelector('#nu-email').value.trim() || undefined
+        role: role,
+        email: el.querySelector('#nu-email').value.trim(),
+        phone: el.querySelector('#nu-phone').value.trim(),
+        notifyEmail: true, notifyWhatsapp: !!el.querySelector('#nu-phone').value.trim()
       };
       const contSel = el.querySelector('#nu-cont');
       if (contSel) data.contractorId = contSel.value;
@@ -1342,10 +1365,11 @@
       '<label class="fl">' + I18n.t('ملف النموذج') + '</label><input class="inp" id="bim-file" type="file" accept=".ifc,.rvt,.nwd,.nwc">' +
       '<label class="fl">' + I18n.t('إصدار النموذج') + '</label><input class="inp" id="bim-rev" placeholder="Rev-04 - يوليو 2026" value="Rev-04 - يوليو 2026">' +
       '<div class="m-actions"><button class="btn block" id="bim-up">' + I18n.t('رفع النموذج وربطه بجدول الكميات') + '</button></div>' +
-      (P.bimModel ?
-        '<div class="mt">' + attachmentBlock(P.bimModel.file) + '<div class="small muted">' + I18n.t('الإصدار: ') + esc(P.bimModel.rev) + ' · ' + esc(P.bimModel.uploadedAt) + I18n.t(' · مرتبط بـ ') + '<b class="num">' + ctx.S.boqItems.length + '</b>' + I18n.t(' بند') + '</div></div>' :
-        '<div class="empty small mt">' + I18n.t('لم يُرفع نموذج بعد') + '</div>') +
-      '</div>' +
+      (function () {
+        const bm = (ctx.S.bimModels || [])[ctx.S.bimModels ? ctx.S.bimModels.length - 1 : 0];
+        return bm ? '<div class="sig">' + I18n.t('النموذج الحالي: ') + esc(bm.name) + ' · ' + esc(bm.rev || '') + ' · ' + esc(bm.date || '') +
+          I18n.t(' · مرتبط بـ ') + '<b class="num">' + ctx.S.boqItems.length + '</b>' + I18n.t(' بند — الإدارة الكاملة في صفحة "إدارة BIM"') + '</div>' : '<div class="empty small mt">' + I18n.t('لم يُرفع نموذج بعد') + '</div>';
+      })() + '</div>' +
 
       '<div class="card"><h3>' + I18n.t('🔗 حالة ربط جدول الكميات بالنموذج') + '</h3>' +
       P.disciplines.map(function (d) {
@@ -1384,8 +1408,9 @@
       btn.disabled = true;
       try {
         const fileRec = await Api.upload(f);
-        await Api.update('projects', P.id, {
-          bimModel: { file: fileRec, rev: el.querySelector('#bim-rev').value || '', uploadedAt: new Date().toISOString().slice(0, 10), uploadedBy: ctx.U.name }
+        await Api.create('bimModels', {
+          name: f.name, rev: el.querySelector('#bim-rev').value || '',
+          source: 'local', url: fileRec.url || '', size: f.size, by: ctx.U.name, linkedBoq: true
         });
         toast(I18n.t('✅ رُفع النموذج "') + f.name + I18n.t('" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع'));
         ctx.refresh();
@@ -1422,6 +1447,7 @@
   // ============ صفحات المقاول ============
   const CONT_TABS = APPROVAL_TABS.concat([
     { col: 'rfis', name: 'استفسارات RFI', icon: '❓' },
+    { col: 'rfps', name: 'طلبات العروض RFP', icon: '📮' },
     { col: 'methodStatements', name: 'أساليب التنفيذ وITP', icon: '🧾' },
     { col: 'claims', name: 'المطالبات وEOT', icon: '⚖️' }
   ]);
@@ -1471,12 +1497,17 @@
         if (it) openThreadModal(ctx, parts[0], it);
       });
     });
-    // المقاول يفتح المخطط ويرى ترميز الاستشاري وملاحظاته (قراءة فقط)
+    // المقاول يفتح المستند: يرى ترميز الاستشاري، وبعد البت يرد على الملاحظات
+    // على نفس النسخة ويعيد التقديم (بلا ملفات مكررة)
+    function openForContractor(id) {
+      const it = (ctx.S[contState.tab] || []).find(function (x) { return x.id === id; });
+      if (it) window.DrawingViewer.open(ctx, contState.tab, it, { canEdit: false, canReview: false, canRespond: true });
+    }
     el.querySelectorAll('[data-dview]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        const it = (ctx.S[contState.tab] || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
-        if (it) window.DrawingViewer.open(ctx, contState.tab, it, { canEdit: false, canReview: false });
-      });
+      b.addEventListener('click', function () { openForContractor(b.getAttribute('data-dview')); });
+    });
+    el.querySelectorAll('[data-resub]').forEach(function (b) {
+      b.addEventListener('click', function () { openForContractor(b.getAttribute('data-resub')); });
     });
   }
 
@@ -1489,19 +1520,24 @@
       (hasAmount ? '<th>' + I18n.t('القيمة') + '</th>' : '') +
       '<th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الحالة') + '</th><th>' + I18n.t('رد الاستشاري') + '</th><th></th></tr></thead><tbody>' +
       items.map(function (it) {
-        const reply = tab === 'rfis' ? it.answer : it.notes;
+        const reply = (tab === 'rfis' || tab === 'rfps') ? it.answer : it.notes;
         const nComments = commentsFor(ctx, tab, it.id).length;
+        const canRespond = it.status === 'rejected' || it.status === 'approved_notes';
         return '<tr><td class="num small"><b>' + esc(it.ref) + '</b>' +
           (it.docCode ? '<div class="muted" style="font-size:10px;color:var(--accent2)">' + esc(it.docCode) + '</div>' : '') + '</td>' +
           '<td>' + esc(it.title) + ' ' + window.DrawingViewer.btn(it) +
           (it.question ? '<div class="small muted" style="max-width:300px">' + esc(it.question) + '</div>' : '') +
           (it.kind === 'eot' ? '<div class="small muted num">' + I18n.t('تمديد +') + (it.days || 0) + I18n.t(' يوم') + '</div>' : '') +
-          (it.kind === 'itp' ? '<div class="small muted">' + I18n.t('خطة فحص ITP') + '</div>' : '') + '</td>' +
+          (it.kind === 'itp' ? '<div class="small muted">' + I18n.t('خطة فحص ITP') + '</div>' : '') +
+          ((it.revisions || []).length ? '<div class="small muted">🗂 ' + (it.revisions.length + 1) + ' ' + I18n.t('نسخ على نفس المستند') + '</div>' : '') + '</td>' +
           (hasAmount ? '<td>' + money(it.amount) + '</td>' : '') +
           '<td class="small muted num">' + esc(it.date) + '</td><td>' + pill(it.status) + '</td>' +
           '<td class="small" style="max-width:240px">' + (reply ? esc(reply) : '<span class="muted">—</span>') +
           (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-          '<td><button class="btn ghost sm" data-thread="' + tab + '|' + esc(it.id) + '">💬' + (nComments ? ' ' + nComments : '') + '</button></td></tr>';
+          '<td><div class="flex" style="gap:4px;flex-wrap:wrap">' +
+          (canRespond ? '<button class="btn sm" data-resub="' + it.id + '">🔄 ' + I18n.t('الرد وإعادة التقديم') + '</button>' : '') +
+          '<button class="btn ghost sm" data-thread="' + tab + '|' + esc(it.id) + '">💬' + (nComments ? ' ' + nComments : '') + '</button>' +
+          '</div></td></tr>';
       }).join('') + '</tbody></table></div>';
   }
 
@@ -1540,6 +1576,8 @@
       '<div class="m-sub">' + I18n.t('سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض — يُعطى رقم مرجع تلقائياً') + '</div>' +
       '<label class="fl">' + I18n.t('العنوان / الوصف') + '</label><input class="inp" id="sb-title">' +
       (tab === 'rfis' ? '<label class="fl">' + I18n.t('نص الاستفسار الفني') + '</label><textarea class="inp" id="sb-question" rows="3" placeholder="' + I18n.t('اشرح التعارض أو المعلومة المطلوبة مع ذكر رقم المخطط...') + '"></textarea>' : '') +
+      (tab === 'rfps' ? '<label class="fl">' + I18n.t('موجه إلى') + '</label><select class="inp" id="sb-to"><option value="consultant">📐 ' + I18n.t('الاستشاري') + '</option><option value="owner">👁 ' + I18n.t('المالك') + '</option></select>' +
+        '<label class="fl">' + I18n.t('تفاصيل العرض / الطلب') + '</label><textarea class="inp" id="sb-question" rows="3" placeholder="' + I18n.t('اشرح العرض البديل أو الطلب مع أثره الفني والمالي...') + '"></textarea>' : '') +
       (tab === 'methodStatements' ? '<label class="fl">' + I18n.t('النوع') + '</label><select class="inp" id="sb-kind"><option value="ms">' + I18n.t('أسلوب تنفيذ MS') + '</option><option value="itp">' + I18n.t('خطة فحص ITP') + '</option></select>' : '') +
       (tab === 'claims' ? '<label class="fl">' + I18n.t('نوع المطالبة') + '</label><select class="inp" id="sb-kind"><option value="eot">' + I18n.t('تمديد مدة EOT') + '</option><option value="cost">' + I18n.t('مطالبة مالية') + '</option></select>' : '') +
       (needAmount ? '<label class="fl">' + I18n.t('القيمة (ر.س)') + '</label><input class="inp num" id="sb-amount" type="number">' : '') +
@@ -1575,7 +1613,8 @@
       if (!data.title) { toast(I18n.t('أدخل عنوان الطلب'), true); return; }
       if (needAmount) data.amount = Number(m.querySelector('#sb-amount').value) || 0;
       if (tab === 'changeOrders' || tab === 'claims') data.days = Number(m.querySelector('#sb-days').value) || 0;
-      if (tab === 'rfis') data.question = m.querySelector('#sb-question').value;
+      if (tab === 'rfis' || tab === 'rfps') data.question = m.querySelector('#sb-question').value;
+      if (tab === 'rfps') data.to = m.querySelector('#sb-to').value;
       if (tab === 'methodStatements' || tab === 'claims') data.kind = m.querySelector('#sb-kind').value;
       if (isWir) data.location = m.querySelector('#sb-loc').value;
       const files = m.querySelector('#sb-file').files;
@@ -1600,18 +1639,6 @@
   // ============ موديول المكتب الفني (خدمات استشاري المشروع) ============
   const HSE_KINDS = { violation: 'مخالفة سلامة', incident: 'حادث', observation: 'ملاحظة وقائية' };
   const SEVERITIES = { low: ['منخفضة', 'p-muted'], medium: ['متوسطة', 'p-warn'], high: ['عالية', 'p-danger'], minor: ['ثانوية', 'p-warn'], major: ['جوهرية', 'p-danger'], critical: ['حرجة', 'p-danger'] };
-  const HND_KINDS = {
-    prelim: 'شهادة تسليم ابتدائية', final: 'شهادة تسليم نهائية',
-    tc: 'شهادات فحص وتشغيل الأنظمة', inspection: 'تقرير المعاينة النهائية للاستشاري',
-    asbuilt: 'مخططات كما نُفذ', om: 'كتيبات تشغيل وصيانة', warranty: 'شهادات ضمان', dlp: 'ملاحظة فترة الضمان DLP'
-  };
-  // الاعتمادات الرسمية المطلوبة للتسليم (جهات حكومية/مرافق)
-  const REG_TYPES = {
-    municipality: 'شهادة إتمام البناء (البلدية)', civildefense: 'اعتماد الدفاع المدني',
-    sec: 'اعتماد الشركة السعودية للكهرباء', occupancy: 'شهادة إشغال', keys: 'سجل تسليم المفاتيح'
-  };
-  const REG_STATUS = { pending: ['لم يبدأ', 'p-muted'], submitted: ['مُقدَّم — بانتظار الجهة', 'p-warn'], approved: ['معتمد ✓', 'p-ok'], rejected: ['مرفوض', 'p-danger'] };
-
   function sev(s) { const v = SEVERITIES[s] || [s, 'p-muted']; return '<span class="pill ' + v[1] + '">' + esc(I18n.t(v[0])) + '</span>'; }
   function sigCell(it) { return it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : ''; }
 
@@ -1776,24 +1803,6 @@
         return { label: I18n.t('✍️ قرار'), run: function () { openReviewModal(ctx, 'valueEngineering', it); } };
       } },
 
-    { col: 'handoverDocs', name: 'التسليم والإغلاق', icon: '📦', desc: 'التسليم والإغلاق: الشهادات، الاعتمادات الرسمية، قائمة الملاحظات، الضمانات، وفترة الضمان DLP',
-      pendingOf: function (x) { return x.status === 'pending'; },
-      custom: renderHandoverModule,
-      cols: [
-        { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + esc(I18n.t(HND_KINDS[it.kind] || it.kind)) + '</span>'; } },
-        { h: 'المستند', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : ''); } },
-        { h: 'الملاحظات', r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
-      ],
-      fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' },
-        { k: 'kind', label: 'النوع', type: 'select', options: Object.keys(HND_KINDS).map(function (k) { return [k, HND_KINDS[k]]; }) },
-        { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'العنوان', type: 'text' }
-      ],
-      action: function (ctx, it) {
-        if (it.status !== 'pending') return null;
-        return { label: I18n.t('✍️ قرار'), run: function () { openReviewModal(ctx, 'handoverDocs', it); } };
-      } },
-
     { col: 'correspondence', name: 'المراسلات', icon: '📮', desc: 'سجل الخطابات الصادرة والواردة الرسمية للمشروع',
       pendingOf: function () { return false; }, noContractor: true, noStatus: true,
       cols: [
@@ -1881,233 +1890,6 @@
     });
   }
 
-  // ============ التسليم والإغلاق (موديول موحّد) ============
-  function checklistItems(ctx) {
-    const hnd = ctx.S.handoverDocs || [], reg = ctx.S.regulatoryApprovals || [], snags = ctx.S.snags || [];
-    const openSnags = snags.filter(function (s) { return s.status === 'open'; }).length;
-    const hasApproved = function (kind) { return hnd.some(function (x) { return x.kind === kind && (x.status === 'approved' || x.status === 'approved_notes'); }); };
-    const regApproved = function (type) { return reg.some(function (x) { return x.type === type && x.status === 'approved'; }); };
-    const rows = Object.keys(HND_KINDS).filter(function (k) { return k !== 'dlp'; }).map(function (k) {
-      return { label: HND_KINDS[k], done: hasApproved(k) };
-    });
-    Object.keys(REG_TYPES).forEach(function (t) { rows.push({ label: REG_TYPES[t], done: regApproved(t) }); });
-    rows.push({ label: 'إغلاق قائمة الملاحظات (Punch List)', done: openSnags === 0, hint: openSnags ? (openSnags + ' ' + I18n.t('ملاحظة مفتوحة')) : '' });
-    return rows;
-  }
-
-  function punchSummary(ctx) {
-    const snags = ctx.S.snags || [], byC = {};
-    snags.forEach(function (s) {
-      const cid = s.contractorId || '—';
-      byC[cid] = byC[cid] || { open: 0, closed: 0 };
-      if (s.status === 'open') byC[cid].open++; else byC[cid].closed++;
-    });
-    return Object.keys(byC).map(function (cid) {
-      const t = byC[cid].open + byC[cid].closed;
-      return { name: contractorName(ctx, cid), open: byC[cid].open, closed: byC[cid].closed, pct: t ? Math.round(byC[cid].closed / t * 100) : 0 };
-    });
-  }
-
-  function warrantyTracker(ctx) {
-    const now = Date.now();
-    return (ctx.S.handoverDocs || []).filter(function (x) { return x.kind === 'warranty' && x.expiryDate; })
-      .map(function (x) {
-        const days = Math.round((new Date(x.expiryDate).getTime() - now) / 86400000);
-        return { title: x.title, expiryDate: x.expiryDate, days: days, state: days < 0 ? 'expired' : days <= 60 ? 'soon' : 'ok' };
-      }).sort(function (a, b) { return a.days - b.days; });
-  }
-
-  function dlpInfo(ctx) {
-    const P = ctx.S.projects[0];
-    const finalCert = (ctx.S.handoverDocs || []).find(function (x) { return x.kind === 'final' && (x.status === 'approved' || x.status === 'approved_notes'); });
-    const start = finalCert ? (finalCert.signDate || finalCert.date) : (P.endActual || P.endForecast);
-    if (!start) return null;
-    const startD = new Date(start);
-    if (isNaN(startD.getTime())) return null;
-    const endD = new Date(startD); endD.setFullYear(endD.getFullYear() + 1);
-    const now = new Date();
-    return {
-      start: start, end: endD.toISOString().slice(0, 10),
-      daysLeft: Math.round((endD - now) / 86400000),
-      notStarted: now < startD, ended: now > endD,
-      openSnags: (ctx.S.snags || []).filter(function (s) { return s.status === 'open'; }).length,
-      estimated: !finalCert
-    };
-  }
-
-  function openHandoverDocModal(ctx) {
-    const m = modal(
-      '<h3>' + I18n.t('➕ إضافة مستند تسليم') + '</h3>' +
-      '<label class="fl">' + I18n.t('النوع') + '</label><select class="inp" id="hd-kind">' +
-      Object.keys(HND_KINDS).map(function (k) { return '<option value="' + k + '">' + esc(I18n.t(HND_KINDS[k])) + '</option>'; }).join('') + '</select>' +
-      '<label class="fl">' + I18n.t('العنوان') + '</label><input class="inp" id="hd-title">' +
-      '<label class="fl">' + I18n.t('المقاول (اختياري)') + '</label><select class="inp" id="hd-cont"><option value="">' + I18n.t('— بلا —') + '</option>' +
-      ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>' +
-      '<div id="hd-expiry-wrap" style="display:none"><label class="fl">' + I18n.t('تاريخ انتهاء الضمان') + '</label><input class="inp" id="hd-expiry" type="date"></div>' +
-      '<label class="fl">' + I18n.t('الملف') + '</label><input class="inp" id="hd-file" type="file">' +
-      '<div class="m-actions"><button class="btn" id="hd-ok">' + I18n.t('حفظ') + '</button><button class="btn mutedb" id="hd-cancel">' + I18n.t('إلغاء') + '</button></div>'
-    );
-    const kindSel = m.querySelector('#hd-kind'), expWrap = m.querySelector('#hd-expiry-wrap');
-    function syncExpiry() { expWrap.style.display = kindSel.value === 'warranty' ? '' : 'none'; }
-    kindSel.addEventListener('change', syncExpiry); syncExpiry();
-    m.querySelector('#hd-cancel').addEventListener('click', function () { m.remove(); });
-    m.querySelector('#hd-ok').addEventListener('click', async function () {
-      const title = m.querySelector('#hd-title').value.trim();
-      if (!title) { toast(I18n.t('أدخل عنوان المستند'), true); return; }
-      const btn = m.querySelector('#hd-ok'); btn.disabled = true;
-      try {
-        const data = { kind: kindSel.value, title: title, contractorId: m.querySelector('#hd-cont').value || undefined };
-        const f = m.querySelector('#hd-file').files[0];
-        if (f) data.file = await Api.upload(f);
-        if (kindSel.value === 'warranty') data.expiryDate = m.querySelector('#hd-expiry').value || undefined;
-        await Api.create('handoverDocs', data);
-        m.remove(); toast(I18n.t('✅ أُضيف المستند')); ctx.refresh();
-      } catch (e) { toast(e.message, true); btn.disabled = false; }
-    });
-  }
-
-  function openRegApprovalModal(ctx) {
-    const m = modal(
-      '<h3>' + I18n.t('➕ إضافة اعتماد جهة رسمية') + '</h3>' +
-      '<label class="fl">' + I18n.t('النوع') + '</label><select class="inp" id="rg-type">' +
-      Object.keys(REG_TYPES).map(function (k) { return '<option value="' + k + '">' + esc(I18n.t(REG_TYPES[k])) + '</option>'; }).join('') + '</select>' +
-      '<label class="fl">' + I18n.t('الجهة (اختياري)') + '</label><input class="inp" id="rg-authority">' +
-      '<label class="fl">' + I18n.t('الملف (اختياري)') + '</label><input class="inp" id="rg-file" type="file">' +
-      '<label class="fl">' + I18n.t('ملاحظات') + '</label><textarea class="inp" id="rg-notes" rows="2"></textarea>' +
-      '<div class="m-actions"><button class="btn" id="rg-ok">' + I18n.t('حفظ') + '</button><button class="btn mutedb" id="rg-cancel">' + I18n.t('إلغاء') + '</button></div>'
-    );
-    m.querySelector('#rg-cancel').addEventListener('click', function () { m.remove(); });
-    m.querySelector('#rg-ok').addEventListener('click', async function () {
-      const btn = m.querySelector('#rg-ok'); btn.disabled = true;
-      try {
-        const type = m.querySelector('#rg-type').value;
-        const data = { type: type, title: REG_TYPES[type], authority: m.querySelector('#rg-authority').value, notes: m.querySelector('#rg-notes').value, status: 'pending' };
-        const f = m.querySelector('#rg-file').files[0];
-        if (f) data.file = await Api.upload(f);
-        await Api.create('regulatoryApprovals', data);
-        m.remove(); toast(I18n.t('✅ أُضيف الاعتماد')); ctx.refresh();
-      } catch (e) { toast(e.message, true); btn.disabled = false; }
-    });
-  }
-
-  function renderHandoverModule(el, ctx) {
-    const checklist = checklistItems(ctx);
-    const doneCount = checklist.filter(function (r) { return r.done; }).length;
-    const punch = punchSummary(ctx);
-    const warranties = warrantyTracker(ctx);
-    const dlp = dlpInfo(ctx);
-    const hnd = (ctx.S.handoverDocs || []).slice().reverse();
-    const reg = (ctx.S.regulatoryApprovals || []).slice().reverse();
-
-    el.innerHTML =
-      '<div class="grid g2 mb">' +
-      '<div class="card"><h3>✅ ' + I18n.t('قائمة تجهيز التسليم') + ' <span class="hint num">' + doneCount + '/' + checklist.length + '</span></h3>' +
-      checklist.map(function (r) {
-        return '<div class="flex" style="justify-content:space-between;padding:7px 2px;border-bottom:1px dashed var(--border)">' +
-          '<span class="small">' + (r.done ? '✅' : '⬜') + ' ' + esc(I18n.t(r.label)) + '</span>' +
-          (r.hint ? '<span class="small muted">' + esc(r.hint) + '</span>' : '') + '</div>';
-      }).join('') + '</div>' +
-
-      '<div class="card">' +
-      (dlp ?
-        '<h3>🛡️ ' + I18n.t('لوحة فترة الضمان (DLP)') + (dlp.estimated ? ' <span class="hint">' + I18n.t('تقديري — حتى اعتماد شهادة التسليم النهائية') + '</span>' : '') + '</h3>' +
-        '<div class="grid g2" style="gap:10px">' +
-        '<div class="kpi card" style="padding:10px"><div class="lbl small">' + I18n.t('بداية DLP') + '</div><div class="val num" style="font-size:16px">' + esc(dlp.start) + '</div></div>' +
-        '<div class="kpi card" style="padding:10px"><div class="lbl small">' + I18n.t('نهاية DLP') + '</div><div class="val num" style="font-size:16px">' + esc(dlp.end) + '</div></div>' +
-        '</div>' +
-        '<div class="small mt">' +
-        (dlp.notStarted ? '<span class="pill p-muted">' + I18n.t('لم تبدأ بعد') + '</span>'
-          : dlp.ended ? '<span class="pill p-ok">' + I18n.t('انتهت فترة الضمان') + '</span>'
-          : '<span class="pill p-warn num">' + dlp.daysLeft + ' ' + I18n.t('يوم متبقٍ') + '</span>') +
-        ' · ' + I18n.t('ملاحظات مفتوحة خلال الفترة: ') + '<b class="num">' + dlp.openSnags + '</b></div>'
-        : '<h3>🛡️ ' + I18n.t('لوحة فترة الضمان (DLP)') + '</h3><div class="empty small"><div class="e-ico">🛡️</div>' + I18n.t('تُحسب تلقائياً بعد اعتماد شهادة التسليم النهائية') + '</div>') +
-      '</div></div>' +
-
-      '<div class="grid g2 mb">' +
-      '<div class="card"><h3>📌 ' + I18n.t('ملخص قائمة الملاحظات (Punch List) حسب المقاول') + '</h3>' +
-      (punch.length ? punch.map(function (p) {
-        return '<div style="margin-bottom:10px"><div class="flex" style="justify-content:space-between;font-size:12.5px"><span>' + esc(p.name) + '</span>' +
-          '<span class="muted">' + p.closed + '/' + (p.closed + p.open) + '</span></div>' +
-          '<div class="bar" style="margin-top:4px"><i style="width:' + p.pct + '%"></i></div></div>';
-      }).join('') : '<div class="empty small"><div class="e-ico">📌</div>' + I18n.t('لا توجد ملاحظات مسجّلة') + '</div>') + '</div>' +
-
-      '<div class="card"><h3>⏳ ' + I18n.t('متابعة انتهاء الضمانات') + '</h3>' +
-      (warranties.length ? '<div class="tbl-wrap" style="max-height:220px;overflow-y:auto"><table class="tbl"><thead><tr><th>' + I18n.t('الضمان') + '</th><th>' + I18n.t('تاريخ الانتهاء') + '</th><th></th></tr></thead><tbody>' +
-        warranties.map(function (w) {
-          const pill2 = w.state === 'expired' ? '<span class="pill p-danger">' + I18n.t('منتهٍ') + '</span>'
-            : w.state === 'soon' ? '<span class="pill p-warn num">' + w.days + ' ' + I18n.t('يوم') + '</span>'
-            : '<span class="pill p-ok">' + I18n.t('ساري') + '</span>';
-          return '<tr><td class="small">' + esc(w.title) + '</td><td class="small muted num">' + esc(w.expiryDate) + '</td><td>' + pill2 + '</td></tr>';
-        }).join('') + '</tbody></table></div>' : '<div class="empty small"><div class="e-ico">⏳</div>' + I18n.t('لا توجد ضمانات مسجّلة بتاريخ انتهاء') + '</div>') + '</div>' +
-      '</div>' +
-
-      '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap;gap:8px">' +
-      '<h3 style="margin:0">📦 ' + I18n.t('مستندات التسليم') + '</h3>' +
-      '<div class="flex" style="gap:8px"><button class="btn ghost sm" id="ho-add-doc">➕ ' + I18n.t('إضافة مستند') + '</button>' +
-      '<button class="btn ghost sm" id="ho-add-reg">➕ ' + I18n.t('إضافة اعتماد جهة رسمية') + '</button>' +
-      '<button class="btn sm" id="ho-pdf">📄 ' + I18n.t('تقرير التسليم الموحّد (PDF)') + '</button></div></div>' +
-      (hnd.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>' + I18n.t('النوع') + '</th><th>' + I18n.t('المستند') + '</th><th>' + I18n.t('المقاول') + '</th><th>' + I18n.t('الحالة') + '</th><th></th></tr></thead><tbody>' +
-        hnd.map(function (it) {
-          return '<tr><td><span class="pill p-muted">' + esc(I18n.t(HND_KINDS[it.kind] || it.kind)) + '</span></td>' +
-            '<td class="small">' + esc(it.title) + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : '') + (it.expiryDate ? '<div class="small muted">' + I18n.t('ينتهي: ') + esc(it.expiryDate) + '</div>' : '') + '</td>' +
-            '<td class="small">' + (it.contractorId ? esc(contractorName(ctx, it.contractorId)) : '<span class="muted">—</span>') + '</td>' +
-            '<td>' + pill(it.status) + '</td>' +
-            '<td>' + (it.status === 'pending' ? '<button class="btn sm" data-hdreview="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') + '</td></tr>';
-        }).join('') + '</tbody></table></div>' : '<div class="empty small mt"><div class="e-ico">📦</div>' + I18n.t('لا مستندات بعد') + '</div>') + '</div>' +
-
-      '<div class="card"><h3>🏛️ ' + I18n.t('الاعتمادات الرسمية') + '</h3>' +
-      (reg.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>' + I18n.t('النوع') + '</th><th>' + I18n.t('الجهة') + '</th><th>' + I18n.t('الحالة') + '</th><th>' + I18n.t('التاريخ') + '</th><th></th></tr></thead><tbody>' +
-        reg.map(function (it) {
-          const st = REG_STATUS[it.status] || [it.status, 'p-muted'];
-          return '<tr><td class="small"><b>' + esc(I18n.t(REG_TYPES[it.type] || it.title)) + '</b>' + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : '') + '</td>' +
-            '<td class="small">' + esc(it.authority || '—') + '</td>' +
-            '<td><span class="pill ' + st[1] + '">' + esc(I18n.t(st[0])) + '</span></td>' +
-            '<td class="small muted num">' + esc(it.approvedDate || it.submittedDate || it.date || '') + '</td>' +
-            '<td>' + regStatusButtons(it) + '</td></tr>';
-        }).join('') + '</tbody></table></div>' : '<div class="empty small mt"><div class="e-ico">🏛️</div>' + I18n.t('لا اعتمادات مسجّلة بعد') + '</div>') + '</div>';
-
-    el.querySelector('#ho-add-doc').addEventListener('click', function () { openHandoverDocModal(ctx); });
-    el.querySelector('#ho-add-reg').addEventListener('click', function () { openRegApprovalModal(ctx); });
-    el.querySelectorAll('[data-hdreview]').forEach(function (b) {
-      b.addEventListener('click', function () {
-        const it = hnd.find(function (x) { return x.id === b.getAttribute('data-hdreview'); });
-        if (it) openReviewModal(ctx, 'handoverDocs', it);
-      });
-    });
-    el.querySelectorAll('[data-regnext]').forEach(function (b) {
-      b.addEventListener('click', async function () {
-        const status = b.getAttribute('data-regstatus');
-        const patch = { status: status };
-        if (status === 'approved') patch.approvedDate = new Date().toISOString().slice(0, 10);
-        if (status === 'submitted') patch.submittedDate = new Date().toISOString().slice(0, 10);
-        try { await Api.update('regulatoryApprovals', b.getAttribute('data-regnext'), patch); toast(I18n.t('✅ تم التحديث')); ctx.refresh(); }
-        catch (e) { toast(e.message, true); }
-      });
-    });
-    const pdfBtn = el.querySelector('#ho-pdf');
-    pdfBtn.addEventListener('click', async function () {
-      if (Api.demo) { toast(I18n.t('توليد PDF متاح فقط عند الاتصال بالخادم الفعلي'), true); return; }
-      pdfBtn.disabled = true;
-      try {
-        const token = sessionStorage.getItem('bassir-token');
-        const res = await fetch('/api/actions/handover-report?lang=' + I18n.getLang(), { headers: { Authorization: 'Bearer ' + token } });
-        if (!res.ok) { const e = await res.json().catch(function () { return {}; }); throw new Error(e.error || 'فشل توليد التقرير'); }
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'Handover-Report.pdf'; document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      } catch (e) { toast(e.message, true); }
-      pdfBtn.disabled = false;
-    });
-  }
-
-  function regStatusButtons(it) {
-    if (it.status === 'approved' || it.status === 'rejected') return '';
-    const next = it.status === 'submitted' ? 'approved' : 'submitted';
-    const label = next === 'approved' ? '✅ ' + I18n.t('تحديد كمعتمد') : '📤 ' + I18n.t('تحديد كمُقدَّم');
-    return '<button class="btn ghost sm" data-regnext="' + it.id + '" data-regstatus="' + next + '">' + label + '</button>';
-  }
-
   function renderTechOffice(el, ctx) {
     const t = TECH_TABS.find(function (x) { return x.col === techState.tab; }) || TECH_TABS[0];
     const items = (ctx.S[t.col] || []).slice().sort(function (a, b) {
@@ -2117,7 +1899,7 @@
     // مؤشرات علوية سريعة
     const openRfis = (ctx.S.rfis || []).filter(function (x) { return x.status === 'open'; }).length;
     const openNcrs = (ctx.S.ncrs || []).filter(function (x) { return x.status === 'open'; }).length;
-    const pendingDecisions = ['methodStatements', 'claims', 'valueEngineering', 'handoverDocs']
+    const pendingDecisions = ['methodStatements', 'claims', 'valueEngineering']
       .reduce(function (a, c) { return a + (ctx.S[c] || []).filter(function (x) { return x.status === 'pending'; }).length; }, 0);
     const openSnags = (ctx.S.snags || []).filter(function (x) { return x.status === 'open'; }).length;
     const failedTests = (ctx.S.materialTests || []).filter(function (x) { return x.result === 'fail'; }).length;
@@ -2237,14 +2019,17 @@
     ['scheduleSubmittals', '🗓️ جدول زمني', 'SCH'], ['wirs', '✅ طلب استلام', 'WIR'],
     ['changeOrders', '🔁 أمر تغيير', 'CO'], ['payments', '💰 مستخلص', 'IPC'],
     ['methodStatements', '🧾 أسلوب تنفيذ/ITP', 'MS'], ['claims', '⚖️ مطالبة/EOT', 'CLM'],
-    ['valueEngineering', '💡 هندسة قيمية', 'VE'], ['handoverDocs', '📦 مستند تسليم', 'HOD'],
+    ['valueEngineering', '💡 هندسة قيمية', 'VE'],
     ['rfis', '❓ استفسار RFI', 'RFI'], ['ncrs', '🚫 عدم مطابقة', 'NCR'],
     ['siteInstructions', '📢 تعليمات موقعية', 'SI'], ['snags', '📌 ملاحظة تسليم', 'SNG'],
     ['hseReports', '🦺 سلامة', 'HSE'], ['materialTests', '🧪 اختبار مواد', 'TST'],
     ['meetings', '🤝 محضر اجتماع', 'MOM'], ['correspondence', '📮 خطاب', 'COR'],
     ['dailyReports', '📝 تقرير يومي', 'DDR'], ['weeklyReports', '🗓️ تقرير أسبوعي', 'WKR'],
     ['monthlyReports', '📊 تقرير شهري', 'MOR'], ['planDrawings', '🏢 مخطط مشروع', 'DRW'],
-    ['files', '📎 ملف مرفوع', 'FIL']
+    ['rfps', '📮 طلب عرض RFP', 'RFP'], ['bimModels', '🧊 نموذج BIM', 'BIM'],
+    ['bimDocs', '📚 وثيقة BIM', 'BDC'],
+    ['punchList', '📌 ملاحظة تسليم', 'PNL'], ['warranties', '🛡️ ضمان', 'WTY'],
+    ['incidents', '🚨 تقرير حادث', 'INC'], ['files', '📎 ملف مرفوع', 'FIL']
   ];
   const DONE_STATES = ['approved', 'approved_notes', 'answered', 'done', 'closed', 'pass'];
   const archState = { q: '', type: 'all', status: 'all', year: 'all' };
@@ -2255,8 +2040,8 @@
       (ctx.S[t[0]] || []).forEach(function (it) {
         rows.push({
           col: t[0], typeName: t[1], item: it,
-          docCode: it.docCode || '', ref: it.ref || '', title: it.title || it.name || '',
-          date: it.date || it.month || it.weekOf || '',
+          docCode: it.docCode || '', ref: it.ref || '', title: it.title || it.name || it.item || '',
+          date: it.date || it.month || it.weekOf || it.raisedDate || it.startDate || '',
           status: it.status || it.result || '',
           contractor: it.contractorId ? contractorName(ctx, it.contractorId) : (it.by || '—')
         });
