@@ -10,3 +10,5 @@ demo
 deploy.sh
 run.sh
 DEPLOYMENT.md
+/tmp
+shot-*.png

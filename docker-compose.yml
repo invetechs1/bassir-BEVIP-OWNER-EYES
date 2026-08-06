@@ -1,0 +1,40 @@
+# بصير — عيون المالك | تشغيل إنتاجي بحاوية واحدة
+# الاستخدام:  cp .env.example .env  &&  docker compose up -d
+# التحديث:    git pull  &&  docker compose up -d --build
+services:
+  bassir:
+    build: .
+    image: bassir-owner-eyes
+    container_name: bassir
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      PORT: 3000
+      STORAGE: sqlite
+    ports:
+      - "3000:3000"
+    volumes:
+      # ثبات البيانات: قاعدة البيانات، الملفات المرفوعة، النسخ الاحتياطية، سر التوقيع
+      - bassir-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # اختياري: خادم الوسائط للبث المباشر RTSP من كاميرات الموقع.
+  # فعّله بإزالة التعليق واضبط MEDIA_SERVER_URL=http://<host>:8888 في .env
+  # mediamtx:
+  #   image: bluenviron/mediamtx:latest
+  #   container_name: bassir-media
+  #   restart: unless-stopped
+  #   ports:
+  #     - "8554:8554"   # RTSP
+  #     - "8888:8888"   # HLS
+  #   volumes:
+  #     - ./deploy/mediamtx.yml:/mediamtx.yml
+
+volumes:
+  bassir-data:

@@ -100,17 +100,75 @@
       startActual: '2025-03-15', endForecast: '2027-02-15',
       budgetPlanned: 52000000, costActual: 29800000, costPlannedToDate: 27200000,
       progressPlanned: 62, progressActual: 54.5,
+      type: 'برج تجاري / إداري',
+      dlpStart: '2027-02-15', dlpMonths: 12,
+      thresholds: { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' },
+      floors: FLOORS, disciplines: DISCIPLINES
+    }, {
+      id: 'P2',
+      name: 'فيلا الياسمين السكنية',
+      location: 'جدة - حي الشاطئ',
+      description: 'فيلا سكنية فاخرة من دورين وملحق وقبو، بمساحة بناء 1,150 م² مع مسبح وحديقة.',
+      ownerName: 'م. عبدالله الراشد',
+      consultantName: 'دار العمران للاستشارات الهندسية',
+      startPlanned: '2025-09-01', endPlanned: '2026-11-30',
+      startActual: '2025-09-10', endForecast: '2026-11-20',
+      budgetPlanned: 8500000, costActual: 3350000, costPlannedToDate: 3450000,
+      progressPlanned: 39, progressActual: 41,
+      type: 'فيلا سكنية',
+      dlpStart: '2026-12-15', dlpMonths: 12,
+      thresholds: { slaReviewDays: 10, warrantyWarnDays: 60, contractorDelayPct: 5, healthAlertGrade: 'B' },
       floors: FLOORS, disciplines: DISCIPLINES
     }];
+
+    // ============ مكتبة المراحل وقوالبها حسب نوع المشروع ============
+    // كل مرحلة لها مفتاح ثابت واسم عربي وإنجليزي، تُستخدم في تكوين مراحل المشروع
+    db.phaseLibrary = [
+      { key: 'design_approvals', ar: 'التصميم واعتمادات الاستشاري', en: 'Design & Consultant Approvals' },
+      { key: 'tendering', ar: 'الطرح واختيار المقاول', en: 'Tendering & Contractor Selection' },
+      { key: 'mobilization', ar: 'التجهيز وتأسيس الموقع', en: 'Mobilization & Site Setup' },
+      { key: 'excavation', ar: 'الحفر والأساسات', en: 'Excavation & Foundations' },
+      { key: 'concrete', ar: 'الهيكل الخرساني', en: 'Concrete Structure' },
+      { key: 'steel', ar: 'الهيكل المعدني', en: 'Steel Structure (where applicable)' },
+      { key: 'blockwork', ar: 'المباني واللياسة', en: 'Blockwork & Plastering' },
+      { key: 'waterproofing', ar: 'العزل المائي والحراري والصوتي', en: 'Waterproofing, Thermal & Acoustic Insulation' },
+      { key: 'mep', ar: 'الأعمال الكهروميكانيكية MEP', en: 'MEP Works' },
+      { key: 'fitout', ar: 'التشطيبات الداخلية', en: 'Interior Fit-Out' },
+      { key: 'facades', ar: 'الواجهات والكسوة الخارجية', en: 'Facades & External Cladding' },
+      { key: 'external_works', ar: 'الأعمال الخارجية والمواقف', en: 'External Works & Parking Areas' },
+      { key: 'landscaping', ar: 'التنسيق والتشجير والهاردسكيب', en: 'Landscaping & Hardscape' },
+      { key: 'infrastructure', ar: 'البنية التحتية والخدمات', en: 'Infrastructure & Utilities' },
+      { key: 'ffe', ar: 'الفرش والتأثيث FF&E', en: 'FF&E (Furniture, Fixtures & Equipment)' },
+      { key: 'testing', ar: 'اختبار وتشغيل الأنظمة', en: 'Systems Testing & Commissioning' },
+      { key: 'handover', ar: 'تسليم المشروع', en: 'Project Handover' },
+      { key: 'dlp', ar: 'فترة ضمان العيوب DLP', en: 'Defects Liability Period (DLP)' }
+    ];
+    // قوالب المراحل الافتراضية حسب نوع المشروع (قابلة للتخصيص لكل مشروع)
+    db.phaseTemplates = {
+      'برج تجاري / إداري': ['design_approvals', 'tendering', 'mobilization', 'excavation', 'concrete', 'blockwork', 'waterproofing', 'mep', 'fitout', 'facades', 'external_works', 'ffe', 'testing', 'handover', 'dlp'],
+      'فيلا سكنية': ['design_approvals', 'tendering', 'mobilization', 'excavation', 'concrete', 'blockwork', 'waterproofing', 'mep', 'fitout', 'facades', 'landscaping', 'ffe', 'handover', 'dlp'],
+      'مجمع صناعي / مستودعات': ['design_approvals', 'tendering', 'mobilization', 'excavation', 'concrete', 'steel', 'blockwork', 'mep', 'infrastructure', 'external_works', 'testing', 'handover', 'dlp'],
+      'default': ['design_approvals', 'tendering', 'mobilization', 'excavation', 'concrete', 'blockwork', 'mep', 'fitout', 'facades', 'testing', 'handover', 'dlp']
+    };
 
     // ============ المقاولون ============
     db.contractors = [
       { id: 'C1', projectId: 'P1', name: 'شركة الإعمار الحديثة', type: 'structural',
         contractValue: 18000000, startDate: '2025-03-15', endDate: '2026-04-30',
-        amountReceived: 15300000, plannedProgress: 95, phone: '0501112233' },
+        amountReceived: 15300000, plannedProgress: 95, phone: '0501112233',
+        address: 'الرياض - طريق الملك فهد - برج الأعمال 12', contactPerson: 'م. فهد العتيبي',
+        email: 'info@emaar-hadeetha.sa', crNumber: '1010456789',
+        licenses: ['رخصة مقاولات درجة أولى - أبنية', 'عضوية الهيئة السعودية للمقاولين'],
+        certifications: ['ISO 9001:2015', 'ISO 45001:2018'],
+        legalDocs: [] },
       { id: 'C2', projectId: 'P1', name: 'مؤسسة البناء المعماري', type: 'architectural',
         contractValue: 12000000, startDate: '2025-09-01', endDate: '2026-10-31',
-        amountReceived: 8900000, plannedProgress: 60, phone: '0502223344' },
+        amountReceived: 8900000, plannedProgress: 60, phone: '0502223344',
+        address: 'الرياض - حي العليا - شارع التحلية', contactPerson: 'م. ماجد القحطاني',
+        email: 'projects@albinaa-arch.sa', crNumber: '1010334455',
+        licenses: ['رخصة مقاولات درجة ثانية - تشطيبات'],
+        certifications: ['ISO 9001:2015'],
+        legalDocs: [] },
       { id: 'C3', projectId: 'P1', name: 'شركة الطاقة المتحدة', type: 'electrical',
         contractValue: 6500000, startDate: '2025-10-01', endDate: '2026-11-30',
         amountReceived: 2600000, plannedProgress: 50, phone: '0503334455' },
@@ -125,7 +183,18 @@
         amountReceived: 1300000, plannedProgress: 45, phone: '0506667788' },
       { id: 'C7', projectId: 'P1', name: 'دار الفرش الراقي', type: 'furniture',
         contractValue: 4000000, startDate: '2026-05-01', endDate: '2026-12-20',
-        amountReceived: 350000, plannedProgress: 12, phone: '0507778899' }
+        amountReceived: 350000, plannedProgress: 12, phone: '0507778899' },
+      // مقاولو المشروع الثاني (فيلا الياسمين)
+      { id: 'C10', projectId: 'P2', name: 'مقاولات الشاطئ للإنشاءات', type: 'structural',
+        contractValue: 3500000, startDate: '2025-09-10', endDate: '2026-06-30',
+        amountReceived: 1400000, plannedProgress: 42, phone: '0508889900',
+        address: 'جدة - حي الحمراء', contactPerson: 'م. وليد باناجه', email: 'info@shatea-const.sa',
+        crNumber: '4030112233', licenses: ['رخصة مقاولات درجة ثالثة - أبنية'], certifications: ['ISO 9001:2015'], legalDocs: [] },
+      { id: 'C11', projectId: 'P2', name: 'لمسات التشطيب الحديثة', type: 'architectural',
+        contractValue: 2600000, startDate: '2026-01-01', endDate: '2026-11-15',
+        amountReceived: 780000, plannedProgress: 30, phone: '0509990011',
+        address: 'جدة - حي السلامة', contactPerson: 'م. ريم الغامدي', email: 'projects@lamsat.sa',
+        crNumber: '4030445566', licenses: ['رخصة مقاولات درجة ثالثة - تشطيبات'], certifications: [], legalDocs: [] }
     ];
 
     // ============ جدول الكميات BOQ (مرتبط بالأدوار والتخصصات) ============
@@ -145,7 +214,7 @@
           const qty = Math.max(1, Math.round(t[2] / FLOORS.length + (rand() - 0.5) * 6));
           db.boqItems.push({
             id: 'BQ' + (boqSeq++),
-            projectId: 'P1', contractorId: c.id, discipline: c.type,
+            projectId: c.projectId || 'P1', contractorId: c.id, discipline: c.type,
             floor: fl.id, zone: ti % 6,
             code: c.type.substring(0, 2).toUpperCase() + '-' + fl.id + '-' + String(ti + 1).padStart(2, '0'),
             description: t[0], unit: t[1], qty: qty, unitPrice: t[3],
@@ -167,14 +236,21 @@
     ];
 
     db.scheduleTasks = [
-      { projectId: 'P1', id: 'T1', name: 'أعمال الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
-      { projectId: 'P1', id: 'T2', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
-      { projectId: 'P1', id: 'T3', name: 'أعمال المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
-      { projectId: 'P1', id: 'T4', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
-      { projectId: 'P1', id: 'T5', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
-      { projectId: 'P1', id: 'T6', name: 'الواجهات الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
-      { projectId: 'P1', id: 'T7', name: 'الفرش والتأثيث', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
-      { projectId: 'P1', id: 'T8', name: 'التشغيل والتسليم', startPlanned: '2026-11-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 }
+      { projectId: 'P1', id: 'T1', phaseKey: 'design_approvals', name: 'التصميم واعتمادات الاستشاري', startPlanned: '2024-10-01', endPlanned: '2025-01-31', startActual: '2024-10-05', endActual: '2025-02-10', progress: 100 },
+      { projectId: 'P1', id: 'T2', phaseKey: 'tendering', name: 'الطرح واختيار المقاول', startPlanned: '2025-01-01', endPlanned: '2025-02-28', startActual: '2025-01-10', endActual: '2025-03-05', progress: 100 },
+      { projectId: 'P1', id: 'T3', phaseKey: 'mobilization', name: 'التجهيز وتأسيس الموقع', startPlanned: '2025-02-15', endPlanned: '2025-03-15', startActual: '2025-03-01', endActual: '2025-03-20', progress: 100 },
+      { projectId: 'P1', id: 'T4', phaseKey: 'excavation', name: 'الحفر والأساسات', startPlanned: '2025-03-01', endPlanned: '2025-06-15', startActual: '2025-03-15', endActual: '2025-07-01', progress: 100 },
+      { projectId: 'P1', id: 'T5', phaseKey: 'concrete', name: 'الهيكل الخرساني', startPlanned: '2025-06-01', endPlanned: '2026-01-31', startActual: '2025-06-20', endActual: '2026-02-28', progress: 100 },
+      { projectId: 'P1', id: 'T6', phaseKey: 'blockwork', name: 'المباني واللياسة', startPlanned: '2025-10-01', endPlanned: '2026-06-30', startActual: '2025-10-15', endActual: null, progress: 72 },
+      { projectId: 'P1', id: 'T7', phaseKey: 'waterproofing', name: 'العزل المائي والحراري والصوتي', startPlanned: '2026-01-01', endPlanned: '2026-07-31', startActual: '2026-01-20', endActual: null, progress: 55 },
+      { projectId: 'P1', id: 'T8', phaseKey: 'mep', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2025-11-01', endPlanned: '2026-09-30', startActual: '2025-11-20', endActual: null, progress: 46 },
+      { projectId: 'P1', id: 'T9', phaseKey: 'fitout', name: 'التشطيبات الداخلية', startPlanned: '2026-02-01', endPlanned: '2026-10-31', startActual: '2026-03-01', endActual: null, progress: 30 },
+      { projectId: 'P1', id: 'T10', phaseKey: 'facades', name: 'الواجهات والكسوة الخارجية', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-05-01', endActual: null, progress: 18 },
+      { projectId: 'P1', id: 'T11', phaseKey: 'external_works', name: 'الأعمال الخارجية والمواقف', startPlanned: '2026-07-01', endPlanned: '2026-11-30', startActual: null, endActual: null, progress: 6 },
+      { projectId: 'P1', id: 'T12', phaseKey: 'ffe', name: 'الفرش والتأثيث FF&E', startPlanned: '2026-08-01', endPlanned: '2026-12-15', startActual: null, endActual: null, progress: 4 },
+      { projectId: 'P1', id: 'T13', phaseKey: 'testing', name: 'اختبار وتشغيل الأنظمة', startPlanned: '2026-10-01', endPlanned: '2026-12-20', startActual: null, endActual: null, progress: 0 },
+      { projectId: 'P1', id: 'T14', phaseKey: 'handover', name: 'تسليم المشروع', startPlanned: '2026-12-01', endPlanned: '2026-12-31', startActual: null, endActual: null, progress: 0 },
+      { projectId: 'P1', id: 'T15', phaseKey: 'dlp', name: 'فترة ضمان العيوب DLP', startPlanned: '2027-02-15', endPlanned: '2028-02-15', startActual: null, endActual: null, progress: 0 }
     ];
 
     // ============ منحنى التكلفة ============
@@ -187,13 +263,13 @@
 
     // ============ المستخدمون ============
     db.users = [
-      { id: 'U1', username: 'admin',      password: 'admin123',   name: 'مدير النظام',                    role: 'admin', email: 'admin@bassir.app' },
-      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner', projectIds: ['P1'], email: 'owner@bassir.app' },
-      { id: 'U3', username: 'rep',        password: 'rep123',     name: 'م. سالم الحربي (ممثل المالك)',   role: 'owner_rep', email: 'rep@bassir.app' },
-      { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant', email: 'consultant@bassir.app' },
-      { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1', email: 'cont-str@bassir.app' },
-      { id: 'U6', username: 'cont-arch',  password: 'cont123',    name: 'مؤسسة البناء المعماري',          role: 'contractor', contractorId: 'C2', email: 'cont-arch@bassir.app' },
-      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3', email: 'cont-elec@bassir.app' }
+      { id: 'U1', username: 'admin',      password: 'admin123',   name: 'مدير النظام',                    role: 'admin', email: 'admin@bassir.app', phone: '0500000001', notifyEmail: true, notifyWhatsapp: false },
+      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner', projectIds: ['P1'], email: 'owner@bassir.app', phone: '0500000002', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U3', username: 'rep',        password: 'rep123',     name: 'م. سالم الحربي (ممثل المالك)',   role: 'owner_rep', email: 'rep@bassir.app', phone: '0500000003', notifyEmail: true, notifyWhatsapp: false },
+      { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant', email: 'consultant@bassir.app', phone: '0500000004', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1', email: 'str@bassir.app', phone: '0500000005', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U6', username: 'cont-arch',  password: 'cont123',    name: 'مؤسسة البناء المعماري',          role: 'contractor', contractorId: 'C2', email: 'arch@bassir.app', phone: '0500000006', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3', email: 'elec@bassir.app', phone: '0500000007', notifyEmail: true, notifyWhatsapp: false }
     ];
 
     // ============ اعتمادات المخططات (Shop Drawings) ============
@@ -290,9 +366,9 @@
       { projectId: 'P1', id: 'AI4', date: '2026-07-12', source: 'photos', area: 'القبو - غرفة المضخات', detected: 70, reported: 70,
         note: 'تركيب مضخات الحريق يسير وفق الجدول. يُنصح بجدولة اختبار التشغيل خلال أسبوعين.', severity: 'ok' },
       { projectId: 'P1', id: 'AI5', date: '2026-07-10', source: 'camera', area: 'الموقع العام', detected: null, reported: null,
-        note: 'تنبيه سلامة: رصدت الكاميرا 2 عمالة دون أحزمة أمان على حافة الدور الثالث يوم 10 يوليو الساعة 10:42 صباحاً. تم إشعار مدير السلامة.', severity: 'alert' },
+        note: 'تنبيه سلامة: رصدت الكاميرا 2 عمالة دون أحزمة أمان على حافة الدور الثالث يوم 10 يوليو الساعة 10:42 صباحاً. تم إشعار مدير السلامة.', severity: 'alert', kind: 'safety', cameraId: 'CAM2', assignedTo: 'C1', incidentId: 'INC1' },
       { projectId: 'P1', id: 'AI6', date: '2026-07-08', source: 'analysis', area: 'مالي', detected: null, reported: null,
-        note: 'تنبيه مالي: مقاول الحريق (أنظمة الأمان) استلم 46% من قيمة العقد مقابل إنجاز فعلي 31%. يُنصح بمراجعة الدفعات القادمة وربطها بمستخلصات موثقة بصرياً.', severity: 'alert' }
+        note: 'تنبيه مالي: مقاول الحريق (أنظمة الأمان) استلم 46% من قيمة العقد مقابل إنجاز فعلي 31%. يُنصح بمراجعة الدفعات القادمة وربطها بمستخلصات موثقة بصرياً.', severity: 'alert', kind: 'financial', assignedTo: '' }
     ];
 
     // ============ صور الموقع (مع تحليل AI محاكى) ============
@@ -319,6 +395,170 @@
         date: '2026-07-05', status: 'answered', answer: 'اعتمدوا تفصيلة التقوية النمطية TD-12 مع أسياخ إضافية 4T16 على كل جانب.',
         signature: 'م. خالد العمران', signDate: '2026-07-07', discipline: 'structural' }
     ];
+
+    // طلبات العروض RFP (توجه للاستشاري أو المالك)
+    db.rfps = [
+      { id: 'RFP1', projectId: 'P1', contractorId: 'C2', ref: 'RFP-ARC-002', title: 'عرض بديل لنظام واجهات زجاجية موفرة للطاقة',
+        question: 'نرفق عرضاً فنياً ومالياً لنظام واجهات Low-E يخفض الحمل الحراري 22% بفارق سعري 4%. نرجو الدراسة.',
+        to: 'owner', date: '2026-07-10', status: 'open', answer: '' },
+      { id: 'RFP2', projectId: 'P1', contractorId: 'C7', ref: 'RFP-FUR-001', title: 'عرض توريد أثاث مكتبي بديل (مصنع محلي)',
+        question: 'عرض بديل بضمان 5 سنوات وتوفير 12% عن المواصفة الأصلية مع مطابقة كاملة.',
+        to: 'consultant', date: '2026-07-05', status: 'answered',
+        answer: 'قُبل مبدئياً — يقدم نموذج Mockup للاعتماد النهائي قبل التوريد.',
+        signature: 'م. خالد العمران', signDate: '2026-07-08' }
+    ];
+
+    // نماذج BIM المرفوعة (سحابي أو من الجهاز)
+    db.bimModels = [
+      { id: 'BM1', projectId: 'P1', name: 'BassirTower_Rev03.ifc', rev: 'Rev-03', discipline: 'federated',
+        source: 'cloud', url: 'https://acc.autodesk.com/models/bassir-tower-rev03', size: 486000000,
+        date: '2026-06-12', by: 'دار العمران للاستشارات', linkedBoq: true }
+    ];
+
+    // وثائق BIM (خطة تنفيذ BIM كمثال)
+    db.bimDocs = [
+      { id: 'BD1', projectId: 'P1', kind: 'bep', title: 'خطة تنفيذ الـBIM - برج بصير التجاري', rev: 'R2',
+        date: '2026-05-01', by: 'دار العمران للاستشارات', status: 'approved',
+        sections: {
+          'أهداف الـBIM': 'التنسيق بين التخصصات، اكتشاف التعارضات قبل التنفيذ، استخراج الكميات، وربط النموذج بالجدول الزمني (4D) والتكلفة (5D).',
+          'الأدوار والمسؤوليات': 'مدير BIM: دار العمران. منسق نماذج لكل مقاول. اجتماع تنسيق نماذج أسبوعي.',
+          'معايير النمذجة': 'LOD 350 للتنفيذ، تسمية الملفات وفق ISO 19650، وحدة المتر، نقطة أصل موحدة.',
+          'بيئة البيانات المشتركة CDE': 'نظام بصير هو الـCDE المعتمد: الرفع والاعتماد والأرشفة والتكويد.',
+          'جدول تسليم النماذج': 'معماري وإنشائي: محدث كل أسبوعين. MEP: أسبوعياً أثناء التنسيق.'
+        } },
+      { id: 'BD2', projectId: 'P1', kind: 'midp', title: 'خطة تسليم المعلومات الرئيسية MIDP - برج بصير', rev: 'R1',
+        date: '2026-06-20', by: 'دار العمران للاستشارات', status: 'pending',
+        sections: {
+          'قائمة التسليمات': 'نموذج معماري وإنشائي (IFC)، نماذج MEP منسقة، مخططات تنفيذية PDF، وجداول كميات مستخرجة.',
+          'مواعيد التسليم': 'نهاية كل مرحلة إنشائية + تسليم نهائي As-Built قبل الاستلام الابتدائي بـ30 يوماً.',
+          'مستويات المعلومات': 'LOD 350 أثناء التنفيذ، LOD 500 للتسليم النهائي مع بيانات الأصول.',
+          'المسؤوليات': 'يُعِد: منسقو النماذج. يراجع: مدير BIM. يعتمد: استشاري المشروع عبر نظام بصير.'
+        } }
+    ];
+
+    // خادم الملفات المركزي: وثائق المشروع التأسيسية بالفئات
+    db.files = [
+      { id: 'FL1', projectId: 'P1', name: 'Bassir-Main-Contract-2025.pdf', url: '', size: 4200000,
+        category: 'العقود', by: 'م. سعود الجاسر', date: '2025-08-20', versions: [] },
+      { id: 'FL2', projectId: 'P1', name: 'Bassir-BOQ-Master-Rev2.xlsx', url: '', size: 1850000,
+        category: 'جداول الكميات BOQ', by: 'دار العمران للاستشارات', date: '2026-01-15',
+        versions: [{ v: 1, name: 'Bassir-BOQ-Master-Rev1.xlsx', url: '', size: 1720000, by: 'دار العمران للاستشارات', date: '2025-09-10' }] },
+      { id: 'FL3', projectId: 'P1', name: 'Bassir-IFC-Structural-Set.dwg', url: '', size: 96000000,
+        category: 'مخططات IFC', by: 'دار العمران للاستشارات', date: '2026-02-02', versions: [] },
+      { id: 'FL4', projectId: 'P1', name: 'Bassir-Technical-Specifications.pdf', url: '', size: 12400000,
+        category: 'المواصفات', by: 'دار العمران للاستشارات', date: '2025-10-05', versions: [] },
+      { id: 'FL5', projectId: 'P1', name: 'Owner-Requirements-Brief.pdf', url: '', size: 2100000,
+        category: 'متطلبات المالك', by: 'م. سعود الجاسر', date: '2025-07-30', versions: [] }
+    ];
+
+    // ============ وحدة التسليم والإغلاق (Handover) ============
+    // قائمة التسليم التفاعلية: مستندات وتصاريح ومتطلبات — لكل بند حالة قابلة للتحديث
+    db.handoverItems = [
+      // المستندات والتسليمات
+      { id: 'HI1', projectId: 'P1', group: 'docs', title: 'شهادة التسليم الابتدائي', en: 'Preliminary Handover Certificate', status: 'in_progress', responsible: 'الاستشاري', file: null, notes: 'بانتظار إغلاق ملاحظات التسليم الحرجة', date: '2026-11-01' },
+      { id: 'HI2', projectId: 'P1', group: 'docs', title: 'شهادة التسليم النهائي', en: 'Final Handover Certificate', status: 'pending', responsible: 'الاستشاري', file: null, notes: '', date: '' },
+      { id: 'HI3', projectId: 'P1', group: 'docs', title: 'قائمة الملاحظات مع تتبع الإغلاق', en: 'Punch List with closure tracking', status: 'in_progress', responsible: 'الاستشاري', file: null, notes: 'انظر لوحة قائمة الملاحظات', date: '2026-10-20' },
+      { id: 'HI4', projectId: 'P1', group: 'docs', title: 'شهادات اختبار وتشغيل الأنظمة', en: 'Testing & Commissioning Certificates', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'أُنجزت أنظمة الحريق والكهرباء، بانتظار التكييف', date: '2026-10-15' },
+      { id: 'HI5', projectId: 'P1', group: 'docs', title: 'كتيبات التشغيل والصيانة (O&M)', en: 'Operation & Maintenance Manuals', status: 'pending', responsible: 'المقاول', file: null, notes: '', date: '' },
+      { id: 'HI6', projectId: 'P1', group: 'docs', title: 'مخططات كما نُفِّذ (As-Built)', en: 'As-Built Drawings', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'تسليم 60% من الحزم', date: '2026-10-10' },
+      { id: 'HI7', projectId: 'P1', group: 'docs', title: 'شهادات ضمان الموردين والمقاولين من الباطن', en: 'Supplier & Subcontractor Warranties', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'انظر سجل الضمانات', date: '2026-10-05' },
+      { id: 'HI8', projectId: 'P1', group: 'docs', title: 'تقرير الفحص النهائي للاستشاري', en: 'Consultant Final Inspection Report', status: 'pending', responsible: 'الاستشاري', file: null, notes: '', date: '' },
+      // المتطلبات النظامية والتشغيلية
+      { id: 'HI9', projectId: 'P1', group: 'regulatory', title: 'شهادة إتمام البناء (الأمانة/البلدية)', en: 'Municipality Building Completion Certificate', status: 'pending', responsible: 'الاستشاري', file: null, notes: 'مرتبطة بإغلاق ملاحظات الأمانة', date: '' },
+      { id: 'HI10', projectId: 'P1', group: 'regulatory', title: 'موافقة الدفاع المدني', en: 'Civil Defense Approval', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'تمت المعاينة الأولى، ملاحظتان مفتوحتان', date: '2026-10-18' },
+      { id: 'HI11', projectId: 'P1', group: 'regulatory', title: 'موافقة الشركة السعودية للكهرباء (SEC)', en: 'Saudi Electricity Company (SEC) Approval', status: 'in_progress', responsible: 'المقاول', file: null, notes: 'اعتماد المحطة قيد المراجعة', date: '2026-10-12' },
+      { id: 'HI12', projectId: 'P1', group: 'regulatory', title: 'شهادة الإشغال', en: 'Occupancy Certificate', status: 'pending', responsible: 'الاستشاري', file: null, notes: '', date: '' },
+      { id: 'HI13', projectId: 'P1', group: 'regulatory', title: 'سجل تسليم المفاتيح', en: 'Keys Handover Log', status: 'in_progress', responsible: 'المالك', file: null, notes: 'انظر سجل المفاتيح', date: '2026-11-05' }
+    ];
+
+    // قائمة الملاحظات (Punch List) — مرتبطة بالمقاول المسؤول مع تتبع الإغلاق
+    db.punchList = [
+      { id: 'PL1', projectId: 'P1', contractorId: 'C2', ref: 'PL-ARC-001', title: 'خدش بواجهة الجرانيت — البهو الرئيسي', location: 'GF', severity: 'minor', status: 'open', raisedDate: '2026-10-10', closedDate: null, notes: '' },
+      { id: 'PL2', projectId: 'P1', contractorId: 'C2', ref: 'PL-ARC-002', title: 'فرق منسوب بلاط الممر — الدور الثاني', location: 'F2', severity: 'major', status: 'open', raisedDate: '2026-10-12', closedDate: null, notes: 'يتطلب إعادة تنفيذ جزئية' },
+      { id: 'PL3', projectId: 'P1', contractorId: 'C4', ref: 'PL-HVC-001', title: 'تسريب هواء عند وصلة دكت — الميزانين', location: 'MEZ', severity: 'major', status: 'closed', raisedDate: '2026-09-28', closedDate: '2026-10-14', notes: 'أُعيد إحكام الوصلة وأُعيد الاختبار' },
+      { id: 'PL4', projectId: 'P1', contractorId: 'C3', ref: 'PL-ELE-001', title: 'لوحة إنارة طوارئ غير مبرمجة — الدور الأول', location: 'F1', severity: 'minor', status: 'open', raisedDate: '2026-10-15', closedDate: null, notes: '' },
+      { id: 'PL5', projectId: 'P1', contractorId: 'C1', ref: 'PL-STR-001', title: 'تعشيش خرساني ظاهر — سلم الطوارئ', location: 'B1', severity: 'minor', status: 'closed', raisedDate: '2026-09-20', closedDate: '2026-10-02', notes: 'مُعالج بمونة إصلاح معتمدة' }
+    ];
+
+    // سجل الضمانات مع تواريخ الانتهاء (تنبيهات قرب الانتهاء)
+    db.warranties = [
+      { id: 'WR1', projectId: 'P1', contractorId: 'C4', item: 'مصاعد شركة أوتيس (4 مصاعد)', supplier: 'أوتيس العربية', startDate: '2026-09-01', endDate: '2028-09-01', months: 24, docCode: '', file: null },
+      { id: 'WR2', projectId: 'P1', contractorId: 'C4', item: 'وحدات التكييف المركزي (شيلر)', supplier: 'كاريير', startDate: '2026-08-15', endDate: '2027-08-15', months: 12, docCode: '', file: null },
+      { id: 'WR3', projectId: 'P1', contractorId: 'C3', item: 'مولد الطوارئ 800 كيلو', supplier: 'كاتربيلر', startDate: '2026-07-01', endDate: '2027-01-01', months: 6, docCode: '', file: null },
+      { id: 'WR4', projectId: 'P1', contractorId: 'C2', item: 'العزل المائي للأسطح', supplier: 'سيكا', startDate: '2026-06-01', endDate: '2031-06-01', months: 60, docCode: '', file: null },
+      { id: 'WR5', projectId: 'P1', contractorId: 'C5', item: 'نظام إنذار وإطفاء الحريق', supplier: 'أنظمة الأمان المتحدة', startDate: '2026-08-20', endDate: '2027-08-20', months: 12, docCode: '', file: null }
+    ];
+
+    // سجل تسليم المفاتيح
+    db.keysLog = [
+      { id: 'KL1', projectId: 'P1', area: 'مدخل الطابق الأرضي الرئيسي', count: 4, handedTo: 'إدارة تشغيل المبنى', by: 'المقاول', date: '2026-11-05', signature: 'م. عبدالله الراشد' },
+      { id: 'KL2', projectId: 'P1', area: 'غرف الكهرباء والميكانيكا', count: 12, handedTo: 'فريق الصيانة', by: 'المقاول', date: '', signature: '' }
+    ];
+
+    // تقارير الحوادث/السلامة (قابلة للأرشفة والطباعة) — مرتبطة بتنبيهات الكاميرات
+    db.incidents = [
+      { id: 'INC1', projectId: 'P1', ref: 'INC-2026-014', title: 'عمالة دون أحزمة أمان على حافة الدور الثالث', kind: 'violation', severity: 'high',
+        source: 'camera', cameraId: 'CAM2', location: 'الدور الثالث - الحافة الشمالية', date: '2026-07-10', time: '10:42',
+        assignedTo: 'C1', status: 'open', action: 'إيقاف العمل بالمنطقة وإشعار مدير السلامة، وإعادة تدريب على العمل بالمرتفعات', by: 'نظام بصير' }
+    ];
+
+    // التدفق النقدي المرتبط بنسب الإنجاز (مليون ريال): وارد من المالك ومنصرف للمقاولين
+    db.cashFlow = [
+      { projectId: 'P1', month: '2025-05', inflow: 3.0, outflow: 2.1, progress: 8 },
+      { projectId: 'P1', month: '2025-08', inflow: 6.5, outflow: 6.2, progress: 18 },
+      { projectId: 'P1', month: '2025-11', inflow: 13.0, outflow: 12.8, progress: 30 },
+      { projectId: 'P1', month: '2026-02', inflow: 20.0, outflow: 19.6, progress: 42 },
+      { projectId: 'P1', month: '2026-05', inflow: 25.5, outflow: 26.3, progress: 50 },
+      { projectId: 'P1', month: '2026-07', inflow: 28.0, outflow: 29.8, progress: 54.5 },
+      { projectId: 'P1', month: '2026-10', inflow: 37.0, outflow: 38.0, progress: 70 },
+      { projectId: 'P1', month: '2026-12', inflow: 50.0, outflow: 52.0, progress: 92 }
+    ];
+
+    // سجل مؤشر صحة المشروع الشهري (لقطات مسجّلة — يُلحق بها المؤشر الحالي في الواجهة)
+    db.healthHistory = [
+      { projectId: 'P1', month: '2026-01', score: 82 },
+      { projectId: 'P1', month: '2026-02', score: 80 },
+      { projectId: 'P1', month: '2026-03', score: 78 },
+      { projectId: 'P1', month: '2026-04', score: 74 },
+      { projectId: 'P1', month: '2026-05', score: 71 },
+      { projectId: 'P1', month: '2026-06', score: 69 },
+      { projectId: 'P1', month: '2026-07', score: 67 },
+      // فيلا الياسمين: اتجاه صاعد (أداء جيد)
+      { projectId: 'P2', month: '2026-03', score: 76 },
+      { projectId: 'P2', month: '2026-04', score: 79 },
+      { projectId: 'P2', month: '2026-05', score: 82 },
+      { projectId: 'P2', month: '2026-06', score: 84 },
+      { projectId: 'P2', month: '2026-07', score: 86 }
+    ];
+
+    // ============ بيانات المشروع الثاني (فيلا الياسمين) ============
+    db.scheduleCurve.push(
+      { projectId: 'P2', month: '2025-09', planned: 3, actual: 3 }, { projectId: 'P2', month: '2025-12', planned: 14, actual: 15 },
+      { projectId: 'P2', month: '2026-03', planned: 26, actual: 28 }, { projectId: 'P2', month: '2026-05', planned: 34, actual: 36 },
+      { projectId: 'P2', month: '2026-07', planned: 39, actual: 41 }, { projectId: 'P2', month: '2026-09', planned: 58, actual: null },
+      { projectId: 'P2', month: '2026-11', planned: 100, actual: null }
+    );
+    db.costCurve.push(
+      { projectId: 'P2', month: '2025-12', planned: 1.2, actual: 1.1 }, { projectId: 'P2', month: '2026-03', planned: 2.2, actual: 2.1 },
+      { projectId: 'P2', month: '2026-07', planned: 3.45, actual: 3.35 }, { projectId: 'P2', month: '2026-11', planned: 8.5, actual: null }
+    );
+    db.cashFlow.push(
+      { projectId: 'P2', month: '2025-12', inflow: 1.3, outflow: 1.1, progress: 15 },
+      { projectId: 'P2', month: '2026-03', inflow: 2.3, outflow: 2.1, progress: 28 },
+      { projectId: 'P2', month: '2026-07', inflow: 3.6, outflow: 3.35, progress: 41 }
+    );
+    db.scheduleTasks.push(
+      { projectId: 'P2', id: 'P2T1', phaseKey: 'design_approvals', name: 'التصميم واعتمادات الاستشاري', startPlanned: '2025-05-01', endPlanned: '2025-08-15', startActual: '2025-05-05', endActual: '2025-08-20', progress: 100 },
+      { projectId: 'P2', id: 'P2T2', phaseKey: 'mobilization', name: 'التجهيز وتأسيس الموقع', startPlanned: '2025-08-15', endPlanned: '2025-09-15', startActual: '2025-09-01', endActual: '2025-09-18', progress: 100 },
+      { projectId: 'P2', id: 'P2T3', phaseKey: 'excavation', name: 'الحفر والأساسات', startPlanned: '2025-09-01', endPlanned: '2025-11-30', startActual: '2025-09-10', endActual: '2025-12-05', progress: 100 },
+      { projectId: 'P2', id: 'P2T4', phaseKey: 'concrete', name: 'الهيكل الخرساني', startPlanned: '2025-11-01', endPlanned: '2026-04-30', startActual: '2025-11-15', endActual: null, progress: 78 },
+      { projectId: 'P2', id: 'P2T5', phaseKey: 'blockwork', name: 'المباني واللياسة', startPlanned: '2026-03-01', endPlanned: '2026-07-31', startActual: '2026-03-20', endActual: null, progress: 40 },
+      { projectId: 'P2', id: 'P2T6', phaseKey: 'mep', name: 'الأعمال الكهروميكانيكية MEP', startPlanned: '2026-04-01', endPlanned: '2026-09-30', startActual: '2026-04-15', endActual: null, progress: 22 },
+      { projectId: 'P2', id: 'P2T7', phaseKey: 'fitout', name: 'التشطيبات الداخلية', startPlanned: '2026-06-01', endPlanned: '2026-10-31', startActual: null, endActual: null, progress: 5 },
+      { projectId: 'P2', id: 'P2T8', phaseKey: 'landscaping', name: 'التنسيق والتشجير', startPlanned: '2026-09-01', endPlanned: '2026-11-15', startActual: null, endActual: null, progress: 0 },
+      { projectId: 'P2', id: 'P2T9', phaseKey: 'handover', name: 'تسليم المشروع', startPlanned: '2026-11-01', endPlanned: '2026-11-30', startActual: null, endActual: null, progress: 0 },
+      { projectId: 'P2', id: 'P2T10', phaseKey: 'dlp', name: 'فترة ضمان العيوب DLP', startPlanned: '2026-12-15', endPlanned: '2027-12-15', startActual: null, endActual: null, progress: 0 }
+    );
 
     // تقارير عدم المطابقة NCR
     db.ncrs = [
@@ -435,9 +675,9 @@
 
     // ============ كاميرات الموقع ============
     db.cameras = [
-      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', streamPath: 'cam1', status: 'online', installed: '2025-06-01' },
-      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', streamPath: 'cam2', status: 'online', installed: '2025-11-15' },
-      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', streamPath: 'cam3', status: 'online', installed: '2026-03-01' },
+      { id: 'CAM1', name: 'كاميرا 1 - الواجهة الشمالية', location: 'برج الرافعة الشرقي', url: 'rtsp://site.bassir.local/cam1', streamPath: 'cam1', status: 'online', installed: '2025-06-01', bimFloor: 'GF', bimDiscipline: 'architectural' },
+      { id: 'CAM2', name: 'كاميرا 2 - الدور الثالث', location: 'العمود C-4', url: 'rtsp://site.bassir.local/cam2', streamPath: 'cam2', status: 'online', installed: '2025-11-15', bimFloor: 'F3', bimDiscipline: 'architectural' },
+      { id: 'CAM3', name: 'كاميرا 3 - السطح', location: 'غرفة المصعد العلوية', url: 'rtsp://site.bassir.local/cam3', streamPath: 'cam3', status: 'online', installed: '2026-03-01', bimFloor: 'RF', bimDiscipline: 'structural' },
       { id: 'CAM4', name: 'كاميرا 4 - بوابة الموقع', location: 'المدخل الرئيسي', url: 'rtsp://site.bassir.local/cam4', streamPath: 'cam4', status: 'offline', installed: '2025-06-01' }
     ];
 
@@ -478,7 +718,11 @@
       { id: 'AL2', time: '2026-07-17 14:02', userName: 'مؤسسة البناء المعماري', role: 'contractor', action: 'create', target: 'رفع طلب استلام WIR-ARC-087' },
       { id: 'AL3', time: '2026-07-17 09:30', userName: 'م. سالم الحربي (ممثل المالك)', role: 'owner_rep', action: 'login', target: 'دخول إلى النظام' }
     ];
-    db.files = [];
+
+    // إشارات جودة/تسليم خفيفة للمشروع الثاني (تجعل صحته واقعية)
+    db.ncrs.push({ id: 'NCR-P2-1', projectId: 'P2', contractorId: 'C11', ref: 'NCR-VIL-002', title: 'فرق لون في دهان الواجهة الأمامية',
+      description: 'تباين ظاهر في درجة اللون بين دفعتي الدهان بالواجهة الجنوبية.', date: '2026-07-06', status: 'open', severity: 'minor', correctiveAction: '' });
+    db.punchList.push({ id: 'PL-P2-1', projectId: 'P2', contractorId: 'C10', ref: 'PL-VIL-001', title: 'تعشيش بسيط بسلم القبو', location: 'B1', severity: 'minor', status: 'open', raisedDate: '2026-07-02', closedDate: null, notes: '' });
 
     // ============ تكويد كل المستندات (حتمي حسب تاريخ كل مستند) ============
     const DOC_TYPES = {
@@ -487,8 +731,24 @@
       valueEngineering: 'VE', handoverDocs: 'HOD', rfis: 'RFI', ncrs: 'NCR',
       siteInstructions: 'SI', snags: 'SNG', hseReports: 'HSE', materialTests: 'TST',
       meetings: 'MOM', correspondence: 'COR', dailyReports: 'DDR', weeklyReports: 'WKR',
-      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT'
+      monthlyReports: 'MOR', planDrawings: 'DRW', photos: 'PHT', rfps: 'RFP', bimModels: 'BIM', bimDocs: 'BDC',
+      files: 'FIL', punchList: 'PNL', warranties: 'WTY', incidents: 'INC', handoverItems: 'HND'
     };
+    // سجل تتبع أولي لكل معاملة موجودة (تقديم ثم قرار إن وجد)
+    ['shopDrawings', 'materials', 'scheduleSubmittals', 'wirs', 'changeOrders', 'payments',
+     'methodStatements', 'claims', 'valueEngineering', 'handoverDocs', 'rfis', 'rfps'].forEach(function (col) {
+      (db[col] || []).forEach(function (it) {
+        const cName = (db.contractors.find(function (c) { return c.id === it.contractorId; }) || {}).name || 'المقاول';
+        it.history = [{ status: 'pending', by: cName, role: 'contractor', date: it.date }];
+        if (it.status && it.status !== 'pending' && it.status !== 'open') {
+          it.reviewStartDate = it.date;
+          it.reviewEndDate = it.signDate || it.date;
+          it.reviewDays = Math.max(0, Math.round((new Date(it.reviewEndDate) - new Date(it.date)) / 86400000));
+          it.history.push({ status: it.status, by: it.signature || 'الاستشاري', role: 'consultant', date: it.reviewEndDate, notes: it.notes || '' });
+        }
+      });
+    });
+
     const docSeq = {};
     Object.keys(DOC_TYPES).forEach(function (col) {
       (db[col] || []).forEach(function (it) {
@@ -501,8 +761,7 @@
 
     db.notifications = [];
     db.comments = [];
-    db.regulatoryApprovals = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 10, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 16, docSeq: docSeq };
 
     return db;
   }

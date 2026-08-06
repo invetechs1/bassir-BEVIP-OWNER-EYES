@@ -35,6 +35,9 @@ docker load -i "${TAR_FILE}"
 echo "==> [4/7] تجهيز مجلدات البيانات الدائمة..."
 mkdir -p "${DATA_DIR}"
 mkdir -p "${UPLOADS_HOST_DIR}/documents" "${UPLOADS_HOST_DIR}/images"
+# الحاوية تعمل الآن بمستخدم غير جذر (node, uid 1000) — امنح الكتابة لمجلدات المضيف المُركَّبة
+# (data/ و UPLOADS_HOST_DIR) وإلا فشلت SQLite ورفع الملفات بخطأ صلاحيات EACCES.
+chmod -R a+rwX "${DATA_DIR}" "${UPLOADS_HOST_DIR}" 2>/dev/null || true
 
 # اختيار منفذ متاح تلقائياً — لا نفترض 3000 لأن الخادم يشغّل مشاريع أخرى قد تحجزه.
 # يبدأ من آخر منفذ استُخدم هنا سابقاً (.port) وإلا من 3000، ثم يجرّب 3001, 3002... حتى يجد منفذاً فارغاً.
