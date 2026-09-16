@@ -315,6 +315,16 @@
     return parseDelimited(grid.map(function (r) { return r.map(function (c) { return (c == null ? '' : c); }).join('\t'); }).join('\n'));
   }
 
+  // يقرأ نص ملف بترميز موثوق: UTF-8 أولاً بصرامة (fatal)، وإن فشل (شائع جداً مع ملفات CSV عربية
+  // محفوظة من إكسل بترميز صفحة الرموز المحلي Windows-1256 بدل UTF-8 على ويندوز عربي) يُعاد الترميز
+  // بـ Windows-1256 بدل ظهور رموز غير مفهومة (███/?) مكان النص العربي وضياع كل الأرقام معه
+  // (لأن فشل اكتشاف عناوين الأعمدة العربية يُسقط الكمية والسعر لصفر تلقائياً).
+  async function decodeFileText(file) {
+    const buf = await file.arrayBuffer();
+    try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+    catch (e) { return new TextDecoder('windows-1256').decode(buf); }
+  }
+
   // قارئ جداول عام (CSV/TSV/XLSX) يعيد صفوفاً خامة (مصفوفة مصفوفات) — لجداول الكميات وغيرها
   function csvRows(text) {
     const rows = []; let row = [], field = '', q = false;
@@ -333,7 +343,7 @@
   async function parseRows(file) {
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     if (ext === 'xlsx' || ext === 'xlsm') return xlsxGrid(await file.arrayBuffer());
-    return csvRows(await file.text());
+    return csvRows(await decodeFileText(file));
   }
 
   async function parsePdf(url) {
@@ -357,7 +367,7 @@
     const ext = (file.name.split('.').pop() || '').toLowerCase();
     if (ext === 'xlsx' || ext === 'xlsm') { return parseXlsx(await file.arrayBuffer()); }
     if (ext === 'pdf') { return parsePdf(URL.createObjectURL(file)); }
-    const text = await file.text();
+    const text = await decodeFileText(file);
     if (ext === 'xer') return parseXer(text);
     if (ext === 'xml') return parseP6Xml(text);
     if (text.trim()[0] === '<') return parseP6Xml(text);

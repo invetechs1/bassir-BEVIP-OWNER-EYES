@@ -495,6 +495,9 @@ const server = http.createServer(async function (req, res) {
     if (u === '/api/actions/add-contractor' && req.method === 'POST') {
       return json(res, 201, core.addContractor(user, await readBody(req)));
     }
+    if (u === '/api/actions/delete-contractor' && req.method === 'POST') {
+      return json(res, 200, core.deleteContractor(user, (await readBody(req)).id));
+    }
     if (u === '/api/actions/add-project' && req.method === 'POST') {
       return json(res, 201, core.addProject(user, await readBody(req)));
     }

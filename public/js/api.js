@@ -58,6 +58,7 @@
     if (path === '/api/actions/profile') return c.updateProfile(demoUser, body);
     if (path === '/api/actions/record-health') return c.recordHealthSnapshot(demoUser, body);
     if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
+    if (path === '/api/actions/delete-contractor') return c.deleteContractor(demoUser, body.id);
     if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
     if (path === '/api/actions/send-report') return c.sendReport(demoUser, body);
     const e = new Error('مسار غير معروف'); e.status = 404; throw e;
@@ -105,6 +106,7 @@
     remove(collection, id) { return call('/api/collections/' + collection + '/' + id, 'DELETE'); },
     review(opts) { return call('/api/actions/review', 'POST', opts); },
     addContractor(p) { return call('/api/actions/add-contractor', 'POST', p); },
+    deleteContractor(id) { return call('/api/actions/delete-contractor', 'POST', { id: id }); },
     addProject(p) { return call('/api/actions/add-project', 'POST', p); },
     sendReport(p) { return call('/api/actions/send-report', 'POST', p); },
     /** رفع ملف فعلي — opts: { category, versionOf } — في الديمو محاكاة بالاسم */

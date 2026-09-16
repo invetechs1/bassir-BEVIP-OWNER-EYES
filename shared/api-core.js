@@ -256,9 +256,16 @@
         s.bimDocs = [];
         s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
-        // المقاول يرى مشروعه فقط
+        // المقاول يرى مشروعه فقط — يشمل ذلك كل بيانات المشروع العامة (صور، تقارير، مخططات،
+        // نماذج BIM وربطها، رؤى الذكاء الاصطناعي، منحنيات الجدول والتكلفة) لا بيانات أي مشروع آخر إطلاقاً
         const myC = db.contractors.find(function (x) { return x.id === cid; });
-        if (myC && myC.projectId) s.projects = db.projects.filter(function (p) { return p.id === myC.projectId; });
+        const myPid = myC && myC.projectId;
+        if (myPid) {
+          s.projects = db.projects.filter(function (p) { return p.id === myPid; });
+          ['photos', 'dailyReports', 'weeklyReports', 'monthlyReports', 'planDrawings', 'bimModels',
+            'drawingMappings', 'bimMappings', 'aiInsights', 'scheduleCurve', 'scheduleTasks', 'costCurve', 'healthHistory']
+            .forEach(function (c) { s[c] = (s[c] || []).filter(function (x) { return x.projectId === myPid; }); });
+        }
         s.messages = [];
         s.users = [];
         // التسليم: المقاول يرى ما يخصه فقط (ملاحظاته وضماناته وحوادثه)
@@ -420,7 +427,9 @@
         const myContractor = db.contractors.find(function (c) { return c.id === user.contractorId; });
         item.projectId = (myContractor && myContractor.projectId) || item.projectId || 'P1';
         if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
-      } else {
+      } else if (collection !== 'users') {
+        // حساب المستخدم (users) ليس كياناً مقيَّداً بمشروع واحد بطبيعته — نطاقه الفعلي يُحدَّد عبر
+        // projectIds (مالك/استشاري) أو contractorId (مقاول)، فلا معنى لِوَسم كل حساب جديد بمشروع افتراضي P1
         item.projectId = item.projectId || 'P1';
       }
       if (REF_PREFIX[collection]) item.ref = nextRef(collection); // يتجاهل أي ref مُرسَل من العميل عمداً
@@ -715,6 +724,27 @@
       return { contractor: c, account: account };
     }
 
+    /**
+     * حذف مقاول نهائياً (صلاحية الأدمن فقط — كبقية عمليات الحذف في النظام).
+     * يحذف معه: حساب دخوله، بنود جدول كمياته، وأي ربط مناطق مخططات/عناصر BIM ببنود كمياته
+     * (لتفادي بيانات يتيمة تُسبب أخطاء عرض). طلبات الاعتماد والمستخلصات السابقة تبقى كسجل تاريخي
+     * ولا تُحذف — يظهر اسم المقاول فيها كمعرّف فقط بعد الحذف.
+     */
+    function deleteContractor(user, id) {
+      if (user.role !== 'admin') throw err('حذف المقاولين متاح للأدمن فقط', 403);
+      const c = db.contractors.find(function (x) { return x.id === id; });
+      if (!c) throw err('المقاول غير موجود', 404);
+      const boqIds = db.boqItems.filter(function (b) { return b.contractorId === id; }).map(function (b) { return b.id; });
+      db.boqItems = db.boqItems.filter(function (b) { return b.contractorId !== id; });
+      db.drawingMappings = (db.drawingMappings || []).filter(function (m) { return boqIds.indexOf(m.boqItemId) === -1; });
+      db.bimMappings = (db.bimMappings || []).filter(function (m) { return boqIds.indexOf(m.boqItemId) === -1; });
+      db.users = db.users.filter(function (u) { return u.contractorId !== id; });
+      db.contractors = db.contractors.filter(function (x) { return x.id !== id; });
+      audit(user, 'delete', labelOf('contractors', c));
+      persist();
+      return { ok: true };
+    }
+
     /** إضافة مشروع وتعيين استشاري بحسابه (صلاحية ممثل المالك) */
     function addProject(user, payload) {
       if (['owner_rep', 'admin'].indexOf(user.role) === -1) throw err('إضافة المشاريع صلاحية ممثل المالك', 403);
@@ -920,6 +950,7 @@
       computeProjectHealth: computeProjectHealth,
       recordHealthSnapshot: recordHealthSnapshot,
       addContractor: addContractor,
+      deleteContractor: deleteContractor,
       addProject: addProject,
       sendReport: sendReport,
       contractorSummary: contractorSummary,

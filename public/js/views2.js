@@ -281,6 +281,17 @@
     'دخول': 'Login',
     'إضافة': 'Create',
     'تعديل': 'Update',
+    'إجراءات': 'Actions',
+    'تعديل بيانات المقاول': "Edit Contractor's Details",
+    'حفظ التعديلات': 'Save Changes',
+    'تم حفظ التعديلات': 'Changes saved',
+    'تم حذف المقاول': 'Contractor deleted',
+    'سيُحذف المقاول نهائياً مع بنود جدول كمياته وحساب دخوله — هل أنت متأكد؟':
+      "This will permanently delete the contractor along with their BOQ items and login account — are you sure?",
+    'كل المشاريع': 'All Projects',
+    'المشروع (يرى بياناته فقط)': 'Project (sees only its data)',
+    'لا يوجد مقاولون في هذا المشروع — أضف مقاولاً أولاً من صفحة المقاولين': 'No contractors in this project yet — add one first from the Contractors page',
+    'اختر المقاول المطلوب ربط الحساب به': 'Select the contractor to link this account to',
     'قرار اعتماد': 'Approval decision',
     'إرسال تقرير': 'Send report',
     'رفع ملف': 'Upload file',
@@ -803,7 +814,7 @@
     el.innerHTML =
       '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
       '<div class="card"><h3>👷 ' + I18n.t('مقاولو المشروع') + '</h3><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      '<th>' + I18n.t('المقاول') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('قيمة العقد') + '</th><th>' + I18n.t('المدة') + '</th><th>' + I18n.t('الإنجاز') + '</th><th>' + I18n.t('حساب الدخول') + '</th></tr></thead><tbody>' +
+      '<th>' + I18n.t('المقاول') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('قيمة العقد') + '</th><th>' + I18n.t('المدة') + '</th><th>' + I18n.t('الإنجاز') + '</th><th>' + I18n.t('حساب الدخول') + '</th><th>' + I18n.t('إجراءات') + '</th></tr></thead><tbody>' +
       sums.map(function (s) {
         const d = discOf(ctx, s.type);
         const acc = (ctx.S.users || []).find(function (u) { return u.contractorId === s.id; });
@@ -812,10 +823,16 @@
           '<td>' + money(s.contractValue) + '</td>' +
           '<td class="small muted num">' + esc(s.startDate) + '<br>' + esc(s.endDate) + '</td>' +
           '<td><b class="num">' + s.progress + '%</b></td>' +
-          '<td class="small">' + (acc ? '👤 <b class="num">' + esc(acc.username) + '</b>' : '<span class="muted">' + I18n.t('بلا حساب') + '</span>') + '</td></tr>';
+          '<td class="small">' + (acc ? '👤 <b class="num">' + esc(acc.username) + '</b>' : '<span class="muted">' + I18n.t('بلا حساب') + '</span>') + '</td>' +
+          '<td class="flex" style="gap:4px;flex-wrap:nowrap">' +
+          '<button class="btn ghost sm" data-edit-c="' + esc(s.id) + '">✏️ ' + I18n.t('تعديل') + '</button>' +
+          (ctx.U.role === 'admin' ? '<button class="btn danger sm" data-del-c="' + esc(s.id) + '">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
+          '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مقاول جديد') + '</h3>' +
+      '<label class="fl">' + I18n.t('المشروع') + '</label><select class="inp" id="nc-project">' +
+      (ctx.Sall.projects || ctx.S.projects).map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === ctx.projectId ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>' +
       '<label class="fl">' + I18n.t('اسم المقاول') + '</label><input class="inp" id="nc-name" placeholder="' + I18n.t('شركة ...') + '">' +
       '<label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="nc-type">' +
       ctx.S.projects[0].disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select>' +
@@ -823,125 +840,22 @@
       '<div><label class="fl">' + I18n.t('الجوال') + '</label><input class="inp num" id="nc-phone" placeholder="05xxxxxxxx"></div></div>' +
       '<div class="grid g2"><div><label class="fl">' + I18n.t('تاريخ البدء') + '</label><input class="inp" id="nc-start" type="date"></div>' +
       '<div><label class="fl">' + I18n.t('تاريخ الانتهاء') + '</label><input class="inp" id="nc-end" type="date"></div></div>' +
-      '<label class="fl">' + I18n.t('بنود جدول الكميات') + '</label><div id="nc-boq"></div>' +
-      '<div class="flex" style="gap:8px;flex-wrap:wrap">' +
-      '<button class="btn ghost sm" id="nc-addrow">' + I18n.t('+ إضافة بند') + '</button>' +
-      '<button class="btn ghost sm" id="nc-csv-import">📤 ' + I18n.t('استيراد من CSV') + '</button>' +
-      '<button class="btn ghost sm" id="nc-csv-template">⬇ ' + I18n.t('تنزيل نموذج CSV') + '</button>' +
-      '<input type="file" id="nc-csv-file" accept=".csv,text/csv" style="display:none"></div>' +
       '<label class="fl">' + I18n.t('اسم مستخدم للمقاول (لإنشاء حساب دخول)') + '</label><input class="inp" id="nc-user" placeholder="cont-name">' +
       '<label class="fl">' + I18n.t('البريد الإلكتروني (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="nc-email" type="email" placeholder="name@example.com" dir="ltr">' +
       '<label class="fl">' + I18n.t('كلمة المرور (اتركها فارغة للتوليد التلقائي)') + '</label><input class="inp" id="nc-pass" placeholder="••••••••">' +
       '<div class="m-actions"><button class="btn block" id="nc-save">' + I18n.t('حفظ المقاول وإنشاء الحساب') + '</button></div>' +
       '</div></div>';
 
-    const boqWrap = el.querySelector('#nc-boq');
-    function addRow() {
-      const r = document.createElement('div');
-      r.className = 'grid'; r.style.cssText = 'grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px';
-      r.innerHTML = '<input class="inp" placeholder="' + I18n.t('وصف البند') + '" data-f="description">' +
-        '<input class="inp" placeholder="' + I18n.t('الوحدة') + '" data-f="unit">' +
-        '<input class="inp num" type="number" placeholder="' + I18n.t('كمية') + '" data-f="qty">' +
-        '<input class="inp num" type="number" placeholder="' + I18n.t('سعر') + '" data-f="unitPrice">' +
-        '<select class="inp" data-f="floor">' + ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>';
-      boqWrap.appendChild(r);
-    }
-    addRow();
-    el.querySelector('#nc-addrow').addEventListener('click', addRow);
-
-    // ============ استيراد بنود الكميات من CSV ============
-    // بلا أي مكتبة خارجية (لتفادي ثغرات معروفة غير مُصلَحة في مكتبات قراءة Excel/xlsx على npm حالياً) —
-    // يدعم CSV مباشرة (يُصدَّر بسهولة من Excel عبر "حفظ باسم CSV")، بمطابقة عناوين أعمدة عربية/إنجليزية مرنة.
-    function parseCsv(text) {
-      const rows = [];
-      let row = [], field = '', inQuotes = false;
-      for (let i = 0; i < text.length; i++) {
-        const c = text[i], next = text[i + 1];
-        if (inQuotes) {
-          if (c === '"' && next === '"') { field += '"'; i++; }
-          else if (c === '"') { inQuotes = false; }
-          else field += c;
-        } else if (c === '"') { inQuotes = true; }
-        else if (c === ',') { row.push(field); field = ''; }
-        else if (c === '\r') { /* تجاهل */ }
-        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-        else field += c;
-      }
-      if (field.length || row.length) { row.push(field); rows.push(row); }
-      return rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
-    }
-    const COL_ALIASES = {
-      description: ['description', 'item', 'وصف', 'الوصف', 'وصف البند'],
-      unit: ['unit', 'وحدة', 'الوحدة'],
-      qty: ['qty', 'quantity', 'كمية', 'الكمية'],
-      unitPrice: ['unitprice', 'price', 'سعر', 'سعرالوحدة', 'سعر الوحدة'],
-      floor: ['floor', 'دور', 'الدور']
-    };
-    function norm(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ''); }
-    function matchColumn(header) {
-      const h = norm(header);
-      let found = null;
-      Object.keys(COL_ALIASES).forEach(function (key) {
-        if (COL_ALIASES[key].some(function (a) { return norm(a) === h; })) found = key;
-      });
-      return found;
-    }
-    function importCsvRows(rows) {
-      if (!rows.length) { toast(I18n.t('الملف فارغ'), true); return; }
-      const header = rows[0].map(matchColumn);
-      if (header.indexOf('description') === -1) { toast(I18n.t('لم يُعثر على عمود "الوصف" في الملف — راجع نموذج CSV'), true); return; }
-      const floorIds = ctx.S.projects[0].floors.map(function (f) { return f.id; });
-      let added = 0;
-      rows.slice(1).forEach(function (r) {
-        const rec = {};
-        header.forEach(function (key, i) { if (key) rec[key] = (r[i] || '').trim(); });
-        if (!rec.description) return;
-        addRow();
-        const last = boqWrap.lastElementChild;
-        if (rec.description) last.querySelector('[data-f="description"]').value = rec.description;
-        if (rec.unit) last.querySelector('[data-f="unit"]').value = rec.unit;
-        if (rec.qty) last.querySelector('[data-f="qty"]').value = rec.qty;
-        if (rec.unitPrice) last.querySelector('[data-f="unitPrice"]').value = rec.unitPrice;
-        if (rec.floor && floorIds.indexOf(rec.floor) !== -1) last.querySelector('[data-f="floor"]').value = rec.floor;
-        added++;
-      });
-      toast('✅ ' + I18n.t('استُوردت') + ' ' + added + ' ' + I18n.t('بند'));
-    }
-    el.querySelector('#nc-csv-import').addEventListener('click', function () { el.querySelector('#nc-csv-file').click(); });
-    el.querySelector('#nc-csv-file').addEventListener('change', async function (ev) {
-      const file = ev.target.files[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        importCsvRows(parseCsv(text));
-      } catch (e) { toast(I18n.t('تعذّرت قراءة الملف'), true); }
-      ev.target.value = '';
-    });
-    el.querySelector('#nc-csv-template').addEventListener('click', function () {
-      const csv = 'description,unit,qty,unitPrice,floor\n' +
-        (I18n.t('مثال: أعمال خرسانة الأساسات') + ',م3,120,450,' + (ctx.S.projects[0].floors[0] ? ctx.S.projects[0].floors[0].id : 'GF')) + '\n';
-      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'boq-template.csv'; document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    });
-
     el.querySelector('#nc-save').addEventListener('click', async function () {
       const name = el.querySelector('#nc-name').value.trim();
       if (!name) { toast(I18n.t('أدخل اسم المقاول'), true); return; }
-      const boqItems = Array.prototype.map.call(boqWrap.children, function (r) {
-        const o = {};
-        r.querySelectorAll('[data-f]').forEach(function (i) { o[i.getAttribute('data-f')] = i.value; });
-        return o;
-      }).filter(function (o) { return o.description; });
       try {
         const res = await Api.addContractor({
           name: name, type: el.querySelector('#nc-type').value,
-          projectId: ctx.projectId, // اربط المقاول بالمشروع الحالي (وإلا يذهب افتراضياً لأول مشروع فيختفي)
+          projectId: el.querySelector('#nc-project').value,
           contractValue: el.querySelector('#nc-value').value,
           phone: el.querySelector('#nc-phone').value,
           startDate: el.querySelector('#nc-start').value, endDate: el.querySelector('#nc-end').value,
-          boqItems: boqItems,
           username: el.querySelector('#nc-user').value.trim() || null,
           email: el.querySelector('#nc-email').value.trim() || null,
           password: el.querySelector('#nc-pass').value || null
@@ -952,6 +866,55 @@
             '<div class="mt">' + I18n.t('🔑 كلمة المرور: ') + '<b class="num">' + esc(res.account.password) + '</b></div></div>' +
             '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم') + '</button></div>');
         } else toast(I18n.t('✅ تمت إضافة المقاول'));
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+
+    el.querySelectorAll('[data-edit-c]').forEach(function (b) {
+      b.addEventListener('click', function () { openEditContractor(ctx, b.getAttribute('data-edit-c')); });
+    });
+    el.querySelectorAll('[data-del-c]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        const id = b.getAttribute('data-del-c');
+        const c = ctx.S.contractors.find(function (x) { return x.id === id; });
+        if (!confirm(I18n.t('سيُحذف المقاول نهائياً مع بنود جدول كمياته وحساب دخوله — هل أنت متأكد؟') + (c ? ' (' + c.name + ')' : ''))) return;
+        try {
+          await Api.deleteContractor(id);
+          toast('✅ ' + I18n.t('تم حذف المقاول'));
+          ctx.refresh();
+        } catch (e) { toast(e.message, true); }
+      });
+    });
+  }
+
+  /** تعديل بيانات مقاول قائم */
+  function openEditContractor(ctx, id) {
+    const c = ctx.S.contractors.find(function (x) { return x.id === id; });
+    if (!c) return;
+    const m = modal(
+      '<h3>✏️ ' + I18n.t('تعديل بيانات المقاول') + '</h3>' +
+      '<label class="fl">' + I18n.t('اسم المقاول') + '</label><input class="inp" id="ec-name" value="' + esc(c.name) + '">' +
+      '<label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="ec-type">' +
+      ctx.S.projects[0].disciplines.map(function (d) { return '<option value="' + d.id + '"' + (d.id === c.type ? ' selected' : '') + '>' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select>' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('قيمة العقد (ر.س)') + '</label><input class="inp num" id="ec-value" type="number" value="' + (Number(c.contractValue) || 0) + '"></div>' +
+      '<div><label class="fl">' + I18n.t('الجوال') + '</label><input class="inp num" id="ec-phone" value="' + esc(c.phone || '') + '"></div></div>' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('تاريخ البدء') + '</label><input class="inp" id="ec-start" type="date" value="' + esc(c.startDate || '') + '"></div>' +
+      '<div><label class="fl">' + I18n.t('تاريخ الانتهاء') + '</label><input class="inp" id="ec-end" type="date" value="' + esc(c.endDate || '') + '"></div></div>' +
+      '<div class="m-actions"><button class="btn" id="ec-save">' + I18n.t('حفظ التعديلات') + '</button><button class="btn mutedb" id="ec-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#ec-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#ec-save').addEventListener('click', async function () {
+      const name = m.querySelector('#ec-name').value.trim();
+      if (!name) { toast(I18n.t('أدخل اسم المقاول'), true); return; }
+      try {
+        await Api.update('contractors', id, {
+          name: name, type: m.querySelector('#ec-type').value,
+          contractValue: Number(m.querySelector('#ec-value').value) || 0,
+          phone: m.querySelector('#ec-phone').value,
+          startDate: m.querySelector('#ec-start').value, endDate: m.querySelector('#ec-end').value
+        });
+        m.remove();
+        toast('✅ ' + I18n.t('تم حفظ التعديلات'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
@@ -1364,14 +1327,38 @@
     function drawScope() {
       const r = roleSel.value;
       descBox.textContent = I18n.t(ROLE_META[r].desc);
+      const allProjects = (ctx.Sall || ctx.S).projects;
       if (r === 'contractor') {
-        scopeBox.innerHTML = '<label class="fl">' + I18n.t('ربط بالمقاول') + '</label><select class="inp" id="nu-cont">' +
-          ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
-      } else if (r === 'owner' || r === 'consultant') {
-        scopeBox.innerHTML = '<label class="fl">' + I18n.t(r === 'owner' ? 'مشروع المالك (يرى صفحة مشروعه فقط)' : 'المشاريع المسندة (اتركها كلها فارغة = جميع المشاريع)') + '</label>' +
-          (ctx.Sall || ctx.S).projects.map(function (p) {
+        // اختيار المشروع هنا فلتر فقط لقائمة «ربط بالمقاول» أدناه — مشروع الحساب الفعلي محدَّد
+        // مسبقاً على سجل المقاول نفسه (من صفحة المقاولين)، ولا يُعاد تحديده من هنا
+        scopeBox.innerHTML =
+          (allProjects.length > 1 ? '<label class="fl">' + I18n.t('المشروع') + '</label><select class="inp" id="nu-project">' +
+            allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === ctx.projectId ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>' : '') +
+          '<label class="fl">' + I18n.t('ربط بالمقاول') + '</label><select class="inp" id="nu-cont"></select>' +
+          '<div class="small muted mt" id="nu-cont-empty" hidden>' + I18n.t('لا يوجد مقاولون في هذا المشروع — أضف مقاولاً أولاً من صفحة المقاولين') + '</div>';
+        const projSel = scopeBox.querySelector('#nu-project');
+        const contSel = scopeBox.querySelector('#nu-cont');
+        const emptyMsg = scopeBox.querySelector('#nu-cont-empty');
+        function fillContractors() {
+          const pid = projSel ? projSel.value : (allProjects[0] && allProjects[0].id);
+          const list = ((ctx.Sall || ctx.S).contractors || []).filter(function (c) { return c.projectId === pid; });
+          contSel.innerHTML = list.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>'; }).join('');
+          contSel.hidden = !list.length;
+          emptyMsg.hidden = !!list.length;
+        }
+        fillContractors();
+        if (projSel) projSel.addEventListener('change', fillContractors);
+      } else if (r === 'consultant') {
+        // مشروع واحد يقيّد الاستشاري بمشروعه فقط — أو «كل المشاريع» ليبقى بلا تقييد (الافتراضي الحالي)
+        scopeBox.innerHTML =
+          '<label class="fl">' + I18n.t('المشروع (يرى بياناته فقط)') + '</label><select class="inp" id="nu-project">' +
+          '<option value="">🗂️ ' + I18n.t('كل المشاريع') + '</option>' +
+          allProjects.map(function (p) { return '<option value="' + esc(p.id) + '">🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+      } else if (r === 'owner') {
+        scopeBox.innerHTML = '<label class="fl">' + I18n.t('مشروع المالك (يرى صفحة مشروعه فقط)') + '</label>' +
+          allProjects.map(function (p) {
             return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="nu-proj" value="' + p.id + '"' +
-              (r === 'owner' && (ctx.Sall || ctx.S).projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+              (allProjects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
           }).join('');
       } else {
         scopeBox.innerHTML = '';
@@ -1394,9 +1381,16 @@
         notifyEmail: true, notifyWhatsapp: !!el.querySelector('#nu-phone').value.trim()
       };
       const contSel = el.querySelector('#nu-cont');
-      if (contSel) data.contractorId = contSel.value;
+      if (role === 'contractor') {
+        if (!contSel || !contSel.value) { toast(I18n.t('اختر المقاول المطلوب ربط الحساب به'), true); return; }
+        data.contractorId = contSel.value;
+      }
       const projChecks = el.querySelectorAll('.nu-proj:checked');
       if (projChecks.length) data.projectIds = Array.prototype.map.call(projChecks, function (c) { return c.value; });
+      if (role === 'consultant') {
+        const projSel = el.querySelector('#nu-project');
+        if (projSel && projSel.value) data.projectIds = [projSel.value];
+      }
       if (role === 'owner' && !data.projectIds) { toast(I18n.t('حدد مشروع المالك — المالك يرى صفحة مشروعه'), true); return; }
       try {
         const created = await Api.create('users', data);
