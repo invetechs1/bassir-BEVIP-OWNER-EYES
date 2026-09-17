@@ -711,8 +711,12 @@
     /** إضافة مشروع وتعيين استشاري بحسابه (صلاحية ممثل المالك) */
     function addProject(user, payload) {
       if (['owner_rep', 'admin'].indexOf(user.role) === -1) throw err('إضافة المشاريع صلاحية ممثل المالك', 403);
+      const lat = payload.lat != null ? Number(payload.lat) : null;
+      const lng = payload.lng != null ? Number(payload.lng) : null;
       const p = {
         id: nextId('P'), name: payload.name, location: payload.location || '',
+        lat: (lat != null && !isNaN(lat)) ? lat : null,
+        lng: (lng != null && !isNaN(lng)) ? lng : null,
         description: payload.description || '', ownerName: payload.ownerName || '',
         consultantName: payload.consultantName || '',
         startPlanned: payload.startPlanned, endPlanned: payload.endPlanned,

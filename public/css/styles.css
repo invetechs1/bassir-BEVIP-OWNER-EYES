@@ -440,3 +440,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .mt { margin-top: 16px; } .mb { margin-bottom: 16px; }
 .flex { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .num { font-variant-numeric: tabular-nums; }
+
+/* ============ خريطة مواقع المشاريع (المملكة) ============ */
+#ksa-map-card .map-legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 4px 0 12px; }
+#ksa-map-card .map-legend .ml { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); }
+#ksa-map-card .map-legend .ml i { width: 13px; height: 13px; border-radius: 50%; display: inline-block; box-shadow: 0 0 0 2px rgba(255,255,255,.15); }
+#ksa-map-card .map-legend .ml b { color: var(--text); }
+.ksa-map-wrap { width: 100%; max-width: 760px; margin: 0 auto; }
+.ksa-map { width: 100%; height: auto; display: block; overflow: visible; }
+.ksa-land { fill: var(--panel2); stroke: var(--brand); stroke-width: 1.6; stroke-linejoin: round; opacity: .95; }
+.map-pt { cursor: pointer; outline: none; }
+.map-pt .map-dot { transition: r .15s ease, filter .15s ease; }
+.map-pt:hover .map-dot, .map-pt:focus-visible .map-dot { r: 11; filter: drop-shadow(0 0 6px rgba(0,0,0,.5)); }
+.map-pt:focus-visible .map-hit { stroke: var(--brand); stroke-width: 2; }
+.map-lbl { fill: var(--text); font-size: 15px; font-weight: 700; paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round; pointer-events: none; }
+.map-pulse { transform-box: fill-box; transform-origin: center; animation: mapPulse 1.6s ease-out infinite; pointer-events: none; }
+@keyframes mapPulse { 0% { transform: scale(1); opacity: .55; } 70% { transform: scale(3.2); opacity: 0; } 100% { transform: scale(3.2); opacity: 0; } }
+@media (max-width: 620px) { .map-lbl { font-size: 20px; } }
+@media (prefers-reduced-motion: reduce) { .map-pulse { animation: none; opacity: 0; } }

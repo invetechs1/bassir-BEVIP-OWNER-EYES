@@ -226,6 +226,12 @@
     'اسم المشروع': 'Project Name',
     'برج / فيلا / مجمع...': 'Tower / Villa / Complex...',
     'الموقع': 'Location',
+    'إحداثيات موقع المشروع (لعرضه على الخريطة) — إلزامي': 'Project location coordinates (to show on the map) — required',
+    'اختر مدينة لتعبئة الإحداثيات تلقائياً': 'Pick a city to auto-fill the coordinates',
+    'خط العرض (Latitude)': 'Latitude',
+    'خط الطول (Longitude)': 'Longitude',
+    'انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر المدينة أعلاه.': 'Copy coordinates from Google Maps (long-press the spot) or pick a city above.',
+    'أدخل إحداثيات صحيحة داخل المملكة (خط العرض 16–33، خط الطول 34–56) — أو اختر مدينة': 'Enter valid coordinates inside Saudi Arabia (lat 16–33, lng 34–56) — or pick a city',
     'المدينة - الحي': 'City - District',
     'الميزانية التقديرية (ر.س)': 'Estimated Budget (SAR)',
     'المكتب الاستشاري': 'Consulting Office',
@@ -1147,6 +1153,15 @@
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مشروع وتعيين استشاري') + '</h3>' +
       '<label class="fl">' + I18n.t('اسم المشروع') + '</label><input class="inp" id="np-name" placeholder="' + I18n.t('برج / فيلا / مجمع...') + '">' +
       '<label class="fl">' + I18n.t('الموقع') + '</label><input class="inp" id="np-loc" placeholder="' + I18n.t('المدينة - الحي') + '">' +
+      '<label class="fl">📍 ' + I18n.t('إحداثيات موقع المشروع (لعرضه على الخريطة) — إلزامي') + '</label>' +
+      '<select class="inp" id="np-city"><option value="">— ' + I18n.t('اختر مدينة لتعبئة الإحداثيات تلقائياً') + ' —</option>' +
+      Object.keys((window.ViewsShared && window.ViewsShared.CITY_COORDS) || {}).map(function (c) {
+        var ll = window.ViewsShared.CITY_COORDS[c];
+        return '<option value="' + ll[0] + ',' + ll[1] + '">' + esc(c) + '</option>';
+      }).join('') + '</select>' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('خط العرض (Latitude)') + '</label><input class="inp num" id="np-lat" type="number" step="0.0001" min="16" max="33" placeholder="24.7136" dir="ltr"></div>' +
+      '<div><label class="fl">' + I18n.t('خط الطول (Longitude)') + '</label><input class="inp num" id="np-lng" type="number" step="0.0001" min="34" max="56" placeholder="46.6753" dir="ltr"></div></div>' +
+      '<div class="small muted" style="margin:-4px 0 10px">' + I18n.t('انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر المدينة أعلاه.') + '</div>' +
       '<div class="grid g2"><div><label class="fl">' + I18n.t('تاريخ البدء') + '</label><input class="inp" id="np-start" type="date"></div>' +
       '<div><label class="fl">' + I18n.t('تاريخ الانتهاء') + '</label><input class="inp" id="np-end" type="date"></div></div>' +
       '<label class="fl">' + I18n.t('الميزانية التقديرية (ر.س)') + '</label><input class="inp num" id="np-budget" type="number" placeholder="10000000">' +
@@ -1156,12 +1171,28 @@
       '<label class="fl">' + I18n.t('البريد الإلكتروني للاستشاري (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="np-email" type="email" placeholder="name@example.com" dir="ltr">' +
       '<div class="m-actions"><button class="btn block" id="np-save">' + I18n.t('إنشاء المشروع وحساب الاستشاري') + '</button></div></div></div>';
 
+    // اختيار مدينة يملأ حقلي الإحداثيات تلقائياً
+    var cityPick = el.querySelector('#np-city');
+    if (cityPick) cityPick.addEventListener('change', function () {
+      if (!this.value) return;
+      var parts = this.value.split(',');
+      el.querySelector('#np-lat').value = parts[0];
+      el.querySelector('#np-lng').value = parts[1];
+    });
+
     el.querySelector('#np-save').addEventListener('click', async function () {
       const name = el.querySelector('#np-name').value.trim();
       if (!name) { toast(I18n.t('أدخل اسم المشروع'), true); return; }
+      const lat = parseFloat(el.querySelector('#np-lat').value);
+      const lng = parseFloat(el.querySelector('#np-lng').value);
+      if (isNaN(lat) || isNaN(lng) || lat < 16 || lat > 33 || lng < 34 || lng > 56) {
+        toast(I18n.t('أدخل إحداثيات صحيحة داخل المملكة (خط العرض 16–33، خط الطول 34–56) — أو اختر مدينة'), true);
+        return;
+      }
       try {
         const res = await Api.addProject({
           name: name, location: el.querySelector('#np-loc').value,
+          lat: lat, lng: lng,
           startPlanned: el.querySelector('#np-start').value, endPlanned: el.querySelector('#np-end').value,
           budgetPlanned: el.querySelector('#np-budget').value,
           consultantName: el.querySelector('#np-cons').value,

@@ -93,6 +93,7 @@
       id: 'P1',
       name: 'برج بصير التجاري',
       location: 'الرياض - حي الملقا',
+      lat: 24.80, lng: 46.62,
       description: 'برج تجاري إداري مكوّن من قبو وأرضي وميزانين وأربعة أدوار متكررة وسطح، بمساحة بناء إجمالية 12,400 م².',
       ownerName: 'م. عبدالله الراشد',
       consultantName: 'دار العمران للاستشارات الهندسية',
@@ -108,6 +109,7 @@
       id: 'P2',
       name: 'فيلا الياسمين السكنية',
       location: 'جدة - حي الشاطئ',
+      lat: 21.60, lng: 39.11,
       description: 'فيلا سكنية فاخرة من دورين وملحق وقبو، بمساحة بناء 1,150 م² مع مسبح وحديقة.',
       ownerName: 'م. عبدالله الراشد',
       consultantName: 'دار العمران للاستشارات الهندسية',
@@ -264,7 +266,7 @@
     // ============ المستخدمون ============
     db.users = [
       { id: 'U1', username: 'admin',      password: 'admin123',   name: 'مدير النظام',                    role: 'admin', email: 'admin@bassir.app', phone: '0500000001', notifyEmail: true, notifyWhatsapp: false },
-      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner', projectIds: ['P1'], email: 'owner@bassir.app', phone: '0500000002', notifyEmail: true, notifyWhatsapp: true },
+      { id: 'U2', username: 'owner',      password: 'owner123',   name: 'م. عبدالله الراشد',              role: 'owner', projectIds: ['P1', 'P2'], email: 'owner@bassir.app', phone: '0500000002', notifyEmail: true, notifyWhatsapp: true },
       { id: 'U3', username: 'rep',        password: 'rep123',     name: 'م. سالم الحربي (ممثل المالك)',   role: 'owner_rep', email: 'rep@bassir.app', phone: '0500000003', notifyEmail: true, notifyWhatsapp: false },
       { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant', email: 'consultant@bassir.app', phone: '0500000004', notifyEmail: true, notifyWhatsapp: true },
       { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1', email: 'str@bassir.app', phone: '0500000005', notifyEmail: true, notifyWhatsapp: true },
@@ -768,7 +770,7 @@
 
     db.notifications = [];
     db.comments = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 19, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 20, docSeq: docSeq };
 
     return db;
   }
