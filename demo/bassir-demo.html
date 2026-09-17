@@ -5582,6 +5582,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     thresholds: thresholdsOf, DEFAULT_THRESHOLDS: DEFAULT_THRESHOLDS,
     summarize: summarize, STATUS: STATUS, esc: esc, att: att,
     CITY_COORDS: CITY_COORDS, projectLatLng: projectLatLng, mapStatus: mapStatus,
+    projectsMapHtml: projectsMapHtml, wireProjectsMap: wireProjectsMap,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras
@@ -9374,6 +9375,24 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '<div class="small muted mt">تُطبَّق فوراً على تتبع التقديمات (SLA)، وتنبيهات الضمانات، ومقارنة المقاولين، وتنبيه هبوط/تحسّن صحة المشروع.</div></div>';
       })() : '') +
 
+      (canEdit ? (function () {
+        const cityOpts = Object.keys((VS.CITY_COORDS) || {}).map(function (c) {
+          var ll = VS.CITY_COORDS[c];
+          return '<option value="' + ll[0] + ',' + ll[1] + '">' + esc(c) + '</option>';
+        }).join('');
+        const hasCoords = (P.lat != null && P.lng != null);
+        return '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+          '<h3 style="margin:0">📍 إحداثيات موقع المشروع <span class="hint">لعرض المشروع على خريطة المملكة في لوحة القيادة والمحفظة</span></h3>' +
+          '<button class="btn sm" id="loc-save">💾 حفظ الإحداثيات</button></div>' +
+          (hasCoords ? '' : '<div class="small" style="color:var(--warn);margin-top:8px">⚠️ لا توجد إحداثيات لهذا المشروع — لن يظهر على الخريطة حتى تُضاف.</div>') +
+          '<div class="grid g4" style="margin-top:12px">' +
+          '<div><label class="fl">اختر مدينة (تعبئة تلقائية)</label><select class="inp" id="loc-city"><option value="">— اختر —</option>' + cityOpts + '</select></div>' +
+          '<div><label class="fl">خط العرض (Latitude)</label><input class="inp num" id="loc-lat" type="number" step="0.0001" min="16" max="33" value="' + (P.lat != null ? P.lat : '') + '" placeholder="24.7136" dir="ltr"></div>' +
+          '<div><label class="fl">خط الطول (Longitude)</label><input class="inp num" id="loc-lng" type="number" step="0.0001" min="34" max="56" value="' + (P.lng != null ? P.lng : '') + '" placeholder="46.6753" dir="ltr"></div>' +
+          '<div><label class="fl">&nbsp;</label><div class="small muted">انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر مدينة.</div></div>' +
+          '</div></div>';
+      })() : '') +
+
       '<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>المرحلة</th><th>مخطط</th><th>فعلي</th><th>الإنجاز</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       tasks.map(function (t, i) {
         return '<tr><td class="num small">' + (i + 1) + '</td>' +
@@ -9399,6 +9418,27 @@ textarea.inp { resize: vertical; min-height: 80px; }
           }
         });
         toast('✅ حُفظت عتبات التنبيه — طُبّقت على مؤشرات هذا المشروع'); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+
+    // إحداثيات الموقع: منتقي مدينة يملأ الحقول + حفظ على المشروع
+    const locCity = el.querySelector('#loc-city');
+    if (locCity) locCity.addEventListener('change', function () {
+      if (!this.value) return;
+      const parts = this.value.split(',');
+      el.querySelector('#loc-lat').value = parts[0];
+      el.querySelector('#loc-lng').value = parts[1];
+    });
+    const locSave = el.querySelector('#loc-save');
+    if (locSave) locSave.addEventListener('click', async function () {
+      const lat = parseFloat(el.querySelector('#loc-lat').value);
+      const lng = parseFloat(el.querySelector('#loc-lng').value);
+      if (isNaN(lat) || isNaN(lng) || lat < 16 || lat > 33 || lng < 34 || lng > 56) {
+        toast('أدخل إحداثيات صحيحة داخل المملكة (خط العرض 16–33، خط الطول 34–56) — أو اختر مدينة', true); return;
+      }
+      try {
+        await Api.update('projects', P.id, { lat: lat, lng: lng });
+        toast('✅ حُفظت إحداثيات الموقع — سيظهر المشروع على الخريطة'); ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
 
@@ -9526,7 +9566,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '<td>' + (active ? '<span class="pill p-ok">الحالي</span>' : '<button class="btn sm" data-openp="' + p.id + '">فتح ←</button>') + '</td>' +
           '</tr>';
       }).join('') + '</tbody></table></div>' +
-      '<div class="flex mt"><button class="btn ghost sm" id="pf-print">🖨 تصدير تقرير المحفظة PDF</button></div></div>';
+      '<div class="flex mt"><button class="btn ghost sm" id="pf-print">🖨 تصدير تقرير المحفظة PDF</button></div></div>' +
+
+      // خريطة مواقع كل المشاريع في المحفظة
+      (VS.projectsMapHtml ? VS.projectsMapHtml(ctx) : '');
 
     el.querySelectorAll('[data-openp]').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -9534,6 +9577,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         ctx.nav('dashboard');
       });
     });
+    if (VS.wireProjectsMap) VS.wireProjectsMap(el, ctx);
     el.querySelector('#pf-print').addEventListener('click', function () {
       printDoc('تقرير محفظة المشاريع', portfolioHtml(rows, { avg: avg, atRisk: atRisk, totalBudget: totalBudget, wProg: wProg }));
     });

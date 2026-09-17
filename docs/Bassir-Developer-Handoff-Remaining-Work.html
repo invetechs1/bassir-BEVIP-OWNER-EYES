@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 18mm 15mm; }
+  * { box-sizing: border-box; }
+  body { font: 13px/1.6 -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1c2430; margin: 0; }
+  h1 { font-size: 26px; margin: 0 0 4px; color: #0f2a4a; }
+  h2 { font-size: 18px; margin: 26px 0 8px; color: #0f2a4a; border-bottom: 2px solid #e0a458; padding-bottom: 5px; }
+  h3 { font-size: 14px; margin: 16px 0 6px; color: #123a6b; }
+  p { margin: 6px 0; }
+  code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; font-family: "SF Mono", Consolas, monospace; font-size: 12px; color: #b03a2e; }
+  .muted { color: #64748b; }
+  .cover { text-align: center; padding: 60px 20px 30px; }
+  .cover .eye { font-size: 56px; }
+  .cover h1 { font-size: 32px; margin-top: 10px; }
+  .cover .sub { font-size: 16px; color: #475569; margin-top: 6px; }
+  .cover .meta { margin-top: 26px; font-size: 12px; color: #64748b; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; color: #fff; }
+  .p0 { background: #e5484d; } .p1 { background: #f5a524; color:#3a2a00; } .p2 { background: #4c8df6; } .ok { background: #30a46c; }
+  table { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 12px; }
+  th, td { border: 1px solid #d5dde7; padding: 7px 9px; text-align: left; vertical-align: top; }
+  th { background: #f1f5fb; color: #0f2a4a; font-weight: 700; }
+  td.item { font-weight: 700; color: #123a6b; width: 24%; }
+  ul { margin: 6px 0; padding-left: 20px; } li { margin: 3px 0; }
+  .box { background: #f7faff; border: 1px solid #d5e2f2; border-radius: 8px; padding: 12px 14px; margin: 10px 0; }
+  .legend span { display:inline-block; margin-right: 16px; font-size:12px; }
+  .dot { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .pagebreak { page-break-before: always; }
+  .foot { margin-top: 30px; padding-top: 10px; border-top: 1px solid #d5dde7; font-size: 11px; color: #94a3b8; text-align:center; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="eye">👁</div>
+  <h1>Bassir — Owner Eyes</h1>
+  <div class="sub">Developer Handoff — Remaining Work &amp; Go-Live Guide</div>
+  <div class="meta">
+    Repository: <code>invetechs1/BEVIP-OWNER-EYES</code> · Branch: <code>claude/bassir-owner-eyes-system-aogee5</code><br>
+    Prepared for the development team · September 2026
+  </div>
+</div>
+
+<h2>1. Purpose of this document</h2>
+<p>The application is <b>feature-complete and deployable</b>. This document tells your developer <b>what is left to do to take it live and beyond the demo</b> — mostly provisioning, configuration, connecting real external services, and a few enhancements. It complements the two existing technical docs in the repo: <code>docs/DEVELOPER-HANDOFF.md</code> and <code>docs/WHAT-WAS-ADDED-EN.md</code>, and the deployment guides <code>DEPLOY.md</code> / <code>DEPLOYMENT.md</code>.</p>
+
+<div class="box">
+<b>Priority key</b><br>
+<span class="pill p0">P0</span> Go-live essentials (do before launch) &nbsp;·&nbsp;
+<span class="pill p1">P1</span> Real integrations &amp; hardware &nbsp;·&nbsp;
+<span class="pill p2">P2</span> Enhancements &amp; polish
+</div>
+
+<h2>2. What is already built &amp; working</h2>
+<p>So the developer knows the baseline (no work needed here — verified, tests green):</p>
+<ul>
+  <li><b>Full 5-role system</b> (owner, owner rep, consultant, contractor, admin) with per-role pages and data scoping.</li>
+  <li><b>Real backend:</b> Node HTTP server (no framework), <b>SQLite</b> persistence (transactional, WAL) via <code>node:sqlite</code> — JSON fallback available. File uploads persisted to disk.</li>
+  <li><b>Authentication</b> with signed tokens (<code>JWT_SECRET</code>), role-based authorization.</li>
+  <li><b>Real service integrations</b>, each enabled by an env var and otherwise running in clearly-labelled simulation mode: Email (Resend/SendGrid), WhatsApp (Meta Cloud API), AI image analysis (Anthropic), camera snapshot ingress, RTSP live streaming (MediaMTX).</li>
+  <li><b>PDF reports</b> generated server-side (pdfkit + Arabic reshaping).</li>
+  <li><b>In-browser viewers, fully offline:</b> 3D BIM/IFC, vector DXF, and PDF drawings — no external/paid services.</li>
+  <li><b>Contractor BOQ &amp; Schedule</b> pages with file parsing (CSV/Excel/Primavera XER/P6 XML/PDF), baseline lock, and dual-approval revisions.</li>
+  <li><b>Progress Map</b> that brightens dark → bright as work is completed and approved.</li>
+  <li><b>Saudi Arabia project map</b> (newest feature — see §6).</li>
+  <li><b>Automated regression tests</b> (Playwright) — smoke, full crawl (0 JS errors, all roles), brightness, end-to-end cycle, BIM render.</li>
+</ul>
+
+<div class="pagebreak"></div>
+<h2>3. <span class="pill p0">P0</span> Go-live essentials (configuration, not code)</h2>
+<table>
+<tr><th>Item</th><th>What you need to do</th><th>Where</th></tr>
+<tr><td class="item">Server, domain &amp; HTTPS</td><td>Provision a host, point a domain, and put the app behind a reverse proxy with TLS. Docker is the recommended path.</td><td><code>DEPLOY.md</code> §3–§4, <code>Dockerfile</code>, <code>docker-compose.yml</code></td></tr>
+<tr><td class="item">Production secret</td><td>Set a long random <code>JWT_SECRET</code>. If unset it is auto-generated to <code>data/.jwt-secret</code> (fine for one host, but set it explicitly for production/redeploys).</td><td><code>.env</code> (see <code>.env.example</code>)</td></tr>
+<tr><td class="item">Real vs demo data</td><td><b>Important:</b> <code>npm run seed --reset</code> loads <b>demo</b> data. For production, start clean and create real projects/users through the UI. Change every default password.</td><td><code>server/seed.js</code>, Users page</td></tr>
+<tr><td class="item">Set <code>APP_URL</code></td><td>The public URL used inside automatic email/WhatsApp notification links.</td><td><code>.env</code></td></tr>
+<tr><td class="item">Backups</td><td>Schedule backups of <code>data/bassir.db</code> (SQLite) and the uploads folder.</td><td><code>DEPLOY.md</code> §6</td></tr>
+<tr><td class="item">Pre-flight &amp; tests</td><td>Run <code>npm run preflight</code> and <code>npm test</code> before launch; both should pass.</td><td><code>tools/preflight.js</code>, <code>tests/</code></td></tr>
+</table>
+
+<h2>4. <span class="pill p1">P1</span> Real integrations &amp; hardware</h2>
+<p class="muted">Each of these works in simulation until you provide credentials/hardware. Enable the ones the client wants live.</p>
+<table>
+<tr><th>Item</th><th>What you need to do</th><th>Where</th></tr>
+<tr><td class="item">Email notifications</td><td>Add <code>RESEND_API_KEY</code> (or <code>SENDGRID_API_KEY</code>) + <code>EMAIL_FROM</code> to send real report emails and review-cycle notifications.</td><td><code>server/integrations.js</code>, <code>.env</code></td></tr>
+<tr><td class="item">WhatsApp</td><td>Add <code>WHATSAPP_TOKEN</code> + <code>WHATSAPP_PHONE_ID</code> (Meta WhatsApp Cloud API) for real WhatsApp delivery.</td><td><code>.env</code></td></tr>
+<tr><td class="item">Live cameras</td><td>Deploy <b>MediaMTX</b> and set <code>MEDIA_SERVER_URL</code> for RTSP→HLS/WebRTC live view; set <code>CAMERA_KEY</code> and point the NVR/cameras to POST snapshots. Camera URLs in seed data are placeholders.</td><td><code>DEPLOY.md</code> §5, <code>.env</code></td></tr>
+<tr><td class="item">AI visual monitoring</td><td>Add <code>ANTHROPIC_API_KEY</code> to enable real site-photo analysis. For fully automatic per-element progress % detection, scope a dedicated CV pipeline with stakeholders — insights beyond keyed analysis are simulated seed data today.</td><td><code>.env</code>, <code>server/integrations.js</code></td></tr>
+<tr><td class="item">BIM/IFC per project</td><td>Replace the sample tower IFC with each project's real IFC and connect model elements to BOQ items so the Progress Map reflects real geometry. Current element↔BOQ linkage is demo-mapped.</td><td><code>public/vendor/bim/</code>, <code>public/js/bim-viewer.js</code></td></tr>
+<tr><td class="item">Schedule/BOQ parsing at scale</td><td>Validate the parsers against your real Primavera/Excel exports; consider moving very large-file parsing server-side.</td><td><code>public/js/views5.js</code></td></tr>
+<tr><td class="item">Coordinates backfill</td><td>New projects now <b>require</b> lat/lng. Add coordinates to any pre-existing/imported project via <b>Project Settings → "إحداثيات موقع المشروع"</b> or it will not appear on the map (see §6).</td><td>Project Settings page</td></tr>
+</table>
+
+<div class="pagebreak"></div>
+<h2>5. <span class="pill p2">P2</span> Enhancements &amp; polish</h2>
+<table>
+<tr><th>Item</th><th>What you need to do</th></tr>
+<tr><td class="item">Finish English i18n</td><td>Some UI strings still fall back to Arabic when English is selected. Fill missing translation keys in the <code>I18n.registerDict</code> blocks.</td></tr>
+<tr><td class="item">CI/CD</td><td>Add GitHub Actions to run <code>npm run preflight</code> + <code>npm test</code> on every PR.</td></tr>
+<tr><td class="item">Server integration tests</td><td>Current Playwright tests run in browser demo mode. Add tests that hit the real API + SQLite.</td></tr>
+<tr><td class="item">Native mobile app</td><td>A design handoff exists in <code>docs/mobile-design-handoff/</code>; the native app itself is not built.</td></tr>
+<tr><td class="item">Security hardening</td><td>Rate limiting, secure/HTTP-only cookies, CSP headers, audit-log retention/rotation, and routine dependency updates.</td></tr>
+</table>
+
+<h2>6. Newest feature — Saudi Arabia project map</h2>
+<p>Added to the <b>owner dashboard</b> (bottom) and the <b>owner-rep portfolio</b> page:</p>
+<ul>
+  <li>A real, <b>offline</b> map of the Kingdom (projected boundary baked into the code — no external map tiles).</li>
+  <li>One dot per project with traffic-light status:
+    <span class="legend" style="display:block;margin-top:4px">
+      <span><span class="dot" style="background:#30a46c"></span><b>Green</b> — on time &amp; on budget</span>
+      <span><span class="dot" style="background:#f5a524"></span><b>Yellow</b> — needs action (before red)</span>
+      <span><span class="dot" style="background:#e5484d"></span><b>Red</b> — behind schedule or over budget</span>
+    </span>
+  </li>
+  <li><b>Click a dot → opens that project</b> (switches the active project and its dashboard). Hover shows name, status, progress %, days behind, and budget overrun.</li>
+  <li><b>Coordinates are required when the owner rep adds a project</b> (validated to be inside the Kingdom), with a 29-city quick-picker that auto-fills lat/lng. Existing projects can be given coordinates in <b>Project Settings</b>.</li>
+</ul>
+<p class="muted">Code: map rendering + status logic in <code>public/js/views.js</code> (<code>projectsMapHtml</code>, <code>mapStatus</code>, baked <code>KSA_PATH</code>); add-project form in <code>public/js/views2.js</code>; edit/backfill in <code>public/js/views4.js</code>; <code>lat</code>/<code>lng</code> persisted in <code>shared/api-core.js</code>.</p>
+
+<h2>7. How to run &amp; test</h2>
+<div class="box">
+<b>Run locally</b><br>
+<code>npm install</code> → <code>npm start</code> → open <code>http://localhost:3000</code><br>
+<b>Docker (recommended for the server)</b> — see <code>DEPLOY.md</code> §3a.<br><br>
+<b>Tests</b><br>
+<code>npm run preflight</code> — static checks<br>
+<code>npm test</code> — smoke + full crawl + brightness + cycle + BIM<br>
+Individual: <code>npm run test:crawl</code>, <code>test:brightness</code>, <code>test:cycle</code>, <code>test:bim</code>
+</div>
+
+<h2>8. Appendix — key files &amp; demo accounts</h2>
+<h3>Where things live</h3>
+<ul>
+  <li><code>public/js/app.js</code> — routing, navigation, page registry, project switcher.</li>
+  <li><code>public/js/views.js … views5.js</code> — page renderers (dashboard, portfolio, BOQ, schedule, etc.).</li>
+  <li><code>shared/api-core.js</code> — business logic engine (runs in both server and browser demo).</li>
+  <li><code>shared/seed-data.js</code> — seed/demo data + schema version.</li>
+  <li><code>server/</code> — <code>server.js</code>, <code>storage.js</code> (SQLite), <code>integrations.js</code>, <code>pdf.js</code>, <code>reports.js</code>, <code>seed.js</code>.</li>
+  <li><code>DEPLOY.md</code> / <code>DEPLOYMENT.md</code> — deployment; <code>.env.example</code> — all config keys.</li>
+</ul>
+<h3>Demo accounts (change for production)</h3>
+<table>
+<tr><th>Role</th><th>Username</th><th>Password</th></tr>
+<tr><td>Owner</td><td><code>owner</code></td><td><code>owner123</code></td></tr>
+<tr><td>Owner rep</td><td><code>rep</code></td><td><code>rep123</code></td></tr>
+<tr><td>Consultant</td><td><code>consultant</code></td><td><code>consult123</code></td></tr>
+<tr><td>Contractor</td><td><code>cont-arch</code></td><td><code>cont123</code></td></tr>
+<tr><td>Admin</td><td><code>admin</code></td><td><code>admin123</code></td></tr>
+</table>
+
+<div class="foot">Bassir — Owner Eyes · Developer Handoff · generated from branch claude/bassir-owner-eyes-system-aogee5</div>
+
+</body>
+</html>
