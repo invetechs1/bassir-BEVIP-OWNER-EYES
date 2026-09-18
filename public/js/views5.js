@@ -24,7 +24,12 @@
     'لم يبدأ': 'Not started',
     'المتوقع حسب الجدول': 'Expected by schedule',
     'رفع ملف الجدول الزمني': 'Upload schedule file',
-    'يقرأ CSV / Primavera XER / P6 XML / Excel / PDF': 'Reads CSV / Primavera XER / P6 XML / Excel / PDF'
+    'يقرأ CSV / Primavera XER / P6 XML / Excel / PDF': 'Reads CSV / Primavera XER / P6 XML / Excel / PDF',
+    '📥 تنزيل نموذج فارغ': '📥 Download Empty Template',
+    'جدولك الحالي غير مطابق؟ نزّل النموذج الفارغ، انسخ بنودك فيه، ثم ارفعه — يضمن ذلك قراءته بشكل صحيح.':
+      "Your current spreadsheet not matching? Download the empty template, copy your items into it, then upload it — that guarantees it reads correctly.",
+    'تعذّر التعرف على أعمدة الكمية أو السعر في هذا الملف (كل القيم ظهرت صفراً) — على الأغلب تنسيق الملف مختلف عمّا يتوقعه النظام. نزّل النموذج الفارغ أعلاه وانسخ بياناتك فيه بدل رفع ملفك كما هو.':
+      "Couldn't recognize the quantity or price columns in this file (every value came out zero) — the file format most likely doesn't match what the system expects. Download the empty template above and copy your data into it instead of uploading your file as-is."
   });
 
   const todayMs = () => Date.now();
@@ -122,8 +127,8 @@
       (hasBaseline ? '<div class="small" style="margin:8px 0"><span class="pill p-ok">🔒 جدول الكميات معتمد ومقفل</span> أي تعديل يتطلب موافقة الاستشاري وممثل المالك معاً.</div>' : '<div class="small muted" style="margin:8px 0">ارفع جدول كمياتك ليُراجعه الاستشاري ويعتمده، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.</div>') +
       (pendingSub
         ? '<div class="pill p-warn">⏳ لديك جدول كميات قيد المراجعة (' + esc(pendingSub.docCode || pendingSub.ref || '') + ') — بانتظار قرار الاستشاري</div>'
-        : '<div class="flex"><input class="inp" id="cboq-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" style="max-width:260px"><button class="btn sm" id="cboq-read">📖 قراءة الملف</button></div>' +
-          '<div id="cboq-prev" class="small muted mt">اختر الملف ثم «قراءة الملف».</div>') +
+        : '<div class="flex" style="flex-wrap:wrap;gap:8px"><input class="inp" id="cboq-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" style="max-width:260px"><button class="btn sm" id="cboq-read">📖 قراءة الملف</button><button class="btn ghost sm" id="cboq-template">' + t('📥 تنزيل نموذج فارغ') + '</button></div>' +
+          '<div id="cboq-prev" class="small muted mt">' + t('جدولك الحالي غير مطابق؟ نزّل النموذج الفارغ، انسخ بنودك فيه، ثم ارفعه — يضمن ذلك قراءته بشكل صحيح.') + '</div>') +
       (subs.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>المرجع</th><th>النوع</th><th>البنود</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
         subs.map(function (s) { return '<tr><td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td>' + (s.kind === 'revision' ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + ((s.parsedItems || []).length || '—') + '</td><td class="small muted num">' + esc(s.date || '') + '</td><td>' + VS.pill(s.status) + '</td></tr>'; }).join('') +
         '</tbody></table></div>' : '') +
@@ -150,6 +155,20 @@
         : '<div class="empty"><div class="e-ico">📐</div>لا بنود في عقدك بعد</div>') +
       '</div>';
 
+    const cTemplate = el.querySelector('#cboq-template');
+    if (cTemplate) cTemplate.addEventListener('click', function () {
+      const floors = (ctx.S.projects[0] || {}).floors || [];
+      const dFloor = (floors[0] && floors[0].id) || 'GF';
+      const csv = 'الوصف,الوحدة,الكمية,السعر,الدور\r\n' +
+        'مثال: أعمال خرسانة الأساسات,م3,120,450,' + dFloor + '\r\n' +
+        'مثال: أعمال لياسة الجدران,م2,300,28,' + dFloor + '\r\n';
+      // BOM يضمن فتح إكسل للملف بترميز UTF-8 الصحيح مباشرة، بلا حروف عربية مشوَّهة
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'نموذج-جدول-الكميات.csv'; document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    });
+
     const cRead = el.querySelector('#cboq-read');
     if (cRead) cRead.addEventListener('click', async function () {
       const f = el.querySelector('#cboq-file').files[0];
@@ -160,6 +179,13 @@
         const floors = (ctx.S.projects[0] || {}).floors || [];
         const parsed = await parseBoqFile(f, floors);
         if (!parsed.length) { prev.innerHTML = '⚠️ لم تُستخرج بنود. استخدم CSV/Excel بعناوين: الوصف/الوحدة/الكمية/السعر.'; return; }
+        // فحص سلامة: إن كانت كل الكميات والأسعار صفراً فهذا يعني غالباً أن أعمدة الملف لم تُطابَق
+        // (تنسيق مختلف تماماً، أو ملف غير جدول كميات أصلاً) — لا نعرضه كنجاح فيُرسَل خطأً فارغاً
+        const allZero = parsed.every(function (p) { return !p.qty && !p.unitPrice; });
+        if (allZero) {
+          prev.innerHTML = '⚠️ ' + t('تعذّر التعرف على أعمدة الكمية أو السعر في هذا الملف (كل القيم ظهرت صفراً) — على الأغلب تنسيق الملف مختلف عمّا يتوقعه النظام. نزّل النموذج الفارغ أعلاه وانسخ بياناتك فيه بدل رفع ملفك كما هو.');
+          return;
+        }
         const totalVal = parsed.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
         prev.innerHTML =
           '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ استُخرج ' + parsed.length + ' بند (قيمة ' + money(Math.round(totalVal)) + ')</b>' +
