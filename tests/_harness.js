@@ -29,6 +29,7 @@ const ROLES = {
   owner:      ['owner', 'owner123'],
   owner_rep:  ['rep', 'rep123'],
   consultant: ['consultant', 'consult123'],
+  project_manager: ['pm', 'pm123'],
   contractor: ['cont-arch', 'cont123'],
   admin:      ['admin', 'admin123']
 };

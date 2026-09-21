@@ -543,7 +543,7 @@
       b.addEventListener('click', function () {
         const r = rows.find(function (x) { return x.item.id === b.getAttribute('data-dview'); });
         if (!r) return;
-        const isStaff = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+        const isStaff = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
         window.DrawingViewer.open(ctx, r.col, r.item, {
           canEdit: isStaff, canReview: isStaff && r.item.status === 'pending',
           canRespond: ctx.U.role === 'contractor'
@@ -567,7 +567,7 @@
     const items = (ctx.S[tab] || []).slice().sort(function (a, b) {
       return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1);
     });
-    const canAnswer = ['consultant', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
+    const canAnswer = ['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
     const open = items.filter(function (x) { return x.status === 'open'; }).length;
     const answered = items.filter(function (x) { return x.status === 'answered'; });
     const tds = answered.map(turnaround).filter(function (d) { return d != null; });
@@ -695,7 +695,7 @@
     const items = (ctx.S.changeOrders || []).slice().sort(function (a, b) {
       return (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1);
     });
-    const canReview = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canReview = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const appr = items.filter(function (x) { return x.status === 'approved' || x.status === 'approved_notes'; });
     const pend = items.filter(function (x) { return x.status === 'pending'; });
     const costAppr = appr.reduce(function (a, b) { return a + (b.amount || 0); }, 0);
@@ -784,7 +784,7 @@
 
   // ============ 4) قاعدة بيانات المقاولين: بيانات الشركات والوثائق القانونية ============
   function renderContractorDb(el, ctx) {
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const list = ctx.S.contractors || [];
 
     function chips(arr, cls) {
@@ -1117,7 +1117,7 @@
 
       '<div class="card"><h3>💻 ' + I18n.t('رفع نموذج من الجهاز') + '</h3>' +
       '<div class="m-sub">' + I18n.t('رفع مباشر لملفات BIM الكبيرة (IFC / RVT / NWD حتى 500MB) إلى خادم بصير المركزي.') + '</div>' +
-      '<label class="fl">' + I18n.t('ملف النموذج') + '</label><input class="inp" id="bm-file" type="file" accept=".ifc,.rvt,.nwd,.nwc,.dwg">' +
+      '<label class="fl">' + I18n.t('ملف النموذج') + '</label><input class="inp" id="bm-file" type="file" accept=".ifc,.rvt,.nwd,.nwc">' +
       '<div class="grid g2"><div><label class="fl">' + I18n.t('الإصدار') + '</label><input class="inp num" id="bm-frev" placeholder="Rev-04"></div>' +
       '<div><label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="bm-fdisc"><option value="federated">' + I18n.t('موحد Federated') + '</option>' +
       (ctx.S.projects[0] ? ctx.S.projects[0].disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') : '') +
@@ -1152,7 +1152,7 @@
       window.BimViewer.open(o);
     }
     const demo3d = el.querySelector('#bm-demo3d');
-    const canMapBim = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canMapBim = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     if (demo3d) demo3d.addEventListener('click', function () {
       // زر العرض السريع يفتح نفس ملف النموذج المسجّل في السجل أدناه — نجد معرّفه الحقيقي
       // ليعمل الربط ببنود الكميات هنا أيضاً، لا فقط عبر زر "3D" داخل السجل
@@ -1272,7 +1272,7 @@
   function renderBimCams(el, ctx) {
     const cams = ctx.S.cameras || [];
     const P = ctx.S.projects[0] || { floors: [], disciplines: [] };
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const camInsights = (ctx.S.aiInsights || []).filter(function (a) { return a.source === 'camera' || a.source === 'photos'; }).slice(0, 6);
 
     el.innerHTML =
@@ -1364,7 +1364,7 @@
         const zc = function (v) { return v ? 'num' : 'num zero'; };
         return '<div class="card" style="border-color:' + (active ? 'var(--accent)' : 'var(--border)') + '">' +
           '<div class="flex" style="justify-content:space-between">' +
-          '<h3 style="margin:0">🏗️ ' + esc(p.name) + '</h3>' +
+          '<h3 style="margin:0">🏗️ ' + esc(p.name) + (p.status === 'draft' ? ' <span class="pill p-warn" style="font-size:10px;vertical-align:middle">📝 ' + I18n.t('مسودة') + '</span>' : '') + '</h3>' +
           (active ? VS.statusPill('p-ok', 'المشروع الحالي', '✓') : '<button class="btn sm" data-selproj="' + p.id + '">' + I18n.t('فتح والعمل عليه') + ' ←</button>') + '</div>' +
           '<div class="small muted" style="margin:8px 0">' + esc(p.location || '—') + ' · 👨‍💼 ' + esc(p.consultantName || I18n.t('لم يعيّن استشاري')) + '</div>' +
           '<div class="flex" style="gap:8px;margin:10px 0">' + VS.progressBar(prog, planned, p) +

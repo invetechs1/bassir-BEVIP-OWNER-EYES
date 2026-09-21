@@ -820,7 +820,7 @@
   // ============ كاميرات الموقع ============
   function renderCameras(el, ctx) {
     const cams = ctx.S.cameras || [];
-    const canManage = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canManage = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const media = (ctx.S.mediaServerUrl || '').replace(/\/+$/, '');
     const now = new Date();
     const ts = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 8);
@@ -964,7 +964,7 @@
     });
 
     // تسجيل لقطة الصحة الشهرية وإطلاق تنبيه تلقائي عند هبوط الدرجة لفئة أدنى
-    if (['consultant', 'admin', 'owner'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
+    if (['consultant', 'project_manager', 'admin', 'owner'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
       Api.recordHealth(ctx.projectId).then(function (r) {
         if (r && r.dropped) { toast('📉 ' + I18n.t('تنبيه: تراجعت درجة صحة المشروع — راجع الإشعارات')); ctx.refresh(); }
         else if (r && r.improved) { toast('📈 ' + I18n.t('تحسّنت درجة صحة المشروع — راجع الإشعارات')); ctx.refresh(); }
@@ -1058,7 +1058,7 @@
   function renderAi(el, ctx) {
     const overall = ctx.S.projects[0].progressActual;
     const visual = 52.1; // متوسط الرصد البصري في الديمو
-    const canAnalyze = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canAnalyze = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
 
     const analyzeCard = canAnalyze ?
       '<div class="card mb"><h3>🔬 ' + I18n.t('تحليل صورة جديدة بعين بصير') + ' <span class="hint">' + I18n.t('رؤية حاسوبية حقيقية (Claude Vision) — تتطلب تهيئة ANTHROPIC_API_KEY على الخادم') + '</span></h3>' +
@@ -1313,7 +1313,7 @@
     el.querySelectorAll('[data-dview]').forEach(function (b) {
       b.addEventListener('click', function () {
         const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
-        const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+        const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
         if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: canEdit, canReview: false, showMap: true, canMap: canEdit });
       });
     });
@@ -1597,7 +1597,7 @@
   }
 
   function renderReports(el, ctx) {
-    const canSend = ['consultant', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
+    const canSend = ['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
     el.innerHTML =
       '<div class="card mb"><h3>⚡ ' + I18n.t('توليد تقرير تقدم بضغطة واحدة') + ' <span class="hint">' + I18n.t('جاهز للإرسال للعميل — عربي أو إنجليزي') + '</span></h3>' +
       '<div class="flex" style="flex-wrap:wrap;gap:8px">' +

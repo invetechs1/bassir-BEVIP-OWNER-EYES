@@ -306,7 +306,7 @@
   // ---- قائمة التسليم التفاعلية (مستندات + متطلبات نظامية) ----
   function renderChecklist(el, ctx) {
     const items = ctx.S.handoverItems || [];
-    const canEdit = ['consultant', 'admin', 'owner_rep'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin', 'owner_rep'].indexOf(ctx.U.role) !== -1;
     const groups = [
       ['docs', '📁 ' + I18n.t('المستندات والتسليمات')],
       ['regulatory', '🏛️ ' + I18n.t('المتطلبات النظامية والتشغيلية')]
@@ -378,7 +378,7 @@
   // ---- قائمة الملاحظات (Punch List) ----
   function renderPunch(el, ctx) {
     const items = (ctx.S.punchList || []).slice().sort(function (a, b) { return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1); });
-    const canManage = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canManage = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const isContractor = ctx.U.role === 'contractor';
     const open = items.filter(function (x) { return x.status === 'open'; }).length;
     const closed = items.length - open;
@@ -478,7 +478,7 @@
   // ---- الضمانات + تنبيهات قرب الانتهاء ----
   function renderWarranties(el, ctx) {
     const items = (ctx.S.warranties || []).slice().sort(function (a, b) { return String(a.endDate).localeCompare(String(b.endDate)); });
-    const canAdd = ['contractor', 'consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canAdd = ['contractor', 'consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const warnDays = VS.thresholds(ctx.S.projects[0]).warrantyWarnDays;
     const expiringSoon = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d >= 0 && d <= warnDays; });
     const expired = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d < 0; });
@@ -546,7 +546,7 @@
   // ---- سجل تسليم المفاتيح ----
   function renderKeys(el, ctx) {
     const items = ctx.S.keysLog || [];
-    const canAdd = ['consultant', 'admin', 'owner_rep'].indexOf(ctx.U.role) !== -1;
+    const canAdd = ['consultant', 'project_manager', 'admin', 'owner_rep'].indexOf(ctx.U.role) !== -1;
     el.innerHTML =
       '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
       '<h3 style="margin:0">🔑 ' + I18n.t('سجل تسليم المفاتيح') + '</h3>' + (canAdd ? '<button class="btn sm" id="k-add">➕ ' + I18n.t('تسجيل تسليم') + '</button>' : '') + '</div>' +
@@ -688,7 +688,7 @@
     const tasks = (ctx.S.scheduleTasks || []).slice();
     const lib = ctx.S.phaseLibrary || [];
     const templates = ctx.S.phaseTemplates || {};
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
 
     el.innerHTML =
       '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +

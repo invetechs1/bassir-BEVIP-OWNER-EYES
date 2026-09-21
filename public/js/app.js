@@ -100,7 +100,7 @@
     };
   }
 
-  const OWNER_SET = ['admin', 'owner', 'owner_rep', 'consultant'];
+  const OWNER_SET = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
 
   /* الهيكل الجديد (§5): 7 أقسام بترتيب دورة حياة المشروع، 14 عنصراً (13 ظاهرة لغير الأدمن).
      المعرّفات القديمة تبقى تعمل عبر ALIAS (إعادة توجيه داخلية — §13-9). */
@@ -117,20 +117,20 @@
     { id: 'submittals', title: 'التقديمات والاعتمادات', icon: '📋', sec: 'الأعمال والاعتمادات', roles: OWNER_SET, badge: badgeMyDecision,
       render: tabbed('submittals', [
         { id: 'all', label: 'كل السجلات', render: VR.renderArchive },
-        { id: 'my-decision', label: 'بانتظار قراري', roles: ['admin', 'consultant'], render: VR.renderApprovals },
+        { id: 'my-decision', label: 'بانتظار قراري', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderApprovals },
         { id: 'submissions', label: 'التقديمات', render: VM.renderSubmissions },
         { id: 'co', label: 'أوامر التغيير', render: VM.renderVariations },
         { id: 'rfi', label: 'RFI · RFP', render: VM.renderRfx }
       ]) },
-    { id: 'tech-office', title: 'سجلات المكتب الفني', icon: '🏛️', sec: 'الأعمال والاعتمادات', roles: ['admin', 'consultant'], render: VR.renderTechOffice },
-    { id: 'boq', title: 'جداول الكميات', icon: '📐', sec: 'الأعمال والاعتمادات', roles: ['admin', 'consultant', 'owner_rep'], render: VR.renderBoq },
+    { id: 'tech-office', title: 'سجلات المكتب الفني', icon: '🏛️', sec: 'الأعمال والاعتمادات', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderTechOffice },
+    { id: 'boq', title: 'جداول الكميات', icon: '📐', sec: 'الأعمال والاعتمادات', roles: ['admin', 'consultant', 'owner_rep', 'project_manager'], render: VR.renderBoq },
 
     // === 3 · المقاولون ===
     { id: 'contractors', title: 'المقاولون', icon: '👷', sec: 'المقاولون', roles: OWNER_SET,
       render: tabbed('contractors', [
         { id: 'performance', label: 'الأداء', render: VS.renderContractors },
-        { id: 'contracts', label: 'العقود', roles: ['admin', 'consultant'], render: VR.renderManageContractors },
-        { id: 'profiles', label: 'بيانات الشركات', roles: ['admin', 'consultant', 'owner_rep'], render: VM.renderContractorDb }
+        { id: 'contracts', label: 'العقود', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderManageContractors },
+        { id: 'profiles', label: 'بيانات الشركات', roles: ['admin', 'consultant', 'owner_rep', 'project_manager'], render: VM.renderContractorDb }
       ]) },
 
     // === 4 · الموقع والمتابعة ===
@@ -138,7 +138,7 @@
     { id: 'ai', title: 'الرصد البصري', icon: '🛰️', sec: 'الموقع والمتابعة', roles: OWNER_SET, render: VS.renderAi },
     { id: 'reports', title: 'التقارير', icon: '📨', sec: 'الموقع والمتابعة', roles: OWNER_SET,
       render: tabbed('reports', [
-        { id: 'create', label: 'إنشاء', roles: ['admin', 'consultant'], render: VR.renderDailyReport },
+        { id: 'create', label: 'إنشاء', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderDailyReport },
         { id: 'send', label: 'إرسال', render: VS.renderReports }
       ]) },
     { id: 'schedule', title: 'الجدول الزمني', icon: '📅', sec: 'الموقع والمتابعة', roles: OWNER_SET, render: VX.renderSchedule },
@@ -152,14 +152,14 @@
     { id: 'bim', title: 'النماذج والمخططات BIM', icon: '🧊', sec: 'المستندات والنماذج', roles: OWNER_SET,
       render: tabbed('bim', [
         { id: 'models', label: 'النماذج', render: VM.renderBim },
-        { id: 'upload', label: 'رفع مخطط/نموذج', roles: ['admin', 'consultant'], render: VR.renderBimUpload }
+        { id: 'upload', label: 'رفع مخطط/نموذج', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderBimUpload }
       ]) },
 
     // === 6 · التسليم ===
     { id: 'handover', title: 'التسليم والإغلاق', icon: '🏁', sec: 'التسليم', roles: OWNER_SET, render: VH.renderHandover },
 
     // === 7 · الإعدادات ===
-    { id: 'project-settings', title: 'إعدادات المشروع', icon: '⚙️', sec: 'الإعدادات', roles: ['admin', 'consultant'], render: VH.renderPhases },
+    { id: 'project-settings', title: 'إعدادات المشروع', icon: '⚙️', sec: 'الإعدادات', roles: ['admin', 'consultant', 'project_manager'], render: VH.renderPhases },
     { id: 'users', title: 'المستخدمون والصلاحيات', icon: '👥', sec: 'الإعدادات', roles: ['admin', 'owner_rep'], render: VR.renderUsers },
     { id: 'system-settings', title: 'إعدادات النظام', icon: '🔧', sec: 'الإعدادات', roles: ['admin'], render: VR.renderSystem },
 
@@ -271,6 +271,7 @@
       '<div class="m-actions"><button class="btn block" id="lg-go">' + t('دخول') + '</button></div>' +
       '<div class="demo-accounts"><h4>' + t('حسابات تجريبية — اضغط للتعبئة:') + '</h4>' +
       [['owner', 'owner123', '👁 المالك'], ['rep', 'rep123', '🧑‍💼 ممثل المالك'], ['consultant', 'consult123', '📐 الاستشاري'],
+       ['pm', 'pm123', '🧭 مدير المشروع'],
        ['cont-arch', 'cont123', '👷 مقاول معماري'], ['cont-str', 'cont123', '🏗️ مقاول إنشائي'], ['admin', 'admin123', '⚙️ الأدمن']]
         .map(function (a) { return '<span class="demo-chip" data-u="' + a[0] + '" data-p="' + a[1] + '">' + t(a[2]) + '</span>'; }).join('') +
       '</div></div></div>';

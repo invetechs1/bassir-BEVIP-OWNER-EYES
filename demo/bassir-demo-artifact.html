@@ -768,7 +768,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant', email: 'consultant@bassir.app', phone: '0500000004', notifyEmail: true, notifyWhatsapp: true },
       { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1', email: 'str@bassir.app', phone: '0500000005', notifyEmail: true, notifyWhatsapp: true },
       { id: 'U6', username: 'cont-arch',  password: 'cont123',    name: 'مؤسسة البناء المعماري',          role: 'contractor', contractorId: 'C2', email: 'arch@bassir.app', phone: '0500000006', notifyEmail: true, notifyWhatsapp: true },
-      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3', email: 'elec@bassir.app', phone: '0500000007', notifyEmail: true, notifyWhatsapp: false }
+      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3', email: 'elec@bassir.app', phone: '0500000007', notifyEmail: true, notifyWhatsapp: false },
+      { id: 'U8', username: 'pm',         password: 'pm123',      name: 'م. سلطان الحربي (مدير المشروع)', role: 'project_manager', projectIds: ['P1'], email: 'pm@bassir.app', phone: '0500000008', notifyEmail: true, notifyWhatsapp: true }
     ];
 
     // ============ اعتمادات المخططات (Shop Drawings) ============
@@ -1267,7 +1268,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     db.notifications = [];
     db.comments = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 19, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 20, docSeq: docSeq };
 
     return db;
   }
@@ -1355,51 +1356,51 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
   // من يستطيع إنشاء عناصر في كل مجموعة
   const CREATE_RULES = {
-    shopDrawings: ['contractor', 'consultant', 'admin'],
-    materials: ['contractor', 'consultant', 'admin'],
-    scheduleSubmittals: ['contractor', 'consultant', 'admin'],
-    boqSubmittals: ['contractor', 'consultant', 'admin'],
-    wirs: ['contractor', 'consultant', 'admin'],
-    changeOrders: ['contractor', 'consultant', 'admin'],
-    payments: ['contractor', 'consultant', 'admin'],
-    dailyReports: ['consultant', 'admin'],
-    monthlyReports: ['consultant', 'admin'],
-    boqItems: ['consultant', 'admin'],
+    shopDrawings: ['contractor', 'consultant', 'project_manager', 'admin'],
+    materials: ['contractor', 'consultant', 'project_manager', 'admin'],
+    scheduleSubmittals: ['contractor', 'consultant', 'project_manager', 'admin'],
+    boqSubmittals: ['contractor', 'consultant', 'project_manager', 'admin'],
+    wirs: ['contractor', 'consultant', 'project_manager', 'admin'],
+    changeOrders: ['contractor', 'consultant', 'project_manager', 'admin'],
+    payments: ['contractor', 'consultant', 'project_manager', 'admin'],
+    dailyReports: ['consultant', 'project_manager', 'admin'],
+    monthlyReports: ['consultant', 'project_manager', 'admin'],
+    boqItems: ['consultant', 'project_manager', 'admin'],
     aiInsights: ['admin'],
-    photos: ['consultant', 'contractor', 'admin'],
+    photos: ['consultant', 'contractor', 'project_manager', 'admin'],
     users: ['admin', 'owner_rep'],
-    contractors: ['consultant', 'admin'],
+    contractors: ['consultant', 'project_manager', 'admin'],
     projects: ['owner_rep', 'admin'],
     // موديول المكتب الفني
-    rfis: ['contractor', 'consultant', 'admin'],
-    rfps: ['contractor', 'consultant', 'admin'],
-    methodStatements: ['contractor', 'consultant', 'admin'],
-    claims: ['contractor', 'consultant', 'admin'],
-    valueEngineering: ['contractor', 'consultant', 'admin'],
-    handoverDocs: ['contractor', 'consultant', 'admin'],
-    weeklyReports: ['consultant', 'admin'],
-    cameras: ['consultant', 'admin'],
-    planDrawings: ['consultant', 'admin'],
-    ncrs: ['consultant', 'admin'],
-    siteInstructions: ['consultant', 'admin'],
-    snags: ['consultant', 'admin'],
-    hseReports: ['consultant', 'admin'],
-    materialTests: ['consultant', 'admin'],
-    meetings: ['consultant', 'admin'],
-    correspondence: ['consultant', 'admin'],
-    comments: ['contractor', 'consultant', 'admin'],
-    bimModels: ['consultant', 'admin'],
-    bimDocs: ['consultant', 'admin'],
+    rfis: ['contractor', 'consultant', 'project_manager', 'admin'],
+    rfps: ['contractor', 'consultant', 'project_manager', 'admin'],
+    methodStatements: ['contractor', 'consultant', 'project_manager', 'admin'],
+    claims: ['contractor', 'consultant', 'project_manager', 'admin'],
+    valueEngineering: ['contractor', 'consultant', 'project_manager', 'admin'],
+    handoverDocs: ['contractor', 'consultant', 'project_manager', 'admin'],
+    weeklyReports: ['consultant', 'project_manager', 'admin'],
+    cameras: ['consultant', 'project_manager', 'admin'],
+    planDrawings: ['consultant', 'project_manager', 'admin'],
+    ncrs: ['consultant', 'project_manager', 'admin'],
+    siteInstructions: ['consultant', 'project_manager', 'admin'],
+    snags: ['consultant', 'project_manager', 'admin'],
+    hseReports: ['consultant', 'project_manager', 'admin'],
+    materialTests: ['consultant', 'project_manager', 'admin'],
+    meetings: ['consultant', 'project_manager', 'admin'],
+    correspondence: ['consultant', 'project_manager', 'admin'],
+    comments: ['contractor', 'consultant', 'project_manager', 'admin'],
+    bimModels: ['consultant', 'project_manager', 'admin'],
+    bimDocs: ['consultant', 'project_manager', 'admin'],
     // وحدة التسليم والإغلاق ومراحل المشروع
-    handoverItems: ['consultant', 'admin'],
-    punchList: ['consultant', 'admin'],
-    warranties: ['contractor', 'consultant', 'admin'],
-    keysLog: ['consultant', 'admin', 'owner_rep'],
-    incidents: ['consultant', 'admin'],
-    scheduleTasks: ['consultant', 'admin'],
+    handoverItems: ['consultant', 'project_manager', 'admin'],
+    punchList: ['consultant', 'project_manager', 'admin'],
+    warranties: ['contractor', 'consultant', 'project_manager', 'admin'],
+    keysLog: ['consultant', 'project_manager', 'admin', 'owner_rep'],
+    incidents: ['consultant', 'project_manager', 'admin'],
+    scheduleTasks: ['consultant', 'project_manager', 'admin'],
     // ربط مناطق المخططات وعناصر BIM ببنود جدول الكميات
-    drawingMappings: ['consultant', 'admin'],
-    bimMappings: ['consultant', 'admin']
+    drawingMappings: ['consultant', 'project_manager', 'admin'],
+    bimMappings: ['consultant', 'project_manager', 'admin']
   };
 
   function createCore(db, persist, opts) {
@@ -1493,6 +1494,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const s = {};
       const role = user.role;
       s.projects = db.projects;
+      // مشروع في حالة "مسودة" لا يظهر إلا لمنشئه أو لمن أُسند إليه صراحة (استشاري/مالك بمشاريع
+      // محدَّدة عبر projectIds، أو مقاول رُبط به) — الأدمن يرى كل شيء دائماً كبقية استثناءاته بالنظام
+      if (role !== 'admin') {
+        const myContractorProjectId = (role === 'contractor')
+          ? (function () { const c = db.contractors.find(function (x) { return x.id === user.contractorId; }); return c && c.projectId; })()
+          : null;
+        s.projects = s.projects.filter(function (p) {
+          if (p.status !== 'draft') return true;
+          if (p.createdBy === user.id) return true;
+          if (user.projectIds && user.projectIds.indexOf(p.id) !== -1) return true;
+          if (myContractorProjectId && myContractorProjectId === p.id) return true;
+          return false;
+        });
+      }
       s.scheduleCurve = db.scheduleCurve;
       s.scheduleTasks = db.scheduleTasks;
       s.costCurve = db.costCurve;
@@ -1519,7 +1534,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       s.drawingMappings = db.drawingMappings || [];
       s.bimMappings = db.bimMappings || [];
       // المالك يطلع على وثائق مشروعه (قراءة) — يقيدها نطاق المشروع أدناه
-      s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant' || role === 'owner') ? (db.files || []) : [];
+      s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant' || role === 'project_manager' || role === 'owner') ? (db.files || []) : [];
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
@@ -1544,6 +1559,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
           ['photos', 'dailyReports', 'weeklyReports', 'monthlyReports', 'planDrawings', 'bimModels',
             'drawingMappings', 'bimMappings', 'aiInsights', 'scheduleCurve', 'scheduleTasks', 'costCurve', 'healthHistory']
             .forEach(function (c) { s[c] = (s[c] || []).filter(function (x) { return x.projectId === myPid; }); });
+          // الجدول الزمني الذي يرفعه الاستشاري/الأدمن مباشرة كخط أساس للمشروع لا يخص مقاولاً
+          // بعينه (لا يوجد حقل اختيار مقاول في تلك الشاشة) — فيظهر لكل مقاولي المشروع بدل أن
+          // يختفي تماماً من حساباتهم لمجرد أنه بلا contractorId
+          s.scheduleSubmittals = (db.scheduleSubmittals || []).filter(function (x) {
+            return x.contractorId === cid || (!x.contractorId && x.projectId === myPid);
+          });
         }
         s.messages = [];
         s.users = [];
@@ -1568,8 +1589,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
 
       // تقييد النطاق بالمشاريع المسندة: المالك يرى مشروعه فقط
-      // (وينطبق كذلك على استشاري أُسندت له مشاريع محددة)
-      if (user.projectIds && (role === 'owner' || role === 'consultant')) {
+      // (وينطبق كذلك على استشاري أُسندت له مشاريع محددة، ومدير المشروع دائماً بمشروعه الوحيد)
+      if (user.projectIds && (role === 'owner' || role === 'consultant' || role === 'project_manager')) {
         const pids = user.projectIds;
         const inScope = function (x) { return !x.projectId || pids.indexOf(x.projectId) !== -1; };
         s.projects = s.projects.filter(function (p) { return pids.indexOf(p.id) !== -1; });
@@ -1625,11 +1646,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
       return notif;
     }
 
-    /** المستخدمون الذين يخصهم إشعار معيّن (دور + الأدمن، أو مقاول محدد) */
+    /** المستخدمون الذين يخصهم إشعار معيّن (دور + الأدمن، أو مقاول محدد) —
+     * مدير المشروع يعامَل كمكافئ للاستشاري في استقبال إشعارات الدور 'consultant' */
     function notifyTargets(target) {
       return (db.users || []).filter(function (u) {
         if (target.contractorId) return u.role === 'contractor' && u.contractorId === target.contractorId;
-        if (target.role) return u.role === target.role || u.role === 'admin';
+        if (target.role) return u.role === target.role || u.role === 'admin' || (target.role === 'consultant' && u.role === 'project_manager');
         return false;
       }).map(stripPassword);
     }
@@ -1637,7 +1659,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     function myNotifications(user) {
       return (db.notifications || []).filter(function (n) {
         if (n.contractorId) return user.role === 'contractor' && user.contractorId === n.contractorId;
-        if (n.role) return user.role === n.role || user.role === 'admin';
+        if (n.role) return user.role === n.role || user.role === 'admin' || (n.role === 'consultant' && user.role === 'project_manager');
         return false;
       });
     }
@@ -1675,6 +1697,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     function createItem(user, collection, data) {
       assertCanCreate(user, collection);
+      // مدير المشروع دور مقصور دائماً على مشروع واحد بالتصميم — يُرفَض إنشاؤه بلا مشروع محدَّد
+      // (وإلا فسيصبح بلا نطاق ويرى كل المشاريع، عكس الغرض من الدور تماماً)
+      if (collection === 'users' && data.role === 'project_manager' && (!data.projectIds || data.projectIds.length !== 1)) {
+        throw err('مدير المشروع يجب أن يُسنَد إلى مشروع واحد بالضبط', 400);
+      }
       const item = Object.assign({}, data);
       item.id = nextId(collection.substring(0, 2).toUpperCase());
 
@@ -1767,6 +1794,25 @@ textarea.inp { resize: vertical; min-height: 80px; }
           if (!allowed) throw err('لا يمكن تعديل طلب تم البت فيه — يمكنك الرد على الملاحظات أو رفع نسخة معدلة', 403);
         }
       }
+      if (collection === 'users') {
+        // تعديل حسابات المستخدمين صلاحية الأدمن وممثل المالك فقط (تطابق CREATE_RULES.users) —
+        // تعديل الملف الشخصي لأي مستخدم عن نفسه يمر عبر updateProfile، لا هذا المسار العام
+        if (['admin', 'owner_rep'].indexOf(user.role) === -1) throw err('تعديل المستخدمين صلاحية الأدمن وممثل المالك', 403);
+        // نفس قيد الإنشاء: مدير مشروع لا يبقى أبداً بلا مشروع واحد محدَّد بالضبط
+        const resultingRole = patch.role || item.role;
+        const resultingProjectIds = patch.projectIds !== undefined ? patch.projectIds : item.projectIds;
+        if (resultingRole === 'project_manager' && (!resultingProjectIds || resultingProjectIds.length !== 1)) {
+          throw err('مدير المشروع يجب أن يُسنَد إلى مشروع واحد بالضبط', 400);
+        }
+        if (patch.password) {
+          // كلمة مرور جديدة: تُشفَّر بنفس طريقة storeAccount عند الإنشاء — لا تُخزَّن كنص صريح أبداً
+          const plain = patch.password;
+          patch = Object.assign({}, patch);
+          delete patch.password;
+          if (pwd.hash) Object.assign(patch, pwd.hash(plain));
+          else patch.password = plain; // احتياط وضع الديمو بلا وحدة تشفير
+        }
+      }
       const wasOpen = item.status === 'open';
       const prevAssignee = item.assignedTo;
       Object.assign(item, patch);
@@ -1807,7 +1853,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
      */
     function review(user, opts) {
       const collection = opts.collection, id = opts.id, status = opts.status;
-      const isReviewer = user.role === 'consultant' || user.role === 'admin';
+      const isReviewer = user.role === 'consultant' || user.role === 'project_manager' || user.role === 'admin';
       const isOwnerRep = user.role === 'owner_rep';
       const baseline = BASELINE_COLLECTIONS.indexOf(collection) !== -1;
       // ممثل المالك يشارك في اعتماد تعديلات خط الأساس فقط (جدول الكميات/الجدول الزمني)
@@ -1944,7 +1990,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const item = list.find(function (x) { return x.id === id; });
       if (!item) throw err('المستند غير موجود', 404);
       if (user.role === 'contractor' && item.contractorId !== user.contractorId) throw err('غير مصرح', 403);
-      if (['contractor', 'consultant', 'admin'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      if (['contractor', 'consultant', 'project_manager', 'admin'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
       if (item.status === 'pending') throw err('المستند قيد المراجعة بالفعل', 400);
 
       if (!item.revisions) item.revisions = [];
@@ -1973,7 +2019,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     /** إضافة مقاول جديد مع حسابه وبنود كمياته (صلاحية الاستشاري) */
     function addContractor(user, payload) {
-      if (['consultant', 'admin'].indexOf(user.role) === -1) throw err('إضافة المقاولين صلاحية الاستشاري', 403);
+      if (['consultant', 'project_manager', 'admin'].indexOf(user.role) === -1) throw err('إضافة المقاولين صلاحية الاستشاري', 403);
       const c = {
         id: nextId('C'), projectId: payload.projectId || 'P1',
         name: payload.name, type: payload.type,
@@ -2031,6 +2077,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         id: nextId('P'), name: payload.name, location: payload.location || '',
         description: payload.description || '', ownerName: payload.ownerName || '',
         consultantName: payload.consultantName || '',
+        status: payload.status === 'draft' ? 'draft' : 'active', createdBy: user.id,
         startPlanned: payload.startPlanned, endPlanned: payload.endPlanned,
         startActual: null, endForecast: payload.endPlanned,
         budgetPlanned: Number(payload.budgetPlanned) || 0, costActual: 0, costPlannedToDate: 0,
@@ -2053,7 +2100,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     /** إرسال تقرير للمالك (واتساب / إيميل) — محاكاة قناة الإرسال مع سجل موثق */
     function sendReport(user, payload) {
-      if (['consultant', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      if (['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
       const msg = {
         id: nextId('MSG'), channel: payload.channel === 'whatsapp' ? 'whatsapp' : 'email',
         to: payload.to, title: payload.title || 'تقرير المشروع',
@@ -5175,7 +5222,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   // ============ كاميرات الموقع ============
   function renderCameras(el, ctx) {
     const cams = ctx.S.cameras || [];
-    const canManage = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canManage = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const media = (ctx.S.mediaServerUrl || '').replace(/\/+$/, '');
     const now = new Date();
     const ts = now.toISOString().slice(0, 10) + ' ' + now.toTimeString().slice(0, 8);
@@ -5319,7 +5366,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
 
     // تسجيل لقطة الصحة الشهرية وإطلاق تنبيه تلقائي عند هبوط الدرجة لفئة أدنى
-    if (['consultant', 'admin', 'owner'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
+    if (['consultant', 'project_manager', 'admin', 'owner'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
       Api.recordHealth(ctx.projectId).then(function (r) {
         if (r && r.dropped) { toast('📉 ' + I18n.t('تنبيه: تراجعت درجة صحة المشروع — راجع الإشعارات')); ctx.refresh(); }
         else if (r && r.improved) { toast('📈 ' + I18n.t('تحسّنت درجة صحة المشروع — راجع الإشعارات')); ctx.refresh(); }
@@ -5413,7 +5460,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderAi(el, ctx) {
     const overall = ctx.S.projects[0].progressActual;
     const visual = 52.1; // متوسط الرصد البصري في الديمو
-    const canAnalyze = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canAnalyze = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
 
     const analyzeCard = canAnalyze ?
       '<div class="card mb"><h3>🔬 ' + I18n.t('تحليل صورة جديدة بعين بصير') + ' <span class="hint">' + I18n.t('رؤية حاسوبية حقيقية (Claude Vision) — تتطلب تهيئة ANTHROPIC_API_KEY على الخادم') + '</span></h3>' +
@@ -5668,7 +5715,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     el.querySelectorAll('[data-dview]').forEach(function (b) {
       b.addEventListener('click', function () {
         const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
-        const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+        const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
         if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: canEdit, canReview: false, showMap: true, canMap: canEdit });
       });
     });
@@ -5952,7 +5999,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   function renderReports(el, ctx) {
-    const canSend = ['consultant', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
+    const canSend = ['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
     el.innerHTML =
       '<div class="card mb"><h3>⚡ ' + I18n.t('توليد تقرير تقدم بضغطة واحدة') + ' <span class="hint">' + I18n.t('جاهز للإرسال للعميل — عربي أو إنجليزي') + '</span></h3>' +
       '<div class="flex" style="flex-wrap:wrap;gap:8px">' +
@@ -6374,6 +6421,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'المشروع (يرى بياناته فقط)': 'Project (sees only its data)',
     'لا يوجد مقاولون في هذا المشروع — أضف مقاولاً أولاً من صفحة المقاولين': 'No contractors in this project yet — add one first from the Contractors page',
     'اختر المقاول المطلوب ربط الحساب به': 'Select the contractor to link this account to',
+    'تعديل بيانات المستخدم': "Edit User's Details",
+    'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)': 'New password (leave empty to keep the current one)',
+    'الجدول الزمني المعتمد': 'Approved Schedule',
+    'لا يوجد جدول زمني معتمد لهذا المشروع بعد.': 'No approved schedule for this project yet.',
+    'ليتّضح أثر الأيام الإضافية على الجدول الرسمي': 'To see how the extra days affect the official schedule',
+    'تاريخ الانتهاء المخطط: ': 'Planned finish date: ',
+    'المتوقع حالياً: ': 'Currently forecast: ',
+    'مسودة': 'Draft',
+    'نشر المشروع': 'Publish Project',
+    'حفظ كمسودة (لا يظهر لأحد سوى مَن تُسنِده لاحقاً، حتى تُنشره)': "Save as draft (visible only to whoever you later assign, until you publish it)",
+    'نُشر المشروع — أصبح مرئياً لكل مَن له صلاحية الاطلاع عليه': 'Project published — now visible to everyone with access to it',
+    'مدير المشروع': 'Project Manager',
+    'المشروع (إلزامي — يرى بياناته فقط)': 'Project (required — sees only its data)',
+    'حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع': "Select the project manager's project — it cannot be left unassigned",
     'قرار اعتماد': 'Approval decision',
     'إرسال تقرير': 'Send report',
     'رفع ملف': 'Upload file',
@@ -7006,7 +7067,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   const boqState = { contractor: 'all' };
 
   function renderBoq(el, ctx) {
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const items = ctx.S.boqItems.filter(function (b) {
       return boqState.contractor === 'all' || b.contractorId === boqState.contractor;
     });
@@ -7260,9 +7321,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="card"><h3>' + I18n.t('🏗️ مشاريع المالك') + ' <span class="hint">' + I18n.t('اضغط "فتح" للتنقل بين المشاريع — أو استخدم مبدّل المشروع أعلى الشاشة') + '</span></h3>' +
       (ctx.Sall || ctx.S).projects.map(function (p) {
         const active = ctx.projectId === p.id;
+        const isDraft = p.status === 'draft';
         return '<div style="border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b style="font-size:16px">' + esc(p.name) + '</b>' +
-          '<div class="flex">' + (active ? '<span class="pill p-ok">' + I18n.t('المشروع الحالي') + '</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">' + I18n.t('فتح المشروع ←') + '</button>') +
+          '<div class="flex">' + (isDraft ? '<span class="pill p-warn">📝 ' + I18n.t('مسودة') + '</span>' : '') +
+          (active ? '<span class="pill p-ok">' + I18n.t('المشروع الحالي') + '</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">' + I18n.t('فتح المشروع ←') + '</button>') +
+          (isDraft ? '<button class="btn ghost sm" data-publish-proj="' + p.id + '">🔓 ' + I18n.t('نشر المشروع') + '</button>' : '') +
           '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div></div>' +
           '<div class="small muted" style="margin:6px 0">' + esc(p.location || '—') + I18n.t(' · الميزانية ') + VS.millions(p.budgetPlanned || 0) + '</div>' +
           '<div class="small">' + I18n.t('👨‍💼 الاستشاري: ') + '<b>' + esc(p.consultantName || I18n.t('لم يعيّن')) + '</b></div></div>';
@@ -7278,6 +7342,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="grid g2"><div><label class="fl">' + I18n.t('اسم مستخدم الاستشاري') + '</label><input class="inp" id="np-user" placeholder="consult-x"></div>' +
       '<div><label class="fl">' + I18n.t('كلمة المرور') + '</label><input class="inp" id="np-pass" placeholder="' + I18n.t('تلقائية إن تُركت') + '"></div></div>' +
       '<label class="fl">' + I18n.t('البريد الإلكتروني للاستشاري (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="np-email" type="email" placeholder="name@example.com" dir="ltr">' +
+      '<label class="fl flex" style="cursor:pointer;margin-top:6px"><input type="checkbox" id="np-draft"> ' + I18n.t('حفظ كمسودة (لا يظهر لأحد سوى مَن تُسنِده لاحقاً، حتى تُنشره)') + '</label>' +
       '<div class="m-actions"><button class="btn block" id="np-save">' + I18n.t('إنشاء المشروع وحساب الاستشاري') + '</button></div></div></div>';
 
     el.querySelector('#np-save').addEventListener('click', async function () {
@@ -7292,7 +7357,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
           consultantUsername: el.querySelector('#np-user').value.trim() || null,
           consultantPassword: el.querySelector('#np-pass').value || null,
           consultantEmail: el.querySelector('#np-email').value.trim() || null,
-          ownerName: ctx.S.projects[0].ownerName
+          ownerName: ctx.S.projects[0].ownerName,
+          status: el.querySelector('#np-draft').checked ? 'draft' : 'active'
         });
         if (res.account) {
           modal('<h3>✅ ' + I18n.t('أُنشئ المشروع وحساب الاستشاري') + '</h3><div class="m-sub">' + I18n.t('بيانات دخول الاستشاري:') + '</div>' +
@@ -7309,12 +7375,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
         ctx.nav('dashboard');
       });
     });
+    el.querySelectorAll('[data-publish-proj]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        try {
+          await Api.update('projects', b.getAttribute('data-publish-proj'), { status: 'active' });
+          toast('✅ ' + I18n.t('نُشر المشروع — أصبح مرئياً لكل مَن له صلاحية الاطلاع عليه'));
+          ctx.refresh();
+        } catch (e) { toast(e.message, true); }
+      });
+    });
   }
 
   // ============ إدارة المستخدمين ============
   const ROLE_NAMES = {
     admin: I18n.t('مدير النظام'), owner: I18n.t('المالك'), owner_rep: I18n.t('ممثل المالك'),
-    consultant: I18n.t('الاستشاري'), contractor: I18n.t('مقاول')
+    consultant: I18n.t('الاستشاري'), project_manager: I18n.t('مدير المشروع'), contractor: I18n.t('مقاول')
   };
 
   // وصف صلاحيات كل دور (يظهر عند اختيار الدور وفي مصفوفة الصلاحيات)
@@ -7333,6 +7408,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
       icon: '📐', color: 'p-warn',
       desc: I18n.t('الاستشاري (المكتب الفني): الاعتمادات والتوقيع، خدمات المكتب الفني الـ12، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، الكاميرات والتكامل. يمكن قصره على مشاريع محددة.'),
       scope: 'project-optional'
+    },
+    project_manager: {
+      icon: '🧭', color: 'p-warn',
+      desc: I18n.t('مدير المشروع: نفس صلاحيات الاستشاري تقريباً — الاعتمادات، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، رفع المرفقات (PDF/Primavera/AutoCAD/Revit) — لكن مقصور دائماً على مشروعه الوحيد المسنَد إليه، لا يرى غيره.'),
+      scope: 'project-required'
     },
     contractor: {
       icon: '👷', color: 'p-muted',
@@ -7364,8 +7444,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderUsers(el, ctx) {
     el.innerHTML =
       // مصفوفة الصلاحيات
-      '<div class="card mb"><h3>🛡️ ' + I18n.t('مستويات النظام وصلاحياتها') + '</h3><div class="grid" style="grid-template-columns:repeat(5,1fr);gap:10px">' +
-      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+      '<div class="card mb"><h3>🛡️ ' + I18n.t('مستويات النظام وصلاحياتها') + '</h3><div class="grid" style="grid-template-columns:repeat(6,1fr);gap:10px">' +
+      ['owner', 'owner_rep', 'consultant', 'project_manager', 'contractor', 'admin'].map(function (r) {
         const m = ROLE_META[r];
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg2)">' +
           '<div style="font-size:20px">' + m.icon + '</div><b class="small">' + esc(I18n.t(ROLE_NAMES[r])) + '</b>' +
@@ -7385,12 +7465,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '<td><span class="pill ' + m.color + '">' + m.icon + ' ' + esc(I18n.t(ROLE_NAMES[u.role] || u.role)) + '</span></td>' +
           '<td class="small">' + userScopeLabel(ctx, u) + '</td>' +
           '<td class="small">' + (chans.length ? chans.join(' ') : '<span class="muted">' + I18n.t('داخل النظام فقط') + '</span>') + '</td>' +
-          '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">' + I18n.t('حذف') + '</button>' : '') + '</td></tr>';
+          '<td class="flex" style="gap:4px;flex-wrap:nowrap">' +
+          (u.username !== 'admin' ? '<button class="btn ghost sm" data-edit-u="' + u.id + '">✏️ ' + I18n.t('تعديل') + '</button>' : '') +
+          (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">' + I18n.t('حذف') + '</button>' : '') +
+          '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مستخدم') + '</h3>' +
       '<label class="fl">' + I18n.t('الدور') + '</label><select class="inp" id="nu-role">' +
-      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+      ['owner', 'owner_rep', 'consultant', 'project_manager', 'contractor', 'admin'].map(function (r) {
         return '<option value="' + r + '">' + ROLE_META[r].icon + ' ' + I18n.t(ROLE_NAMES[r]) + '</option>';
       }).join('') + '</select>' +
       '<div class="small muted" id="nu-desc" style="margin-top:8px;line-height:1.8"></div>' +
@@ -7436,6 +7519,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '<label class="fl">' + I18n.t('المشروع (يرى بياناته فقط)') + '</label><select class="inp" id="nu-project">' +
           '<option value="">🗂️ ' + I18n.t('كل المشاريع') + '</option>' +
           allProjects.map(function (p) { return '<option value="' + esc(p.id) + '">🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+      } else if (r === 'project_manager') {
+        // مدير المشروع مقصور دائماً على مشروع واحد — لا خيار «كل المشاريع» إطلاقاً
+        scopeBox.innerHTML =
+          '<label class="fl">' + I18n.t('المشروع (إلزامي — يرى بياناته فقط)') + '</label><select class="inp" id="nu-project">' +
+          allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === ctx.projectId ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
       } else if (r === 'owner') {
         scopeBox.innerHTML = '<label class="fl">' + I18n.t('مشروع المالك (يرى صفحة مشروعه فقط)') + '</label>' +
           allProjects.map(function (p) {
@@ -7473,6 +7561,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const projSel = el.querySelector('#nu-project');
         if (projSel && projSel.value) data.projectIds = [projSel.value];
       }
+      if (role === 'project_manager') {
+        const projSel = el.querySelector('#nu-project');
+        if (!projSel || !projSel.value) { toast(I18n.t('حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع'), true); return; }
+        data.projectIds = [projSel.value];
+      }
       if (role === 'owner' && !data.projectIds) { toast(I18n.t('حدد مشروع المالك — المالك يرى صفحة مشروعه'), true); return; }
       try {
         const created = await Api.create('users', data);
@@ -7493,6 +7586,99 @@ textarea.inp { resize: vertical; min-height: 80px; }
         try { await Api.remove('users', b.getAttribute('data-del')); toast(I18n.t('حُذف المستخدم')); ctx.refresh(); }
         catch (e) { toast(e.message, true); }
       });
+    });
+    el.querySelectorAll('[data-edit-u]').forEach(function (b) {
+      b.addEventListener('click', function () { openEditUser(ctx, b.getAttribute('data-edit-u')); });
+    });
+  }
+
+  /** تعديل حساب مستخدم قائم — الاسم والتواصل، وربطه بمقاول/مشاريع محدَّدة، وإعادة تعيين كلمة المرور اختيارياً */
+  function openEditUser(ctx, id) {
+    const u = (ctx.S.users || []).find(function (x) { return x.id === id; });
+    if (!u) return;
+    const allProjects = (ctx.Sall || ctx.S).projects;
+    let scopeHtml = '';
+    if (u.role === 'contractor') {
+      const projOfCurrent = (function () {
+        const c = (ctx.Sall || ctx.S).contractors.find(function (x) { return x.id === u.contractorId; });
+        return c ? c.projectId : ((allProjects[0] && allProjects[0].id) || '');
+      })();
+      scopeHtml =
+        (allProjects.length > 1 ? '<label class="fl">' + I18n.t('المشروع') + '</label><select class="inp" id="eu-project">' +
+          allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === projOfCurrent ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>' : '') +
+        '<label class="fl">' + I18n.t('ربط بالمقاول') + '</label><select class="inp" id="eu-cont"></select>';
+    } else if (u.role === 'consultant') {
+      const cur = (u.projectIds && u.projectIds[0]) || '';
+      scopeHtml = '<label class="fl">' + I18n.t('المشروع (يرى بياناته فقط)') + '</label><select class="inp" id="eu-project">' +
+        '<option value="">🗂️ ' + I18n.t('كل المشاريع') + '</option>' +
+        allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+    } else if (u.role === 'project_manager') {
+      const cur = (u.projectIds && u.projectIds[0]) || '';
+      scopeHtml = '<label class="fl">' + I18n.t('المشروع (إلزامي — يرى بياناته فقط)') + '</label><select class="inp" id="eu-project">' +
+        allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+    } else if (u.role === 'owner') {
+      const cur = u.projectIds || [];
+      scopeHtml = '<label class="fl">' + I18n.t('مشروع المالك (يرى صفحة مشروعه فقط)') + '</label>' +
+        allProjects.map(function (p) {
+          return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="eu-proj" value="' + esc(p.id) + '"' +
+            (cur.indexOf(p.id) !== -1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+        }).join('');
+    }
+    const m = modal(
+      '<h3>✏️ ' + I18n.t('تعديل بيانات المستخدم') + '</h3>' +
+      '<label class="fl">' + I18n.t('الاسم الكامل') + '</label><input class="inp" id="eu-name" value="' + esc(u.name) + '">' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('البريد الإلكتروني (للإشعارات)') + '</label><input class="inp num" id="eu-email" type="email" dir="ltr" value="' + esc(u.email || '') + '"></div>' +
+      '<div><label class="fl">' + I18n.t('الجوال (واتساب)') + '</label><input class="inp num" id="eu-phone" dir="ltr" value="' + esc(u.phone || '') + '"></div></div>' +
+      '<label class="fl">' + I18n.t('كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)') + '</label><input class="inp num" id="eu-pass" placeholder="••••••••" dir="ltr">' +
+      '<div id="eu-scope">' + scopeHtml + '</div>' +
+      '<div class="m-actions"><button class="btn" id="eu-save">' + I18n.t('حفظ التعديلات') + '</button><button class="btn mutedb" id="eu-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#eu-cancel').addEventListener('click', function () { m.remove(); });
+
+    if (u.role === 'contractor') {
+      const projSel = m.querySelector('#eu-project');
+      const contSel = m.querySelector('#eu-cont');
+      function fillContractors() {
+        const pid = projSel ? projSel.value : (allProjects[0] && allProjects[0].id);
+        const list = ((ctx.Sall || ctx.S).contractors || []).filter(function (c) { return c.projectId === pid; });
+        contSel.innerHTML = list.map(function (c) { return '<option value="' + esc(c.id) + '"' + (c.id === u.contractorId ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('');
+      }
+      fillContractors();
+      if (projSel) projSel.addEventListener('change', fillContractors);
+    }
+
+    m.querySelector('#eu-save').addEventListener('click', async function () {
+      const name = m.querySelector('#eu-name').value.trim();
+      if (!name) { toast(I18n.t('أدخل اسم المستخدم')); return; }
+      const patch = {
+        name: name,
+        email: m.querySelector('#eu-email').value.trim(),
+        phone: m.querySelector('#eu-phone').value.trim()
+      };
+      const newPass = m.querySelector('#eu-pass').value;
+      if (newPass) patch.password = newPass;
+      if (u.role === 'contractor') {
+        const contSel = m.querySelector('#eu-cont');
+        if (!contSel || !contSel.value) { toast(I18n.t('اختر المقاول المطلوب ربط الحساب به'), true); return; }
+        patch.contractorId = contSel.value;
+      } else if (u.role === 'consultant') {
+        const projSel = m.querySelector('#eu-project');
+        patch.projectIds = (projSel && projSel.value) ? [projSel.value] : null;
+      } else if (u.role === 'project_manager') {
+        const projSel = m.querySelector('#eu-project');
+        if (!projSel || !projSel.value) { toast(I18n.t('حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع'), true); return; }
+        patch.projectIds = [projSel.value];
+      } else if (u.role === 'owner') {
+        const checks = m.querySelectorAll('.eu-proj:checked');
+        if (!checks.length) { toast(I18n.t('حدد مشروع المالك — المالك يرى صفحة مشروعه'), true); return; }
+        patch.projectIds = Array.prototype.map.call(checks, function (c) { return c.value; });
+      }
+      try {
+        await Api.update('users', id, patch);
+        m.remove();
+        toast('✅ ' + I18n.t('تم حفظ التعديلات'));
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
     });
   }
 
@@ -7617,7 +7803,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     el.querySelectorAll('[data-dview]').forEach(function (b) {
       b.addEventListener('click', function () {
         const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
-        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false, showMap: true, canMap: ['consultant', 'admin'].indexOf(ctx.U.role) !== -1 });
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false, showMap: true, canMap: ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1 });
       });
     });
     el.querySelector('#pd-add').addEventListener('click', async function () {
@@ -7779,6 +7965,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
       (tab === 'claims' ? '<label class="fl">' + I18n.t('نوع المطالبة') + '</label><select class="inp" id="sb-kind"><option value="eot">' + I18n.t('تمديد مدة EOT') + '</option><option value="cost">' + I18n.t('مطالبة مالية') + '</option></select>' : '') +
       (needAmount ? '<label class="fl">' + I18n.t('القيمة (ر.س)') + '</label><input class="inp num" id="sb-amount" type="number">' : '') +
       (tab === 'changeOrders' || tab === 'claims' ? '<label class="fl">' + I18n.t('الأيام الإضافية المطلوبة') + '</label><input class="inp num" id="sb-days" type="number" value="0">' : '') +
+      // مرجع الجدول الزمني المعتمد — ليرى المقاول والاستشاري أثر أيام أمر التغيير على الجدول الرسمي فعلياً
+      (tab === 'changeOrders' ? (function () {
+        const tasks = (ctx.S.scheduleTasks || []).slice().sort(function (a, b) { return String(a.endPlanned || '').localeCompare(String(b.endPlanned || '')); });
+        const P = ctx.S.projects[0];
+        if (!tasks.length) {
+          return '<div class="card" style="padding:10px 14px;margin:4px 0 10px"><b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + '</b>' +
+            '<div class="small muted mt">' + I18n.t('لا يوجد جدول زمني معتمد لهذا المشروع بعد.') + '</div></div>';
+        }
+        const upcoming = tasks.filter(function (t) { return (t.progress || 0) < 100; }).slice(0, 5);
+        return '<div class="card" style="padding:10px 14px;margin:4px 0 10px">' +
+          '<b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + ' <span class="hint">' + I18n.t('ليتّضح أثر الأيام الإضافية على الجدول الرسمي') + '</span></b>' +
+          '<div class="small muted mt">' + I18n.t('تاريخ الانتهاء المخطط: ') + '<b class="num">' + esc(P.endPlanned || '—') + '</b>' +
+          (P.endForecast && P.endForecast !== P.endPlanned ? ' · ' + I18n.t('المتوقع حالياً: ') + '<b class="num">' + esc(P.endForecast) + '</b>' : '') + '</div>' +
+          (upcoming.length ? '<div class="small mt" style="max-height:110px;overflow-y:auto">' +
+            upcoming.map(function (t) {
+              return '<div class="flex" style="justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)">' +
+                '<span>' + esc(t.name) + '</span><span class="num muted">' + esc(t.endPlanned || '—') + ' · ' + (t.progress || 0) + '%</span></div>';
+            }).join('') + '</div>' : '') +
+          '</div>';
+      })() : '') +
       (isWir ? '<label class="fl">' + I18n.t('الموقع / الدور') + '</label><select class="inp" id="sb-loc">' +
         ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>' : '') +
       (isPayment ?
@@ -8296,7 +8502,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const v = m.querySelector('#ad-view');
     if (v) v.addEventListener('click', function () {
       m.remove();
-      const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
+      const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
       window.DrawingViewer.open(ctx, row.col, it, { canEdit: canEdit, canReview: canEdit && it.status === 'pending' });
     });
   }
@@ -8941,7 +9147,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       b.addEventListener('click', function () {
         const r = rows.find(function (x) { return x.item.id === b.getAttribute('data-dview'); });
         if (!r) return;
-        const isStaff = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+        const isStaff = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
         window.DrawingViewer.open(ctx, r.col, r.item, {
           canEdit: isStaff, canReview: isStaff && r.item.status === 'pending',
           canRespond: ctx.U.role === 'contractor'
@@ -8965,7 +9171,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const items = (ctx.S[tab] || []).slice().sort(function (a, b) {
       return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1);
     });
-    const canAnswer = ['consultant', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
+    const canAnswer = ['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(ctx.U.role) !== -1;
     const open = items.filter(function (x) { return x.status === 'open'; }).length;
     const answered = items.filter(function (x) { return x.status === 'answered'; });
     const tds = answered.map(turnaround).filter(function (d) { return d != null; });
@@ -9093,7 +9299,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const items = (ctx.S.changeOrders || []).slice().sort(function (a, b) {
       return (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1);
     });
-    const canReview = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canReview = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const appr = items.filter(function (x) { return x.status === 'approved' || x.status === 'approved_notes'; });
     const pend = items.filter(function (x) { return x.status === 'pending'; });
     const costAppr = appr.reduce(function (a, b) { return a + (b.amount || 0); }, 0);
@@ -9182,7 +9388,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
   // ============ 4) قاعدة بيانات المقاولين: بيانات الشركات والوثائق القانونية ============
   function renderContractorDb(el, ctx) {
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const list = ctx.S.contractors || [];
 
     function chips(arr, cls) {
@@ -9515,7 +9721,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
       '<div class="card"><h3>💻 ' + I18n.t('رفع نموذج من الجهاز') + '</h3>' +
       '<div class="m-sub">' + I18n.t('رفع مباشر لملفات BIM الكبيرة (IFC / RVT / NWD حتى 500MB) إلى خادم بصير المركزي.') + '</div>' +
-      '<label class="fl">' + I18n.t('ملف النموذج') + '</label><input class="inp" id="bm-file" type="file" accept=".ifc,.rvt,.nwd,.nwc,.dwg">' +
+      '<label class="fl">' + I18n.t('ملف النموذج') + '</label><input class="inp" id="bm-file" type="file" accept=".ifc,.rvt,.nwd,.nwc">' +
       '<div class="grid g2"><div><label class="fl">' + I18n.t('الإصدار') + '</label><input class="inp num" id="bm-frev" placeholder="Rev-04"></div>' +
       '<div><label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="bm-fdisc"><option value="federated">' + I18n.t('موحد Federated') + '</option>' +
       (ctx.S.projects[0] ? ctx.S.projects[0].disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') : '') +
@@ -9550,7 +9756,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       window.BimViewer.open(o);
     }
     const demo3d = el.querySelector('#bm-demo3d');
-    const canMapBim = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canMapBim = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     if (demo3d) demo3d.addEventListener('click', function () {
       // زر العرض السريع يفتح نفس ملف النموذج المسجّل في السجل أدناه — نجد معرّفه الحقيقي
       // ليعمل الربط ببنود الكميات هنا أيضاً، لا فقط عبر زر "3D" داخل السجل
@@ -9670,7 +9876,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderBimCams(el, ctx) {
     const cams = ctx.S.cameras || [];
     const P = ctx.S.projects[0] || { floors: [], disciplines: [] };
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const camInsights = (ctx.S.aiInsights || []).filter(function (a) { return a.source === 'camera' || a.source === 'photos'; }).slice(0, 6);
 
     el.innerHTML =
@@ -9762,7 +9968,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const zc = function (v) { return v ? 'num' : 'num zero'; };
         return '<div class="card" style="border-color:' + (active ? 'var(--accent)' : 'var(--border)') + '">' +
           '<div class="flex" style="justify-content:space-between">' +
-          '<h3 style="margin:0">🏗️ ' + esc(p.name) + '</h3>' +
+          '<h3 style="margin:0">🏗️ ' + esc(p.name) + (p.status === 'draft' ? ' <span class="pill p-warn" style="font-size:10px;vertical-align:middle">📝 ' + I18n.t('مسودة') + '</span>' : '') + '</h3>' +
           (active ? VS.statusPill('p-ok', 'المشروع الحالي', '✓') : '<button class="btn sm" data-selproj="' + p.id + '">' + I18n.t('فتح والعمل عليه') + ' ←</button>') + '</div>' +
           '<div class="small muted" style="margin:8px 0">' + esc(p.location || '—') + ' · 👨‍💼 ' + esc(p.consultantName || I18n.t('لم يعيّن استشاري')) + '</div>' +
           '<div class="flex" style="gap:8px;margin:10px 0">' + VS.progressBar(prog, planned, p) +
@@ -10107,7 +10313,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   // ---- قائمة التسليم التفاعلية (مستندات + متطلبات نظامية) ----
   function renderChecklist(el, ctx) {
     const items = ctx.S.handoverItems || [];
-    const canEdit = ['consultant', 'admin', 'owner_rep'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin', 'owner_rep'].indexOf(ctx.U.role) !== -1;
     const groups = [
       ['docs', '📁 ' + I18n.t('المستندات والتسليمات')],
       ['regulatory', '🏛️ ' + I18n.t('المتطلبات النظامية والتشغيلية')]
@@ -10179,7 +10385,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   // ---- قائمة الملاحظات (Punch List) ----
   function renderPunch(el, ctx) {
     const items = (ctx.S.punchList || []).slice().sort(function (a, b) { return (a.status === 'open' ? 0 : 1) - (b.status === 'open' ? 0 : 1); });
-    const canManage = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canManage = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const isContractor = ctx.U.role === 'contractor';
     const open = items.filter(function (x) { return x.status === 'open'; }).length;
     const closed = items.length - open;
@@ -10279,7 +10485,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   // ---- الضمانات + تنبيهات قرب الانتهاء ----
   function renderWarranties(el, ctx) {
     const items = (ctx.S.warranties || []).slice().sort(function (a, b) { return String(a.endDate).localeCompare(String(b.endDate)); });
-    const canAdd = ['contractor', 'consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canAdd = ['contractor', 'consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const warnDays = VS.thresholds(ctx.S.projects[0]).warrantyWarnDays;
     const expiringSoon = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d >= 0 && d <= warnDays; });
     const expired = items.filter(function (w) { const d = daysFromNow(w.endDate); return d != null && d < 0; });
@@ -10347,7 +10553,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   // ---- سجل تسليم المفاتيح ----
   function renderKeys(el, ctx) {
     const items = ctx.S.keysLog || [];
-    const canAdd = ['consultant', 'admin', 'owner_rep'].indexOf(ctx.U.role) !== -1;
+    const canAdd = ['consultant', 'project_manager', 'admin', 'owner_rep'].indexOf(ctx.U.role) !== -1;
     el.innerHTML =
       '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
       '<h3 style="margin:0">🔑 ' + I18n.t('سجل تسليم المفاتيح') + '</h3>' + (canAdd ? '<button class="btn sm" id="k-add">➕ ' + I18n.t('تسجيل تسليم') + '</button>' : '') + '</div>' +
@@ -10489,7 +10695,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const tasks = (ctx.S.scheduleTasks || []).slice();
     const lib = ctx.S.phaseLibrary || [];
     const templates = ctx.S.phaseTemplates || {};
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
 
     el.innerHTML =
       '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
@@ -10736,7 +10942,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'جدولك الحالي غير مطابق؟ نزّل النموذج الفارغ، انسخ بنودك فيه، ثم ارفعه — يضمن ذلك قراءته بشكل صحيح.':
       "Your current spreadsheet not matching? Download the empty template, copy your items into it, then upload it — that guarantees it reads correctly.",
     'تعذّر التعرف على أعمدة الكمية أو السعر في هذا الملف (كل القيم ظهرت صفراً) — على الأغلب تنسيق الملف مختلف عمّا يتوقعه النظام. نزّل النموذج الفارغ أعلاه وانسخ بياناتك فيه بدل رفع ملفك كما هو.':
-      "Couldn't recognize the quantity or price columns in this file (every value came out zero) — the file format most likely doesn't match what the system expects. Download the empty template above and copy your data into it instead of uploading your file as-is."
+      "Couldn't recognize the quantity or price columns in this file (every value came out zero) — the file format most likely doesn't match what the system expects. Download the empty template above and copy your data into it instead of uploading your file as-is.",
+    'يشمل أعمالاً تمهيدية/تعبئة موقع — يُنصح بمراجعة عاجلة': 'Includes preliminary/mobilization work — priority review recommended'
   });
 
   const todayMs = () => Date.now();
@@ -11037,7 +11244,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const type = c.getAttribute('t'); const v = c.getElementsByTagName('v')[0];
         let val = v ? v.textContent : (c.getElementsByTagName('t')[0] ? c.getElementsByTagName('t')[0].textContent : '');
         if (type === 's') val = shared[parseInt(val, 10)] || '';
-        arr[col >= 0 ? col : arr.length] = (val == null ? '' : val);
+        arr[col >= 0 ? col : arr.length] = normDigits(val == null ? '' : val);
       }
       grid.push(arr);
     }
@@ -11048,14 +11255,29 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return parseDelimited(grid.map(function (r) { return r.map(function (c) { return (c == null ? '' : c); }).join('\t'); }).join('\n'));
   }
 
+  // يحوّل الأرقام العربية-الهندية (١٢٣...) والفارسية (۱۲۳...) إلى أرقام لاتينية عادية —
+  // شائعة في ملفات إكسل/PDF المُصدَّرة أو المُنسَّقة بإعدادات لغة عربية على ويندوز، ولولا هذا
+  // التحويل فإن Number('١٢٠') = NaN فتضيع كل كمية/سعر مكتوب بها إلى صفر بصمت.
+  function normDigits(s) {
+    return String(s == null ? '' : s)
+      .replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x0660); })
+      .replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 0x06f0); })
+      // الفاصلة العشرية العربية (٫ U+066B) والألوف (٬ U+066C) — وإلا يُشطَب الفاصل العشري لاحقاً
+      // ضمن تنظيف [^\d.] فيتحول "٢٨٫٥" (28.5) إلى 285 بصمت
+      .replace(/٫/g, '.').replace(/٬/g, ',');
+  }
+
   // يقرأ نص ملف بترميز موثوق: UTF-8 أولاً بصرامة (fatal)، وإن فشل (شائع جداً مع ملفات CSV عربية
   // محفوظة من إكسل بترميز صفحة الرموز المحلي Windows-1256 بدل UTF-8 على ويندوز عربي) يُعاد الترميز
   // بـ Windows-1256 بدل ظهور رموز غير مفهومة (███/?) مكان النص العربي وضياع كل الأرقام معه
-  // (لأن فشل اكتشاف عناوين الأعمدة العربية يُسقط الكمية والسعر لصفر تلقائياً).
+  // (لأن فشل اكتشاف عناوين الأعمدة العربية يُسقط الكمية والسعر لصفر تلقائياً). كما يُطبَّق تطبيع
+  // الأرقام العربية-الهندية هنا فيغطّي كل قارئ نصي (CSV/TSV/XER/P6 XML).
   async function decodeFileText(file) {
     const buf = await file.arrayBuffer();
-    try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
-    catch (e) { return new TextDecoder('windows-1256').decode(buf); }
+    let text;
+    try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+    catch (e) { text = new TextDecoder('windows-1256').decode(buf); }
+    return normDigits(text);
   }
 
   // قارئ جداول عام (CSV/TSV/XLSX) يعيد صفوفاً خامة (مصفوفة مصفوفات) — لجداول الكميات وغيرها
@@ -11085,6 +11307,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const pdf = await lib.getDocument({ url: url }).promise;
     let text = '';
     for (let p = 1; p <= pdf.numPages; p++) { const page = await pdf.getPage(p); const c = await page.getTextContent(); let lastY = null, line = ''; c.items.forEach(function (it) { const y = Math.round(it.transform[5]); if (lastY !== null && Math.abs(y - lastY) > 3) { text += line.trim() + '\n'; line = ''; } line += it.str + ' '; lastY = y; }); text += line.trim() + '\n'; }
+    text = normDigits(text);
     // أبقِ الأسطر التي تحوي تاريخاً (على الأرجح صفوف مهام)
     const lines = text.split('\n').filter(function (l) { return /\d{4}-\d{2}-\d{2}|\d{1,2}[\/-][A-Za-z]{3}|\d{1,2}\/\d{1,2}\/\d{4}/.test(l); });
     return lines.map(function (l) {
@@ -11112,7 +11335,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderSchedule(el, ctx) {
     const role = ctx.U.role;
     const isContractor = role === 'contractor';
-    const isReviewer = role === 'consultant' || role === 'admin';
+    const isReviewer = role === 'consultant' || role === 'project_manager' || role === 'admin';
     const canUpload = isContractor || isReviewer;
     const tasks = (ctx.S.scheduleTasks || []).slice();
     // برامج زمنية مقدّمة (دورة الاعتماد): المقاول يرى برامجه، الاستشاري يرى ما ينتظر قراره
@@ -11241,19 +11464,38 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   // لوحة اعتماد خط الأساس (جداول الكميات/الجداول الزمنية) — اعتماد فردي لخط الأساس، وتوقيع مزدوج للتعديلات
+  // كلمات مفتاحية (عربي/إنجليزي) لاكتشاف أنشطة تمهيدية/تعبئة موقع داخل جدول زمني مرفوع —
+  // لا يوجد حقل "نوع نشاط" في البيانات، فهذا أقرب تخمين عملي بلا تغيير تنسيق الرفع
+  const PRELIM_KEYWORDS = ['mobiliz', 'preliminary', 'تعبئة', 'تمهيد', 'تجهيز الموقع'];
+  function hasPreliminaryTask(tasks) {
+    return (tasks || []).some(function (t) {
+      const n = String((t && t.name) || '').toLowerCase();
+      return PRELIM_KEYWORDS.some(function (k) { return n.indexOf(k) !== -1; });
+    });
+  }
+
   function baselineReviewHtml(ctx, collection) {
     const role = ctx.U.role;
-    const canConsult = role === 'consultant' || role === 'admin';
+    const canConsult = role === 'consultant' || role === 'project_manager' || role === 'admin';
     const canRep = role === 'owner_rep';
     if (!canConsult && !canRep) return '';
-    const subs = (ctx.S[collection] || []).filter(function (s) { return s.status === 'pending'; });
+    let subs = (ctx.S[collection] || []).filter(function (s) { return s.status === 'pending'; });
     if (!subs.length) return '';
+    const isSchedule = collection === 'scheduleSubmittals';
+    if (isSchedule) {
+      // البنود التمهيدية/Mobilization تُرفَع لأعلى القائمة وتُبرَز — تحتاج مراجعة عاجلة لأنها
+      // عادة تُعطِّل بدء بقية الأعمال إن تأخر اعتمادها
+      subs = subs.slice().sort(function (a, b) {
+        return (hasPreliminaryTask(b.parsedTasks) ? 1 : 0) - (hasPreliminaryTask(a.parsedTasks) ? 1 : 0);
+      });
+    }
     const title = collection === 'boqSubmittals' ? 'جداول الكميات المقدَّمة' : 'الجداول الزمنية المقدَّمة';
     return '<div class="card mb"><h3 style="margin:0 0 10px">🖊 اعتماد ' + title + ' <span class="hint">اعتماد خط الأساس من الاستشاري؛ تعديله لاحقاً يتطلب توقيع الاستشاري وممثل المالك معاً</span></h3>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المرجع</th><th>العنوان</th><th>النوع</th><th>البنود</th><th>التوقيعات</th><th>الإجراء</th></tr></thead><tbody>' +
       subs.map(function (s) {
         const rev = s.kind === 'revision'; const sig = s.sig || {};
         const n = ((s.parsedItems || s.parsedTasks || []).length) || '—';
+        const prelim = isSchedule && hasPreliminaryTask(s.parsedTasks);
         const sigCell = rev ? ('استشاري ' + (sig.consultant ? '✓' : '—') + ' · ممثل المالك ' + (sig.ownerRep ? '✓' : '—')) : '—';
         let act = '';
         if (rev) {
@@ -11263,7 +11505,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
         } else if (canConsult) {
           act += '<button class="btn sm" data-sign="' + s.id + '" data-col="' + collection + '">✅ اعتماد</button> <button class="btn danger sm" data-rej="' + s.id + '" data-col="' + collection + '">↩ إرجاع</button>';
         }
-        return '<tr><td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td class="small">' + esc(s.title || '—') + '</td><td>' + (rev ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + n + '</td><td class="small">' + sigCell + '</td><td>' + (act || '<span class="muted small">بانتظار الطرف الآخر</span>') + '</td></tr>';
+        return '<tr' + (prelim ? ' style="background:rgba(245,165,36,.08);border-right:3px solid var(--warn,#f5a524)"' : '') + '>' +
+          '<td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td class="small">' + esc(s.title || '—') +
+          (prelim ? '<div class="small mt" style="color:var(--warn,#f5a524)">⚡ ' + I18n.t('يشمل أعمالاً تمهيدية/تعبئة موقع — يُنصح بمراجعة عاجلة') + '</div>' : '') + '</td>' +
+          '<td>' + (rev ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + n + '</td><td class="small">' + sigCell + '</td><td>' + (act || '<span class="muted small">بانتظار الطرف الآخر</span>') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>';
   }
   function wireBaselineReview(el, ctx) {
@@ -11396,7 +11641,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     };
   }
 
-  const OWNER_SET = ['admin', 'owner', 'owner_rep', 'consultant'];
+  const OWNER_SET = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
 
   /* الهيكل الجديد (§5): 7 أقسام بترتيب دورة حياة المشروع، 14 عنصراً (13 ظاهرة لغير الأدمن).
      المعرّفات القديمة تبقى تعمل عبر ALIAS (إعادة توجيه داخلية — §13-9). */
@@ -11413,20 +11658,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
     { id: 'submittals', title: 'التقديمات والاعتمادات', icon: '📋', sec: 'الأعمال والاعتمادات', roles: OWNER_SET, badge: badgeMyDecision,
       render: tabbed('submittals', [
         { id: 'all', label: 'كل السجلات', render: VR.renderArchive },
-        { id: 'my-decision', label: 'بانتظار قراري', roles: ['admin', 'consultant'], render: VR.renderApprovals },
+        { id: 'my-decision', label: 'بانتظار قراري', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderApprovals },
         { id: 'submissions', label: 'التقديمات', render: VM.renderSubmissions },
         { id: 'co', label: 'أوامر التغيير', render: VM.renderVariations },
         { id: 'rfi', label: 'RFI · RFP', render: VM.renderRfx }
       ]) },
-    { id: 'tech-office', title: 'سجلات المكتب الفني', icon: '🏛️', sec: 'الأعمال والاعتمادات', roles: ['admin', 'consultant'], render: VR.renderTechOffice },
-    { id: 'boq', title: 'جداول الكميات', icon: '📐', sec: 'الأعمال والاعتمادات', roles: ['admin', 'consultant', 'owner_rep'], render: VR.renderBoq },
+    { id: 'tech-office', title: 'سجلات المكتب الفني', icon: '🏛️', sec: 'الأعمال والاعتمادات', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderTechOffice },
+    { id: 'boq', title: 'جداول الكميات', icon: '📐', sec: 'الأعمال والاعتمادات', roles: ['admin', 'consultant', 'owner_rep', 'project_manager'], render: VR.renderBoq },
 
     // === 3 · المقاولون ===
     { id: 'contractors', title: 'المقاولون', icon: '👷', sec: 'المقاولون', roles: OWNER_SET,
       render: tabbed('contractors', [
         { id: 'performance', label: 'الأداء', render: VS.renderContractors },
-        { id: 'contracts', label: 'العقود', roles: ['admin', 'consultant'], render: VR.renderManageContractors },
-        { id: 'profiles', label: 'بيانات الشركات', roles: ['admin', 'consultant', 'owner_rep'], render: VM.renderContractorDb }
+        { id: 'contracts', label: 'العقود', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderManageContractors },
+        { id: 'profiles', label: 'بيانات الشركات', roles: ['admin', 'consultant', 'owner_rep', 'project_manager'], render: VM.renderContractorDb }
       ]) },
 
     // === 4 · الموقع والمتابعة ===
@@ -11434,7 +11679,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     { id: 'ai', title: 'الرصد البصري', icon: '🛰️', sec: 'الموقع والمتابعة', roles: OWNER_SET, render: VS.renderAi },
     { id: 'reports', title: 'التقارير', icon: '📨', sec: 'الموقع والمتابعة', roles: OWNER_SET,
       render: tabbed('reports', [
-        { id: 'create', label: 'إنشاء', roles: ['admin', 'consultant'], render: VR.renderDailyReport },
+        { id: 'create', label: 'إنشاء', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderDailyReport },
         { id: 'send', label: 'إرسال', render: VS.renderReports }
       ]) },
     { id: 'schedule', title: 'الجدول الزمني', icon: '📅', sec: 'الموقع والمتابعة', roles: OWNER_SET, render: VX.renderSchedule },
@@ -11448,14 +11693,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
     { id: 'bim', title: 'النماذج والمخططات BIM', icon: '🧊', sec: 'المستندات والنماذج', roles: OWNER_SET,
       render: tabbed('bim', [
         { id: 'models', label: 'النماذج', render: VM.renderBim },
-        { id: 'upload', label: 'رفع مخطط/نموذج', roles: ['admin', 'consultant'], render: VR.renderBimUpload }
+        { id: 'upload', label: 'رفع مخطط/نموذج', roles: ['admin', 'consultant', 'project_manager'], render: VR.renderBimUpload }
       ]) },
 
     // === 6 · التسليم ===
     { id: 'handover', title: 'التسليم والإغلاق', icon: '🏁', sec: 'التسليم', roles: OWNER_SET, render: VH.renderHandover },
 
     // === 7 · الإعدادات ===
-    { id: 'project-settings', title: 'إعدادات المشروع', icon: '⚙️', sec: 'الإعدادات', roles: ['admin', 'consultant'], render: VH.renderPhases },
+    { id: 'project-settings', title: 'إعدادات المشروع', icon: '⚙️', sec: 'الإعدادات', roles: ['admin', 'consultant', 'project_manager'], render: VH.renderPhases },
     { id: 'users', title: 'المستخدمون والصلاحيات', icon: '👥', sec: 'الإعدادات', roles: ['admin', 'owner_rep'], render: VR.renderUsers },
     { id: 'system-settings', title: 'إعدادات النظام', icon: '🔧', sec: 'الإعدادات', roles: ['admin'], render: VR.renderSystem },
 
@@ -11567,6 +11812,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="m-actions"><button class="btn block" id="lg-go">' + t('دخول') + '</button></div>' +
       '<div class="demo-accounts"><h4>' + t('حسابات تجريبية — اضغط للتعبئة:') + '</h4>' +
       [['owner', 'owner123', '👁 المالك'], ['rep', 'rep123', '🧑‍💼 ممثل المالك'], ['consultant', 'consult123', '📐 الاستشاري'],
+       ['pm', 'pm123', '🧭 مدير المشروع'],
        ['cont-arch', 'cont123', '👷 مقاول معماري'], ['cont-str', 'cont123', '🏗️ مقاول إنشائي'], ['admin', 'admin123', '⚙️ الأدمن']]
         .map(function (a) { return '<span class="demo-chip" data-u="' + a[0] + '" data-p="' + a[1] + '">' + t(a[2]) + '</span>'; }).join('') +
       '</div></div></div>';

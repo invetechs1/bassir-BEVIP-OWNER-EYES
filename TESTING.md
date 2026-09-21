@@ -25,6 +25,7 @@ Use the account for the role you're testing. You can click an account chip on th
 | Owner | `owner` | `owner123` |
 | Owner's Representative | `rep` | `rep123` |
 | Consultant | `consultant` | `consult123` |
+| Project Manager | `pm` | `pm123` |
 | Contractor (structural) | `cont-str` | `cont123` |
 
 ---
@@ -192,6 +193,74 @@ Already covered above in C.3 — confirm both language buttons produce genuinely
 
 1. Sidebar → **Dashboard**.
 2. Confirm the "Cash Flow vs. Progress" card shows money in vs. money out per period, alongside that period's completion percentage.
+
+- [ ] Confirmed
+
+---
+
+## D. Today's Updates (2026-09-21 batch)
+
+Everything added or fixed in this round — draft projects, the variation-request schedule panel, priority review for mobilization work, the Arabic-numeral file fix, and the new Project Manager role.
+
+### D.1 — Draft projects hidden until published
+**Role required:** Owner's Rep (or Admin) to create; any role to verify visibility
+
+1. Sign in as `rep`. Sidebar → **Projects & Consultants**.
+2. Fill in a new project's name, check **"Save as draft"**, and save.
+3. Confirm it appears in your own list with a **📝 Draft** badge and a **🔓 Publish Project** button.
+4. Sign out, sign in as `consultant` (an account *not* assigned to this project) — confirm the draft does **not** appear anywhere (dashboard project list, project switcher, "All Projects" page).
+5. Sign back in as `rep`, click **Publish Project** on it.
+6. Sign in as `consultant` again — it should now be visible.
+
+- [ ] Confirmed
+
+### D.2 — Variation request shows the approved schedule
+**Role required:** Contractor
+
+1. Sign in as `cont-str`. Contractor Dashboard → **Change Orders** tab → **+ New Request**.
+2. Confirm a **📅 Approved Schedule** panel appears (planned finish date + upcoming phases) above the attachments field — this is new; it doesn't appear on any other request type (Shop Drawings, Materials, etc.).
+3. Fill in title/value/days and submit — confirm it still goes through normally.
+
+- [ ] Confirmed
+
+### D.3 — Mobilization/preliminary work flagged for priority review
+**Role required:** Contractor to submit, Consultant/Project Manager/Owner's Rep to review
+
+1. Sign in as `cont-str`. Sidebar → **Schedule** → upload a CSV/Excel with a task named something like "Mobilization" or "تعبئة الموقع" — send it for approval.
+2. Sign in as `consultant` (or `pm`). Sidebar → **Schedule** → look at the pending-approval list.
+3. Confirm that submission is sorted to the **top** of the list and highlighted with **"⚡ Includes preliminary/mobilization work — priority review recommended."**
+
+- [ ] Confirmed
+
+### D.4 — Arabic-numeral BOQ/schedule files now read correctly
+**Role required:** Contractor
+
+If a BOQ or schedule file (CSV/Excel/PDF) has quantities or prices written with Arabic-Indic digits (١٢٣) instead of regular numbers — common in files exported under Arabic Windows/Excel settings — the system previously read them as zero. This is fixed.
+
+1. Sign in as `cont-str`. Sidebar → **Bill of Quantities** → upload a file containing Arabic-numeral quantities/prices (or re-upload a real file that previously came through as all-zero).
+2. Confirm the extracted quantities and prices are correct, not zero.
+
+- [ ] Confirmed
+
+### D.5 — New role: Project Manager
+**Role required:** Admin to create/edit; Project Manager to verify scope
+
+1. Sign in as `admin`. Sidebar → **Users & Permissions** → **Add User** → role **Project Manager**.
+2. Confirm a **Project** field is required — there is no "All Projects" option, and you cannot save without picking exactly one project.
+3. Save, then sign in as that new account (or use the seeded `pm` / `pm123`).
+4. Confirm: no project switcher, no "All Projects" link — this account only ever sees the one project it was assigned to.
+5. Confirm access **matches Consultant**: Dashboard, Progress Map, Submittals & Approvals (including "Awaiting My Decision"), Technical Office Records, BOQ, Contractors (Contracts tab — add/edit/delete), Cameras, AI, Reports, Schedule, Documents, BIM (including uploading PDF/Primavera/AutoCAD/Revit files), Handover, Project Settings.
+6. Confirm access is **denied** to: Users & Permissions, System Settings, Portfolio, Projects & Consultants, Audit Log.
+7. Back as `admin`, click **Edit** on the Project Manager account, confirm the Project field is still required and a password reset works.
+
+- [ ] Confirmed
+
+### D.6 — Contractor account: edit + change password
+**Role required:** Admin or Owner's Rep
+
+1. Sidebar → **Users & Permissions** → find a contractor account → click **✏️ Edit**.
+2. Confirm you can change which contractor company it's linked to, and set a new password.
+3. Save, then confirm the new password actually works and the old one no longer does.
 
 - [ ] Confirmed
 

@@ -292,6 +292,20 @@
     'المشروع (يرى بياناته فقط)': 'Project (sees only its data)',
     'لا يوجد مقاولون في هذا المشروع — أضف مقاولاً أولاً من صفحة المقاولين': 'No contractors in this project yet — add one first from the Contractors page',
     'اختر المقاول المطلوب ربط الحساب به': 'Select the contractor to link this account to',
+    'تعديل بيانات المستخدم': "Edit User's Details",
+    'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)': 'New password (leave empty to keep the current one)',
+    'الجدول الزمني المعتمد': 'Approved Schedule',
+    'لا يوجد جدول زمني معتمد لهذا المشروع بعد.': 'No approved schedule for this project yet.',
+    'ليتّضح أثر الأيام الإضافية على الجدول الرسمي': 'To see how the extra days affect the official schedule',
+    'تاريخ الانتهاء المخطط: ': 'Planned finish date: ',
+    'المتوقع حالياً: ': 'Currently forecast: ',
+    'مسودة': 'Draft',
+    'نشر المشروع': 'Publish Project',
+    'حفظ كمسودة (لا يظهر لأحد سوى مَن تُسنِده لاحقاً، حتى تُنشره)': "Save as draft (visible only to whoever you later assign, until you publish it)",
+    'نُشر المشروع — أصبح مرئياً لكل مَن له صلاحية الاطلاع عليه': 'Project published — now visible to everyone with access to it',
+    'مدير المشروع': 'Project Manager',
+    'المشروع (إلزامي — يرى بياناته فقط)': 'Project (required — sees only its data)',
+    'حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع': "Select the project manager's project — it cannot be left unassigned",
     'قرار اعتماد': 'Approval decision',
     'إرسال تقرير': 'Send report',
     'رفع ملف': 'Upload file',
@@ -924,7 +938,7 @@
   const boqState = { contractor: 'all' };
 
   function renderBoq(el, ctx) {
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const items = ctx.S.boqItems.filter(function (b) {
       return boqState.contractor === 'all' || b.contractorId === boqState.contractor;
     });
@@ -1178,9 +1192,12 @@
       '<div class="card"><h3>' + I18n.t('🏗️ مشاريع المالك') + ' <span class="hint">' + I18n.t('اضغط "فتح" للتنقل بين المشاريع — أو استخدم مبدّل المشروع أعلى الشاشة') + '</span></h3>' +
       (ctx.Sall || ctx.S).projects.map(function (p) {
         const active = ctx.projectId === p.id;
+        const isDraft = p.status === 'draft';
         return '<div style="border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b style="font-size:16px">' + esc(p.name) + '</b>' +
-          '<div class="flex">' + (active ? '<span class="pill p-ok">' + I18n.t('المشروع الحالي') + '</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">' + I18n.t('فتح المشروع ←') + '</button>') +
+          '<div class="flex">' + (isDraft ? '<span class="pill p-warn">📝 ' + I18n.t('مسودة') + '</span>' : '') +
+          (active ? '<span class="pill p-ok">' + I18n.t('المشروع الحالي') + '</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">' + I18n.t('فتح المشروع ←') + '</button>') +
+          (isDraft ? '<button class="btn ghost sm" data-publish-proj="' + p.id + '">🔓 ' + I18n.t('نشر المشروع') + '</button>' : '') +
           '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div></div>' +
           '<div class="small muted" style="margin:6px 0">' + esc(p.location || '—') + I18n.t(' · الميزانية ') + VS.millions(p.budgetPlanned || 0) + '</div>' +
           '<div class="small">' + I18n.t('👨‍💼 الاستشاري: ') + '<b>' + esc(p.consultantName || I18n.t('لم يعيّن')) + '</b></div></div>';
@@ -1196,6 +1213,7 @@
       '<div class="grid g2"><div><label class="fl">' + I18n.t('اسم مستخدم الاستشاري') + '</label><input class="inp" id="np-user" placeholder="consult-x"></div>' +
       '<div><label class="fl">' + I18n.t('كلمة المرور') + '</label><input class="inp" id="np-pass" placeholder="' + I18n.t('تلقائية إن تُركت') + '"></div></div>' +
       '<label class="fl">' + I18n.t('البريد الإلكتروني للاستشاري (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="np-email" type="email" placeholder="name@example.com" dir="ltr">' +
+      '<label class="fl flex" style="cursor:pointer;margin-top:6px"><input type="checkbox" id="np-draft"> ' + I18n.t('حفظ كمسودة (لا يظهر لأحد سوى مَن تُسنِده لاحقاً، حتى تُنشره)') + '</label>' +
       '<div class="m-actions"><button class="btn block" id="np-save">' + I18n.t('إنشاء المشروع وحساب الاستشاري') + '</button></div></div></div>';
 
     el.querySelector('#np-save').addEventListener('click', async function () {
@@ -1210,7 +1228,8 @@
           consultantUsername: el.querySelector('#np-user').value.trim() || null,
           consultantPassword: el.querySelector('#np-pass').value || null,
           consultantEmail: el.querySelector('#np-email').value.trim() || null,
-          ownerName: ctx.S.projects[0].ownerName
+          ownerName: ctx.S.projects[0].ownerName,
+          status: el.querySelector('#np-draft').checked ? 'draft' : 'active'
         });
         if (res.account) {
           modal('<h3>✅ ' + I18n.t('أُنشئ المشروع وحساب الاستشاري') + '</h3><div class="m-sub">' + I18n.t('بيانات دخول الاستشاري:') + '</div>' +
@@ -1227,12 +1246,21 @@
         ctx.nav('dashboard');
       });
     });
+    el.querySelectorAll('[data-publish-proj]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        try {
+          await Api.update('projects', b.getAttribute('data-publish-proj'), { status: 'active' });
+          toast('✅ ' + I18n.t('نُشر المشروع — أصبح مرئياً لكل مَن له صلاحية الاطلاع عليه'));
+          ctx.refresh();
+        } catch (e) { toast(e.message, true); }
+      });
+    });
   }
 
   // ============ إدارة المستخدمين ============
   const ROLE_NAMES = {
     admin: I18n.t('مدير النظام'), owner: I18n.t('المالك'), owner_rep: I18n.t('ممثل المالك'),
-    consultant: I18n.t('الاستشاري'), contractor: I18n.t('مقاول')
+    consultant: I18n.t('الاستشاري'), project_manager: I18n.t('مدير المشروع'), contractor: I18n.t('مقاول')
   };
 
   // وصف صلاحيات كل دور (يظهر عند اختيار الدور وفي مصفوفة الصلاحيات)
@@ -1251,6 +1279,11 @@
       icon: '📐', color: 'p-warn',
       desc: I18n.t('الاستشاري (المكتب الفني): الاعتمادات والتوقيع، خدمات المكتب الفني الـ12، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، الكاميرات والتكامل. يمكن قصره على مشاريع محددة.'),
       scope: 'project-optional'
+    },
+    project_manager: {
+      icon: '🧭', color: 'p-warn',
+      desc: I18n.t('مدير المشروع: نفس صلاحيات الاستشاري تقريباً — الاعتمادات، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، رفع المرفقات (PDF/Primavera/AutoCAD/Revit) — لكن مقصور دائماً على مشروعه الوحيد المسنَد إليه، لا يرى غيره.'),
+      scope: 'project-required'
     },
     contractor: {
       icon: '👷', color: 'p-muted',
@@ -1282,8 +1315,8 @@
   function renderUsers(el, ctx) {
     el.innerHTML =
       // مصفوفة الصلاحيات
-      '<div class="card mb"><h3>🛡️ ' + I18n.t('مستويات النظام وصلاحياتها') + '</h3><div class="grid" style="grid-template-columns:repeat(5,1fr);gap:10px">' +
-      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+      '<div class="card mb"><h3>🛡️ ' + I18n.t('مستويات النظام وصلاحياتها') + '</h3><div class="grid" style="grid-template-columns:repeat(6,1fr);gap:10px">' +
+      ['owner', 'owner_rep', 'consultant', 'project_manager', 'contractor', 'admin'].map(function (r) {
         const m = ROLE_META[r];
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg2)">' +
           '<div style="font-size:20px">' + m.icon + '</div><b class="small">' + esc(I18n.t(ROLE_NAMES[r])) + '</b>' +
@@ -1303,12 +1336,15 @@
           '<td><span class="pill ' + m.color + '">' + m.icon + ' ' + esc(I18n.t(ROLE_NAMES[u.role] || u.role)) + '</span></td>' +
           '<td class="small">' + userScopeLabel(ctx, u) + '</td>' +
           '<td class="small">' + (chans.length ? chans.join(' ') : '<span class="muted">' + I18n.t('داخل النظام فقط') + '</span>') + '</td>' +
-          '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">' + I18n.t('حذف') + '</button>' : '') + '</td></tr>';
+          '<td class="flex" style="gap:4px;flex-wrap:nowrap">' +
+          (u.username !== 'admin' ? '<button class="btn ghost sm" data-edit-u="' + u.id + '">✏️ ' + I18n.t('تعديل') + '</button>' : '') +
+          (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">' + I18n.t('حذف') + '</button>' : '') +
+          '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مستخدم') + '</h3>' +
       '<label class="fl">' + I18n.t('الدور') + '</label><select class="inp" id="nu-role">' +
-      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+      ['owner', 'owner_rep', 'consultant', 'project_manager', 'contractor', 'admin'].map(function (r) {
         return '<option value="' + r + '">' + ROLE_META[r].icon + ' ' + I18n.t(ROLE_NAMES[r]) + '</option>';
       }).join('') + '</select>' +
       '<div class="small muted" id="nu-desc" style="margin-top:8px;line-height:1.8"></div>' +
@@ -1354,6 +1390,11 @@
           '<label class="fl">' + I18n.t('المشروع (يرى بياناته فقط)') + '</label><select class="inp" id="nu-project">' +
           '<option value="">🗂️ ' + I18n.t('كل المشاريع') + '</option>' +
           allProjects.map(function (p) { return '<option value="' + esc(p.id) + '">🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+      } else if (r === 'project_manager') {
+        // مدير المشروع مقصور دائماً على مشروع واحد — لا خيار «كل المشاريع» إطلاقاً
+        scopeBox.innerHTML =
+          '<label class="fl">' + I18n.t('المشروع (إلزامي — يرى بياناته فقط)') + '</label><select class="inp" id="nu-project">' +
+          allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === ctx.projectId ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
       } else if (r === 'owner') {
         scopeBox.innerHTML = '<label class="fl">' + I18n.t('مشروع المالك (يرى صفحة مشروعه فقط)') + '</label>' +
           allProjects.map(function (p) {
@@ -1391,6 +1432,11 @@
         const projSel = el.querySelector('#nu-project');
         if (projSel && projSel.value) data.projectIds = [projSel.value];
       }
+      if (role === 'project_manager') {
+        const projSel = el.querySelector('#nu-project');
+        if (!projSel || !projSel.value) { toast(I18n.t('حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع'), true); return; }
+        data.projectIds = [projSel.value];
+      }
       if (role === 'owner' && !data.projectIds) { toast(I18n.t('حدد مشروع المالك — المالك يرى صفحة مشروعه'), true); return; }
       try {
         const created = await Api.create('users', data);
@@ -1411,6 +1457,99 @@
         try { await Api.remove('users', b.getAttribute('data-del')); toast(I18n.t('حُذف المستخدم')); ctx.refresh(); }
         catch (e) { toast(e.message, true); }
       });
+    });
+    el.querySelectorAll('[data-edit-u]').forEach(function (b) {
+      b.addEventListener('click', function () { openEditUser(ctx, b.getAttribute('data-edit-u')); });
+    });
+  }
+
+  /** تعديل حساب مستخدم قائم — الاسم والتواصل، وربطه بمقاول/مشاريع محدَّدة، وإعادة تعيين كلمة المرور اختيارياً */
+  function openEditUser(ctx, id) {
+    const u = (ctx.S.users || []).find(function (x) { return x.id === id; });
+    if (!u) return;
+    const allProjects = (ctx.Sall || ctx.S).projects;
+    let scopeHtml = '';
+    if (u.role === 'contractor') {
+      const projOfCurrent = (function () {
+        const c = (ctx.Sall || ctx.S).contractors.find(function (x) { return x.id === u.contractorId; });
+        return c ? c.projectId : ((allProjects[0] && allProjects[0].id) || '');
+      })();
+      scopeHtml =
+        (allProjects.length > 1 ? '<label class="fl">' + I18n.t('المشروع') + '</label><select class="inp" id="eu-project">' +
+          allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === projOfCurrent ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>' : '') +
+        '<label class="fl">' + I18n.t('ربط بالمقاول') + '</label><select class="inp" id="eu-cont"></select>';
+    } else if (u.role === 'consultant') {
+      const cur = (u.projectIds && u.projectIds[0]) || '';
+      scopeHtml = '<label class="fl">' + I18n.t('المشروع (يرى بياناته فقط)') + '</label><select class="inp" id="eu-project">' +
+        '<option value="">🗂️ ' + I18n.t('كل المشاريع') + '</option>' +
+        allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+    } else if (u.role === 'project_manager') {
+      const cur = (u.projectIds && u.projectIds[0]) || '';
+      scopeHtml = '<label class="fl">' + I18n.t('المشروع (إلزامي — يرى بياناته فقط)') + '</label><select class="inp" id="eu-project">' +
+        allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+    } else if (u.role === 'owner') {
+      const cur = u.projectIds || [];
+      scopeHtml = '<label class="fl">' + I18n.t('مشروع المالك (يرى صفحة مشروعه فقط)') + '</label>' +
+        allProjects.map(function (p) {
+          return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="eu-proj" value="' + esc(p.id) + '"' +
+            (cur.indexOf(p.id) !== -1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+        }).join('');
+    }
+    const m = modal(
+      '<h3>✏️ ' + I18n.t('تعديل بيانات المستخدم') + '</h3>' +
+      '<label class="fl">' + I18n.t('الاسم الكامل') + '</label><input class="inp" id="eu-name" value="' + esc(u.name) + '">' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('البريد الإلكتروني (للإشعارات)') + '</label><input class="inp num" id="eu-email" type="email" dir="ltr" value="' + esc(u.email || '') + '"></div>' +
+      '<div><label class="fl">' + I18n.t('الجوال (واتساب)') + '</label><input class="inp num" id="eu-phone" dir="ltr" value="' + esc(u.phone || '') + '"></div></div>' +
+      '<label class="fl">' + I18n.t('كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)') + '</label><input class="inp num" id="eu-pass" placeholder="••••••••" dir="ltr">' +
+      '<div id="eu-scope">' + scopeHtml + '</div>' +
+      '<div class="m-actions"><button class="btn" id="eu-save">' + I18n.t('حفظ التعديلات') + '</button><button class="btn mutedb" id="eu-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#eu-cancel').addEventListener('click', function () { m.remove(); });
+
+    if (u.role === 'contractor') {
+      const projSel = m.querySelector('#eu-project');
+      const contSel = m.querySelector('#eu-cont');
+      function fillContractors() {
+        const pid = projSel ? projSel.value : (allProjects[0] && allProjects[0].id);
+        const list = ((ctx.Sall || ctx.S).contractors || []).filter(function (c) { return c.projectId === pid; });
+        contSel.innerHTML = list.map(function (c) { return '<option value="' + esc(c.id) + '"' + (c.id === u.contractorId ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('');
+      }
+      fillContractors();
+      if (projSel) projSel.addEventListener('change', fillContractors);
+    }
+
+    m.querySelector('#eu-save').addEventListener('click', async function () {
+      const name = m.querySelector('#eu-name').value.trim();
+      if (!name) { toast(I18n.t('أدخل اسم المستخدم')); return; }
+      const patch = {
+        name: name,
+        email: m.querySelector('#eu-email').value.trim(),
+        phone: m.querySelector('#eu-phone').value.trim()
+      };
+      const newPass = m.querySelector('#eu-pass').value;
+      if (newPass) patch.password = newPass;
+      if (u.role === 'contractor') {
+        const contSel = m.querySelector('#eu-cont');
+        if (!contSel || !contSel.value) { toast(I18n.t('اختر المقاول المطلوب ربط الحساب به'), true); return; }
+        patch.contractorId = contSel.value;
+      } else if (u.role === 'consultant') {
+        const projSel = m.querySelector('#eu-project');
+        patch.projectIds = (projSel && projSel.value) ? [projSel.value] : null;
+      } else if (u.role === 'project_manager') {
+        const projSel = m.querySelector('#eu-project');
+        if (!projSel || !projSel.value) { toast(I18n.t('حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع'), true); return; }
+        patch.projectIds = [projSel.value];
+      } else if (u.role === 'owner') {
+        const checks = m.querySelectorAll('.eu-proj:checked');
+        if (!checks.length) { toast(I18n.t('حدد مشروع المالك — المالك يرى صفحة مشروعه'), true); return; }
+        patch.projectIds = Array.prototype.map.call(checks, function (c) { return c.value; });
+      }
+      try {
+        await Api.update('users', id, patch);
+        m.remove();
+        toast('✅ ' + I18n.t('تم حفظ التعديلات'));
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
     });
   }
 
@@ -1535,7 +1674,7 @@
     el.querySelectorAll('[data-dview]').forEach(function (b) {
       b.addEventListener('click', function () {
         const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
-        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false, showMap: true, canMap: ['consultant', 'admin'].indexOf(ctx.U.role) !== -1 });
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false, showMap: true, canMap: ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1 });
       });
     });
     el.querySelector('#pd-add').addEventListener('click', async function () {
@@ -1697,6 +1836,26 @@
       (tab === 'claims' ? '<label class="fl">' + I18n.t('نوع المطالبة') + '</label><select class="inp" id="sb-kind"><option value="eot">' + I18n.t('تمديد مدة EOT') + '</option><option value="cost">' + I18n.t('مطالبة مالية') + '</option></select>' : '') +
       (needAmount ? '<label class="fl">' + I18n.t('القيمة (ر.س)') + '</label><input class="inp num" id="sb-amount" type="number">' : '') +
       (tab === 'changeOrders' || tab === 'claims' ? '<label class="fl">' + I18n.t('الأيام الإضافية المطلوبة') + '</label><input class="inp num" id="sb-days" type="number" value="0">' : '') +
+      // مرجع الجدول الزمني المعتمد — ليرى المقاول والاستشاري أثر أيام أمر التغيير على الجدول الرسمي فعلياً
+      (tab === 'changeOrders' ? (function () {
+        const tasks = (ctx.S.scheduleTasks || []).slice().sort(function (a, b) { return String(a.endPlanned || '').localeCompare(String(b.endPlanned || '')); });
+        const P = ctx.S.projects[0];
+        if (!tasks.length) {
+          return '<div class="card" style="padding:10px 14px;margin:4px 0 10px"><b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + '</b>' +
+            '<div class="small muted mt">' + I18n.t('لا يوجد جدول زمني معتمد لهذا المشروع بعد.') + '</div></div>';
+        }
+        const upcoming = tasks.filter(function (t) { return (t.progress || 0) < 100; }).slice(0, 5);
+        return '<div class="card" style="padding:10px 14px;margin:4px 0 10px">' +
+          '<b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + ' <span class="hint">' + I18n.t('ليتّضح أثر الأيام الإضافية على الجدول الرسمي') + '</span></b>' +
+          '<div class="small muted mt">' + I18n.t('تاريخ الانتهاء المخطط: ') + '<b class="num">' + esc(P.endPlanned || '—') + '</b>' +
+          (P.endForecast && P.endForecast !== P.endPlanned ? ' · ' + I18n.t('المتوقع حالياً: ') + '<b class="num">' + esc(P.endForecast) + '</b>' : '') + '</div>' +
+          (upcoming.length ? '<div class="small mt" style="max-height:110px;overflow-y:auto">' +
+            upcoming.map(function (t) {
+              return '<div class="flex" style="justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)">' +
+                '<span>' + esc(t.name) + '</span><span class="num muted">' + esc(t.endPlanned || '—') + ' · ' + (t.progress || 0) + '%</span></div>';
+            }).join('') + '</div>' : '') +
+          '</div>';
+      })() : '') +
       (isWir ? '<label class="fl">' + I18n.t('الموقع / الدور') + '</label><select class="inp" id="sb-loc">' +
         ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>' : '') +
       (isPayment ?
@@ -2214,7 +2373,7 @@
     const v = m.querySelector('#ad-view');
     if (v) v.addEventListener('click', function () {
       m.remove();
-      const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
+      const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
       window.DrawingViewer.open(ctx, row.col, it, { canEdit: canEdit, canReview: canEdit && it.status === 'pending' });
     });
   }

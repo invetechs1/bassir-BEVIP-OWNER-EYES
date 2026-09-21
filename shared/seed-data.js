@@ -269,7 +269,8 @@
       { id: 'U4', username: 'consultant', password: 'consult123', name: 'م. خالد العمران (الاستشاري)',    role: 'consultant', email: 'consultant@bassir.app', phone: '0500000004', notifyEmail: true, notifyWhatsapp: true },
       { id: 'U5', username: 'cont-str',   password: 'cont123',    name: 'شركة الإعمار الحديثة',           role: 'contractor', contractorId: 'C1', email: 'str@bassir.app', phone: '0500000005', notifyEmail: true, notifyWhatsapp: true },
       { id: 'U6', username: 'cont-arch',  password: 'cont123',    name: 'مؤسسة البناء المعماري',          role: 'contractor', contractorId: 'C2', email: 'arch@bassir.app', phone: '0500000006', notifyEmail: true, notifyWhatsapp: true },
-      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3', email: 'elec@bassir.app', phone: '0500000007', notifyEmail: true, notifyWhatsapp: false }
+      { id: 'U7', username: 'cont-elec',  password: 'cont123',    name: 'شركة الطاقة المتحدة',            role: 'contractor', contractorId: 'C3', email: 'elec@bassir.app', phone: '0500000007', notifyEmail: true, notifyWhatsapp: false },
+      { id: 'U8', username: 'pm',         password: 'pm123',      name: 'م. سلطان الحربي (مدير المشروع)', role: 'project_manager', projectIds: ['P1'], email: 'pm@bassir.app', phone: '0500000008', notifyEmail: true, notifyWhatsapp: true }
     ];
 
     // ============ اعتمادات المخططات (Shop Drawings) ============
@@ -768,7 +769,7 @@
 
     db.notifications = [];
     db.comments = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 19, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 20, docSeq: docSeq };
 
     return db;
   }

@@ -29,7 +29,8 @@
     'جدولك الحالي غير مطابق؟ نزّل النموذج الفارغ، انسخ بنودك فيه، ثم ارفعه — يضمن ذلك قراءته بشكل صحيح.':
       "Your current spreadsheet not matching? Download the empty template, copy your items into it, then upload it — that guarantees it reads correctly.",
     'تعذّر التعرف على أعمدة الكمية أو السعر في هذا الملف (كل القيم ظهرت صفراً) — على الأغلب تنسيق الملف مختلف عمّا يتوقعه النظام. نزّل النموذج الفارغ أعلاه وانسخ بياناتك فيه بدل رفع ملفك كما هو.':
-      "Couldn't recognize the quantity or price columns in this file (every value came out zero) — the file format most likely doesn't match what the system expects. Download the empty template above and copy your data into it instead of uploading your file as-is."
+      "Couldn't recognize the quantity or price columns in this file (every value came out zero) — the file format most likely doesn't match what the system expects. Download the empty template above and copy your data into it instead of uploading your file as-is.",
+    'يشمل أعمالاً تمهيدية/تعبئة موقع — يُنصح بمراجعة عاجلة': 'Includes preliminary/mobilization work — priority review recommended'
   });
 
   const todayMs = () => Date.now();
@@ -330,7 +331,7 @@
         const type = c.getAttribute('t'); const v = c.getElementsByTagName('v')[0];
         let val = v ? v.textContent : (c.getElementsByTagName('t')[0] ? c.getElementsByTagName('t')[0].textContent : '');
         if (type === 's') val = shared[parseInt(val, 10)] || '';
-        arr[col >= 0 ? col : arr.length] = (val == null ? '' : val);
+        arr[col >= 0 ? col : arr.length] = normDigits(val == null ? '' : val);
       }
       grid.push(arr);
     }
@@ -341,14 +342,29 @@
     return parseDelimited(grid.map(function (r) { return r.map(function (c) { return (c == null ? '' : c); }).join('\t'); }).join('\n'));
   }
 
+  // يحوّل الأرقام العربية-الهندية (١٢٣...) والفارسية (۱۲۳...) إلى أرقام لاتينية عادية —
+  // شائعة في ملفات إكسل/PDF المُصدَّرة أو المُنسَّقة بإعدادات لغة عربية على ويندوز، ولولا هذا
+  // التحويل فإن Number('١٢٠') = NaN فتضيع كل كمية/سعر مكتوب بها إلى صفر بصمت.
+  function normDigits(s) {
+    return String(s == null ? '' : s)
+      .replace(/[٠-٩]/g, function (d) { return String(d.charCodeAt(0) - 0x0660); })
+      .replace(/[۰-۹]/g, function (d) { return String(d.charCodeAt(0) - 0x06f0); })
+      // الفاصلة العشرية العربية (٫ U+066B) والألوف (٬ U+066C) — وإلا يُشطَب الفاصل العشري لاحقاً
+      // ضمن تنظيف [^\d.] فيتحول "٢٨٫٥" (28.5) إلى 285 بصمت
+      .replace(/٫/g, '.').replace(/٬/g, ',');
+  }
+
   // يقرأ نص ملف بترميز موثوق: UTF-8 أولاً بصرامة (fatal)، وإن فشل (شائع جداً مع ملفات CSV عربية
   // محفوظة من إكسل بترميز صفحة الرموز المحلي Windows-1256 بدل UTF-8 على ويندوز عربي) يُعاد الترميز
   // بـ Windows-1256 بدل ظهور رموز غير مفهومة (███/?) مكان النص العربي وضياع كل الأرقام معه
-  // (لأن فشل اكتشاف عناوين الأعمدة العربية يُسقط الكمية والسعر لصفر تلقائياً).
+  // (لأن فشل اكتشاف عناوين الأعمدة العربية يُسقط الكمية والسعر لصفر تلقائياً). كما يُطبَّق تطبيع
+  // الأرقام العربية-الهندية هنا فيغطّي كل قارئ نصي (CSV/TSV/XER/P6 XML).
   async function decodeFileText(file) {
     const buf = await file.arrayBuffer();
-    try { return new TextDecoder('utf-8', { fatal: true }).decode(buf); }
-    catch (e) { return new TextDecoder('windows-1256').decode(buf); }
+    let text;
+    try { text = new TextDecoder('utf-8', { fatal: true }).decode(buf); }
+    catch (e) { text = new TextDecoder('windows-1256').decode(buf); }
+    return normDigits(text);
   }
 
   // قارئ جداول عام (CSV/TSV/XLSX) يعيد صفوفاً خامة (مصفوفة مصفوفات) — لجداول الكميات وغيرها
@@ -378,6 +394,7 @@
     const pdf = await lib.getDocument({ url: url }).promise;
     let text = '';
     for (let p = 1; p <= pdf.numPages; p++) { const page = await pdf.getPage(p); const c = await page.getTextContent(); let lastY = null, line = ''; c.items.forEach(function (it) { const y = Math.round(it.transform[5]); if (lastY !== null && Math.abs(y - lastY) > 3) { text += line.trim() + '\n'; line = ''; } line += it.str + ' '; lastY = y; }); text += line.trim() + '\n'; }
+    text = normDigits(text);
     // أبقِ الأسطر التي تحوي تاريخاً (على الأرجح صفوف مهام)
     const lines = text.split('\n').filter(function (l) { return /\d{4}-\d{2}-\d{2}|\d{1,2}[\/-][A-Za-z]{3}|\d{1,2}\/\d{1,2}\/\d{4}/.test(l); });
     return lines.map(function (l) {
@@ -405,7 +422,7 @@
   function renderSchedule(el, ctx) {
     const role = ctx.U.role;
     const isContractor = role === 'contractor';
-    const isReviewer = role === 'consultant' || role === 'admin';
+    const isReviewer = role === 'consultant' || role === 'project_manager' || role === 'admin';
     const canUpload = isContractor || isReviewer;
     const tasks = (ctx.S.scheduleTasks || []).slice();
     // برامج زمنية مقدّمة (دورة الاعتماد): المقاول يرى برامجه، الاستشاري يرى ما ينتظر قراره
@@ -534,19 +551,38 @@
   }
 
   // لوحة اعتماد خط الأساس (جداول الكميات/الجداول الزمنية) — اعتماد فردي لخط الأساس، وتوقيع مزدوج للتعديلات
+  // كلمات مفتاحية (عربي/إنجليزي) لاكتشاف أنشطة تمهيدية/تعبئة موقع داخل جدول زمني مرفوع —
+  // لا يوجد حقل "نوع نشاط" في البيانات، فهذا أقرب تخمين عملي بلا تغيير تنسيق الرفع
+  const PRELIM_KEYWORDS = ['mobiliz', 'preliminary', 'تعبئة', 'تمهيد', 'تجهيز الموقع'];
+  function hasPreliminaryTask(tasks) {
+    return (tasks || []).some(function (t) {
+      const n = String((t && t.name) || '').toLowerCase();
+      return PRELIM_KEYWORDS.some(function (k) { return n.indexOf(k) !== -1; });
+    });
+  }
+
   function baselineReviewHtml(ctx, collection) {
     const role = ctx.U.role;
-    const canConsult = role === 'consultant' || role === 'admin';
+    const canConsult = role === 'consultant' || role === 'project_manager' || role === 'admin';
     const canRep = role === 'owner_rep';
     if (!canConsult && !canRep) return '';
-    const subs = (ctx.S[collection] || []).filter(function (s) { return s.status === 'pending'; });
+    let subs = (ctx.S[collection] || []).filter(function (s) { return s.status === 'pending'; });
     if (!subs.length) return '';
+    const isSchedule = collection === 'scheduleSubmittals';
+    if (isSchedule) {
+      // البنود التمهيدية/Mobilization تُرفَع لأعلى القائمة وتُبرَز — تحتاج مراجعة عاجلة لأنها
+      // عادة تُعطِّل بدء بقية الأعمال إن تأخر اعتمادها
+      subs = subs.slice().sort(function (a, b) {
+        return (hasPreliminaryTask(b.parsedTasks) ? 1 : 0) - (hasPreliminaryTask(a.parsedTasks) ? 1 : 0);
+      });
+    }
     const title = collection === 'boqSubmittals' ? 'جداول الكميات المقدَّمة' : 'الجداول الزمنية المقدَّمة';
     return '<div class="card mb"><h3 style="margin:0 0 10px">🖊 اعتماد ' + title + ' <span class="hint">اعتماد خط الأساس من الاستشاري؛ تعديله لاحقاً يتطلب توقيع الاستشاري وممثل المالك معاً</span></h3>' +
       '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المرجع</th><th>العنوان</th><th>النوع</th><th>البنود</th><th>التوقيعات</th><th>الإجراء</th></tr></thead><tbody>' +
       subs.map(function (s) {
         const rev = s.kind === 'revision'; const sig = s.sig || {};
         const n = ((s.parsedItems || s.parsedTasks || []).length) || '—';
+        const prelim = isSchedule && hasPreliminaryTask(s.parsedTasks);
         const sigCell = rev ? ('استشاري ' + (sig.consultant ? '✓' : '—') + ' · ممثل المالك ' + (sig.ownerRep ? '✓' : '—')) : '—';
         let act = '';
         if (rev) {
@@ -556,7 +592,10 @@
         } else if (canConsult) {
           act += '<button class="btn sm" data-sign="' + s.id + '" data-col="' + collection + '">✅ اعتماد</button> <button class="btn danger sm" data-rej="' + s.id + '" data-col="' + collection + '">↩ إرجاع</button>';
         }
-        return '<tr><td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td class="small">' + esc(s.title || '—') + '</td><td>' + (rev ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + n + '</td><td class="small">' + sigCell + '</td><td>' + (act || '<span class="muted small">بانتظار الطرف الآخر</span>') + '</td></tr>';
+        return '<tr' + (prelim ? ' style="background:rgba(245,165,36,.08);border-right:3px solid var(--warn,#f5a524)"' : '') + '>' +
+          '<td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td class="small">' + esc(s.title || '—') +
+          (prelim ? '<div class="small mt" style="color:var(--warn,#f5a524)">⚡ ' + I18n.t('يشمل أعمالاً تمهيدية/تعبئة موقع — يُنصح بمراجعة عاجلة') + '</div>' : '') + '</td>' +
+          '<td>' + (rev ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + n + '</td><td class="small">' + sigCell + '</td><td>' + (act || '<span class="muted small">بانتظار الطرف الآخر</span>') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>';
   }
   function wireBaselineReview(el, ctx) {
