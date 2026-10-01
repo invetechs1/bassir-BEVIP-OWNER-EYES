@@ -5,6 +5,19 @@
   const esc = Charts.esc;
 
   I18n.registerDict({
+    'تعديل البيانات': 'Edit Details',
+    'سيُحذف هذا العنصر نهائياً': 'This item will be permanently deleted',
+    '. هل أنت متأكد؟': '. Are you sure?',
+    'عنوان الطلب': 'Request Title',
+    'تعديل الطلب': 'Edit Request',
+    'تعديل بيانات الكاميرا': "Edit Camera's Details",
+    'تعديل بيانات النموذج': "Edit Model's Details",
+    'تعديل بيانات الملف': "Edit File's Details",
+    'اسم الملف': 'File Name',
+    'تعديل بند الكميات': 'Edit BOQ Item',
+    'الملخص': 'Summary',
+    'الأيام الإضافية': 'Additional Days',
+    'هذا الحقل مطلوب — لا يمكن حفظه فارغاً': 'This field is required — it cannot be saved empty',
     'توليد PDF متاح فقط عند الاتصال بالخادم الفعلي': 'PDF generation is only available when connected to the real server',
     'فشل توليد التقرير': 'Failed to generate the report',
     'التدفق النقدي حسب الفترة': 'Cash Flow by Period',
@@ -853,7 +866,11 @@
         return '<div class="card" style="padding:0;overflow:hidden">' +
           '<div class="flex" style="justify-content:space-between;padding:14px 18px">' +
           '<b>' + esc(c.name) + '</b>' +
-          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE' + (live ? ' · RTSP' : '') + '</span>' : '<span class="pill p-muted">' + I18n.t('غير متصلة') + '</span>') + '</div>' +
+          '<div class="flex" style="gap:6px">' +
+          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE' + (live ? ' · RTSP' : '') + '</span>' : '<span class="pill p-muted">' + I18n.t('غير متصلة') + '</span>') +
+          (window.ViewsShared.canManage(ctx) ? '<button class="btn ghost sm" data-camedit="' + c.id + '">✏️</button>' : '') +
+          (window.ViewsShared.canDelete(ctx, 'cameras') ? '<button class="btn danger sm" data-camdel="' + c.id + '">🗑️</button>' : '') +
+          '</div></div>' +
           '<div class="cam-feed' + (on ? '' : ' cam-off') + '">' + feed + '</div>' +
           '<div class="flex" style="justify-content:space-between;padding:12px 18px" class="small">' +
           '<span class="small muted">📍 ' + esc(c.location) + ' · ' + I18n.t('مركبة منذ ') + esc(c.installed || '') + '</span>' +
@@ -905,6 +922,26 @@
         toast(I18n.t('✅ رُبطت الكاميرا وبدأ تحليل بثها'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
+    });
+    el.querySelectorAll('[data-camedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const c = cams.find(function (x) { return x.id === b.getAttribute('data-camedit'); });
+        window.ViewsShared.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل بيانات الكاميرا'), collection: 'cameras', id: c.id, item: c,
+          fields: [
+            { key: 'name', label: I18n.t('اسم الكاميرا'), type: 'text' },
+            { key: 'location', label: I18n.t('الموقع'), type: 'text' },
+            { key: 'url', label: I18n.t('رابط المصدر RTSP'), type: 'text' },
+            { key: 'streamPath', label: I18n.t('مسار البث (على خادم الوسائط)'), type: 'text' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-camdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const c = cams.find(function (x) { return x.id === b.getAttribute('data-camdel'); });
+        window.ViewsShared.genericDelete(ctx, 'cameras', c.id, c.name);
+      });
     });
   }
 
@@ -1710,6 +1747,82 @@
     return '<div class="bar ' + cls + '"><i style="width:' + w + '%"></i></div>';
   }
 
+  // ============ تعديل/حذف عام — نواة واحدة يعاد استخدامها في كل الوحدات ============
+  // (التقديمات والاعتمادات، المكتب الفني، التسليم، الكاميرات، BIM، المستندات...) بدل
+  // بناء نافذة منفصلة لكل شاشة. يُحدَّد الحذف الفعلي من الخادم دائماً (deleteItem في
+  // api-core.js) — هذه القائمة هنا فقط لإظهار/إخفاء زر الحذف في الواجهة بما يطابقه،
+  // ويجب إبقاؤها مطابقة لـ BROAD_DELETE_COLLECTIONS في shared/api-core.js عند تعديل أي منهما.
+  const MANAGE_ROLES = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
+  const BROAD_DELETE_COLLECTIONS = [
+    'shopDrawings', 'materials', 'scheduleSubmittals', 'boqSubmittals', 'wirs', 'changeOrders', 'payments',
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs', 'rfis', 'rfps',
+    'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests', 'meetings', 'correspondence'
+  ];
+  /** هل يملك المستخدم الحالي صلاحية تعديل/إدارة عامة (ليست خاصة بمقاول) */
+  function canManage(ctx) { return MANAGE_ROLES.indexOf(ctx.U.role) !== -1; }
+  /** هل يُظهَر زر الحذف لهذا المستخدم على هذه المجموعة — يطابق قاعدة الخادم تماماً */
+  function canDelete(ctx, collection) {
+    if (ctx.U.role === 'admin') return true;
+    return BROAD_DELETE_COLLECTIONS.indexOf(collection) !== -1 && MANAGE_ROLES.indexOf(ctx.U.role) !== -1;
+  }
+
+  /**
+   * نافذة تعديل عامة: تبني نموذجاً من وصف حقول بسيط وتحفظ عبر Api.update.
+   * opts: { ctx, title, collection, id, item, fields: [{key,label,type:'text'|'textarea'|'number'|'date'}], onSaved? }
+   */
+  function openGenericEdit(opts) {
+    const ctx = opts.ctx, item = opts.item || {};
+    const fieldsHtml = opts.fields.map(function (f) {
+      const raw = item[f.key];
+      const val = esc(raw == null ? '' : raw);
+      const elId = 'ge-' + f.key;
+      if (f.type === 'textarea') {
+        return '<label class="fl">' + esc(f.label) + '</label><textarea class="inp" id="' + elId + '" rows="3">' + val + '</textarea>';
+      }
+      const type = f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text');
+      return '<label class="fl">' + esc(f.label) + '</label><input class="inp' + (type === 'number' ? ' num' : '') + '" id="' + elId + '" type="' + type + '" value="' + val + '">';
+    }).join('');
+    const m = modal(
+      '<h3>✏️ ' + esc(opts.title || I18n.t('تعديل البيانات')) + '</h3>' +
+      fieldsHtml +
+      '<div class="m-actions"><button class="btn" id="ge-save">' + I18n.t('حفظ التعديلات') + '</button><button class="btn mutedb" id="ge-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#ge-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#ge-save').addEventListener('click', async function () {
+      // الحقل الأول هو دائماً الحقل المعرِّف الأساسي (عنوان/اسم/بند...) بحسب اصطلاح كل نداءات هذه الدالة —
+      // يُمنع حفظه فارغاً لتفادي إفساد السجل في كل القوائم والأرشيف
+      const first = opts.fields[0];
+      if (first && first.type !== 'number') {
+        const firstVal = m.querySelector('#ge-' + first.key).value;
+        if (!firstVal || !firstVal.trim()) {
+          toast(I18n.t('هذا الحقل مطلوب — لا يمكن حفظه فارغاً'), true);
+          return;
+        }
+      }
+      const patch = {};
+      opts.fields.forEach(function (f) {
+        const el = m.querySelector('#ge-' + f.key);
+        patch[f.key] = f.type === 'number' ? (Number(el.value) || 0) : el.value;
+      });
+      try {
+        await Api.update(opts.collection, opts.id, patch);
+        m.remove();
+        toast('✅ ' + I18n.t('تم حفظ التعديلات'));
+        if (opts.onSaved) opts.onSaved(); else ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  /** حذف عام بتأكيد — يعتمد على الخادم لفرض الصلاحية الفعلية */
+  async function genericDelete(ctx, collection, id, label) {
+    if (!confirm(I18n.t('سيُحذف هذا العنصر نهائياً') + (label ? ' — ' + label : '') + I18n.t('. هل أنت متأكد؟'))) return;
+    try {
+      await Api.remove(collection, id);
+      toast('✅ ' + I18n.t('تم الحذف'));
+      ctx.refresh();
+    } catch (e) { toast(e.message, true); }
+  }
+
   window.ViewsShared = {
     pill: pill, statusPill: statusPill, money: money, millions: millions, fmtInt: fmtInt,
     barClass: barClass, progressBar: progressBar,
@@ -1717,6 +1830,7 @@
     discOf: discOf, floorName: floorName, weightedProgress: weightedProgress,
     thresholds: thresholdsOf, DEFAULT_THRESHOLDS: DEFAULT_THRESHOLDS,
     summarize: summarize, STATUS: STATUS, esc: esc, att: att,
+    canManage: canManage, canDelete: canDelete, openGenericEdit: openGenericEdit, genericDelete: genericDelete,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras

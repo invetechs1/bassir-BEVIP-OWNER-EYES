@@ -683,8 +683,11 @@
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:220px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
             (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
-            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') + '</div></td>' +
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' + window.DrawingViewer.btn(it) +
+            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-arv-edit="' + it.id + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, tab) ? '<button class="btn danger sm" data-arv-del="' + it.id + '">🗑️</button>' : '') +
+            '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا توجد طلبات في هذا القسم') + '</div>') +
@@ -704,6 +707,22 @@
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-dview'); });
         window.DrawingViewer.open(ctx, tab, it, { canEdit: true, canReview: it.status === 'pending' });
+      });
+    });
+    el.querySelectorAll('[data-arv-edit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-arv-edit'); });
+        const fields = [{ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' }];
+        if ('amount' in it) fields.push({ key: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' });
+        if ('days' in it) fields.push({ key: 'days', label: I18n.t('الأيام الإضافية'), type: 'number' });
+        fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+        VS.openGenericEdit({ ctx: ctx, title: I18n.t('تعديل الطلب'), collection: tab, id: it.id, item: it, fields: fields });
+      });
+    });
+    el.querySelectorAll('[data-arv-del]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-arv-del'); });
+        VS.genericDelete(ctx, tab, it.id, it.title);
       });
     });
   }
@@ -960,7 +979,7 @@
       '<span class="pill p-info">' + I18n.t('القيمة: ') + money(Math.round(total)) + '</span>' +
       '<span class="pill p-ok">' + I18n.t('المنفذ: ') + money(Math.round(earned)) + ' (' + (total ? Math.round(earned / total * 100) : 0) + '%)</span></div>' +
       '<div class="tbl-wrap" style="max-height:60vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th></tr></thead><tbody>' +
+      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       items.map(function (b) {
         const d = discOf(ctx, b.discipline);
         return '<tr><td class="num small">' + esc(b.code) + '</td>' +
@@ -972,7 +991,11 @@
           '<td><div class="flex">' +
           (canEdit ? '<input type="range" min="0" max="100" value="' + b.progress + '" data-bq="' + b.id + '" style="flex:1;accent-color:' + d.color + '">' :
             '<div class="bar" style="flex:1"><i style="width:' + b.progress + '%"></i></div>') +
-          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td></tr>';
+          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td>' +
+          (canEdit ? '<td><div class="flex" style="gap:6px;flex-wrap:nowrap">' +
+            '<button class="btn ghost sm" data-bqedit="' + b.id + '">✏️</button>' +
+            (VS.canDelete(ctx, 'boqItems') ? '<button class="btn danger sm" data-bqdel="' + b.id + '">🗑️</button>' : '') +
+            '</div></td>' : '') + '</tr>';
       }).join('') + '</tbody></table></div></div>';
 
     el.querySelector('#bq-filter').addEventListener('change', function (e) {
@@ -1040,6 +1063,27 @@
       });
     });
     if (window.ViewsExtra && window.ViewsExtra.wireBaselineReview) window.ViewsExtra.wireBaselineReview(el, ctx);
+    el.querySelectorAll('[data-bqedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-bqedit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل بند الكميات'), collection: 'boqItems', id: it.id, item: it,
+          fields: [
+            { key: 'code', label: I18n.t('الكود'), type: 'text' },
+            { key: 'description', label: I18n.t('وصف البند'), type: 'text' },
+            { key: 'unit', label: I18n.t('الوحدة'), type: 'text' },
+            { key: 'qty', label: I18n.t('الكمية'), type: 'number' },
+            { key: 'unitPrice', label: I18n.t('سعر الوحدة'), type: 'number' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-bqdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-bqdel'); });
+        VS.genericDelete(ctx, 'boqItems', it.id, it.description);
+      });
+    });
   }
 
   // ============ إعداد التقارير (الاستشاري): يومي / أسبوعي / شهري ============
@@ -1073,7 +1117,8 @@
         '<h3>' + I18n.t('🗄️ أرشيف التقارير اليومية') + '</h3>' +
         ctx.S.dailyReports.map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
-            '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="small muted">' + I18n.t('عمالة: ') + r.manpower + ' · 📎 ' + ((r.photos || []).length + (r.attachments || []).length) + '</span></div>' +
+            '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="flex" style="gap:8px"><span class="small muted">' + I18n.t('عمالة: ') + r.manpower + ' · 📎 ' + ((r.photos || []).length + (r.attachments || []).length) + '</span>' +
+            (VS.canDelete(ctx, 'dailyReports') ? '<button class="btn danger sm" data-drdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + (r.works || []).map(esc).join(' • ') + '</div></div>';
         }).join('');
     } else if (tab === 'weekly') {
@@ -1094,7 +1139,8 @@
         (ctx.S.weeklyReports || []).map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
             '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
-            '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+            '<span class="flex" style="gap:8px"><span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span>' +
+            (VS.canDelete(ctx, 'weeklyReports') ? '<button class="btn danger sm" data-wrrdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + esc(r.summary || '') + '</div>' +
             '<div class="small muted" style="margin-top:6px">📎 ' + ((r.photos || []).length + (r.attachments || []).length) + I18n.t(' مرفقات') + '</div></div>';
         }).join('');
@@ -1113,7 +1159,8 @@
         ctx.S.monthlyReports.map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
             '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
-            '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+            '<span class="flex" style="gap:8px"><span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span>' +
+            (VS.canDelete(ctx, 'monthlyReports') ? '<button class="btn danger sm" data-mrrdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + esc(r.summary || '') + '</div></div>';
         }).join('');
     }
@@ -1130,6 +1177,15 @@
 
     el.querySelectorAll('[data-rtab]').forEach(function (t) {
       t.addEventListener('click', function () { rptState.tab = t.getAttribute('data-rtab'); renderDailyReport(el, ctx); });
+    });
+    el.querySelectorAll('[data-drdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'dailyReports', b.getAttribute('data-drdel')); });
+    });
+    el.querySelectorAll('[data-wrrdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'weeklyReports', b.getAttribute('data-wrrdel')); });
+    });
+    el.querySelectorAll('[data-mrrdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'monthlyReports', b.getAttribute('data-mrrdel')); });
     });
 
     const dSave = el.querySelector('#dr-save');
@@ -2233,7 +2289,11 @@
             t.cols.map(function (c) { return '<td>' + c.r(it, ctx) + '</td>'; }).join('') +
             '<td class="small muted num">' + esc(it.date || '') + '</td>' +
             (t.noStatus ? '' : '<td>' + pill(it[t.statusKey || 'status']) + '</td>') +
-            '<td>' + (act ? '<button class="btn sm" data-tact="' + idx + '">' + act.label + '</button>' : '') + '</td>' +
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+            (act ? '<button class="btn sm" data-tact="' + idx + '">' + act.label + '</button>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-ttedit="' + idx + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, t.col) ? '<button class="btn danger sm" data-ttdel="' + idx + '">🗑️</button>' : '') +
+            '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا سجلات بعد') + '</div>') +
@@ -2249,6 +2309,23 @@
         const it = items[Number(b.getAttribute('data-tact'))];
         const act = t.action(ctx, it);
         if (act) act.run();
+      });
+    });
+    el.querySelectorAll('[data-ttedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items[Number(b.getAttribute('data-ttedit'))];
+        const fields = [];
+        if ('title' in it) fields.push({ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' });
+        if ('question' in it) fields.push({ key: 'question', label: I18n.t('نص الاستفسار'), type: 'textarea' });
+        if ('details' in it) fields.push({ key: 'details', label: I18n.t('التفاصيل'), type: 'textarea' });
+        fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+        VS.openGenericEdit({ ctx: ctx, title: esc(I18n.t(t.name)) + ' — ' + I18n.t('تعديل'), collection: t.col, id: it.id, item: it, fields: fields });
+      });
+    });
+    el.querySelectorAll('[data-ttdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items[Number(b.getAttribute('data-ttdel'))];
+        VS.genericDelete(ctx, t.col, it.id, it.title || it.ref);
       });
     });
   }
@@ -2368,6 +2445,8 @@
       '</div>' +
       '<div class="m-actions">' +
       (hasDrawing ? '<button class="btn" id="ad-view">🖊 ' + I18n.t('فتح المخطط') + ((it.annotations || []).length ? ' (' + it.annotations.length + ' ' + I18n.t('ترميز') + ')' : '') + '</button>' : '') +
+      (VS.canManage(ctx) ? '<button class="btn ghost" id="ad-edit">✏️ ' + I18n.t('تعديل') + '</button>' : '') +
+      (VS.canDelete(ctx, row.col) ? '<button class="btn danger" id="ad-del">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
       '<button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
     );
     const v = m.querySelector('#ad-view');
@@ -2375,6 +2454,27 @@
       m.remove();
       const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
       window.DrawingViewer.open(ctx, row.col, it, { canEdit: canEdit, canReview: canEdit && it.status === 'pending' });
+    });
+    const edBtn = m.querySelector('#ad-edit');
+    if (edBtn) edBtn.addEventListener('click', function () {
+      m.remove();
+      // حقول تعديل تُبنى ديناميكياً بحسب ما يحمله السجل فعلياً — يناسب كل أنواع السجلات الـ28 بنموذج واحد
+      const fields = [];
+      if ('title' in it) fields.push({ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' });
+      else if ('name' in it) fields.push({ key: 'name', label: I18n.t('الاسم'), type: 'text' });
+      if ('description' in it) fields.push({ key: 'description', label: I18n.t('الوصف'), type: 'textarea' });
+      if ('question' in it) fields.push({ key: 'question', label: I18n.t('نص الاستفسار'), type: 'textarea' });
+      if ('summary' in it) fields.push({ key: 'summary', label: I18n.t('الملخص'), type: 'textarea' });
+      if ('amount' in it) fields.push({ key: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' });
+      if ('days' in it) fields.push({ key: 'days', label: I18n.t('الأيام الإضافية'), type: 'number' });
+      if ('notes' in it) fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+      if (!fields.length) fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+      VS.openGenericEdit({ ctx: ctx, title: row.typeName + ' — ' + I18n.t('تعديل'), collection: row.col, id: it.id, item: it, fields: fields });
+    });
+    const delBtn = m.querySelector('#ad-del');
+    if (delBtn) delBtn.addEventListener('click', function () {
+      m.remove();
+      VS.genericDelete(ctx, row.col, it.id, row.title);
     });
   }
 

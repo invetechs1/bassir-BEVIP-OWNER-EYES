@@ -1403,6 +1403,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
     bimMappings: ['consultant', 'project_manager', 'admin']
   };
 
+  // الحذف افتراضياً للأدمن فقط (+ممثل المالك لحساب المستخدمين) — عدا مجموعات دورة التقديمات
+  // والاعتمادات/المكتب الفني أدناه، حيث يُسمح أيضاً للمالك/الاستشاري/ممثل المالك/مدير المشروع بالحذف
+  // (طلب العميل صراحة: تصحيح تقديم خاطئ أو مكرر دون انتظار الأدمن — ثم وسّع الطلب ليشمل المالك أيضاً)
+  const BROAD_DELETE_COLLECTIONS = [
+    'shopDrawings', 'materials', 'scheduleSubmittals', 'boqSubmittals', 'wirs', 'changeOrders', 'payments',
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs', 'rfis', 'rfps',
+    'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests', 'meetings', 'correspondence'
+  ];
+  const BROAD_DELETE_ROLES = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
+
   function createCore(db, persist, opts) {
     persist = persist || function () {};
     opts = opts || {};
@@ -1794,6 +1804,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
           if (!allowed) throw err('لا يمكن تعديل طلب تم البت فيه — يمكنك الرد على الملاحظات أو رفع نسخة معدلة', 403);
         }
       }
+      // بعد اعتماد/رفض الطلب فعلياً: القيمة المالية والأثر الزمني يُقفلان لكل الأدوار (بما فيها الأدمن)
+      // لضمان بقاء السجل مطابقاً تماماً للقرار الموثَّق — أي تصحيح لاحق يجب أن يمر عبر أمر تغيير جديد
+      // لا عبر تعديل صامت يُبقي الحالة «معتمد» بأرقام مختلفة عما اعتُمد فعلياً (أثر مالي/جدولي غير موثّق)
+      if (item.status && ['approved', 'approved_notes', 'rejected', 'fail'].indexOf(item.status) !== -1) {
+        if ('amount' in patch || 'days' in patch) {
+          throw err('لا يمكن تعديل القيمة المالية أو الأثر الزمني بعد اعتماد/رفض الطلب — أنشئ أمر تغيير جديداً لأي تعديل لاحق', 403);
+        }
+      }
       if (collection === 'users') {
         // تعديل حسابات المستخدمين صلاحية الأدمن وممثل المالك فقط (تطابق CREATE_RULES.users) —
         // تعديل الملف الشخصي لأي مستخدم عن نفسه يمر عبر updateProfile، لا هذا المسار العام
@@ -1832,8 +1850,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
     }
 
     function deleteItem(user, collection, id) {
-      if (user.role !== 'admin' && !(user.role === 'owner_rep' && collection === 'users')) {
-        throw err('الحذف متاح للأدمن فقط', 403);
+      const broadDelete = BROAD_DELETE_COLLECTIONS.indexOf(collection) !== -1 && BROAD_DELETE_ROLES.indexOf(user.role) !== -1;
+      const narrowDelete = user.role === 'admin' || (user.role === 'owner_rep' && collection === 'users');
+      if (!broadDelete && !narrowDelete) {
+        throw err('لا تملك صلاحية الحذف', 403);
       }
       const list = db[collection];
       if (!list) throw err('مجموعة غير معروفة', 404);
@@ -4407,6 +4427,19 @@ textarea.inp { resize: vertical; min-height: 80px; }
   const esc = Charts.esc;
 
   I18n.registerDict({
+    'تعديل البيانات': 'Edit Details',
+    'سيُحذف هذا العنصر نهائياً': 'This item will be permanently deleted',
+    '. هل أنت متأكد؟': '. Are you sure?',
+    'عنوان الطلب': 'Request Title',
+    'تعديل الطلب': 'Edit Request',
+    'تعديل بيانات الكاميرا': "Edit Camera's Details",
+    'تعديل بيانات النموذج': "Edit Model's Details",
+    'تعديل بيانات الملف': "Edit File's Details",
+    'اسم الملف': 'File Name',
+    'تعديل بند الكميات': 'Edit BOQ Item',
+    'الملخص': 'Summary',
+    'الأيام الإضافية': 'Additional Days',
+    'هذا الحقل مطلوب — لا يمكن حفظه فارغاً': 'This field is required — it cannot be saved empty',
     'توليد PDF متاح فقط عند الاتصال بالخادم الفعلي': 'PDF generation is only available when connected to the real server',
     'فشل توليد التقرير': 'Failed to generate the report',
     'التدفق النقدي حسب الفترة': 'Cash Flow by Period',
@@ -5255,7 +5288,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
         return '<div class="card" style="padding:0;overflow:hidden">' +
           '<div class="flex" style="justify-content:space-between;padding:14px 18px">' +
           '<b>' + esc(c.name) + '</b>' +
-          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE' + (live ? ' · RTSP' : '') + '</span>' : '<span class="pill p-muted">' + I18n.t('غير متصلة') + '</span>') + '</div>' +
+          '<div class="flex" style="gap:6px">' +
+          (on ? '<span class="pill p-danger"><span class="rec-dot"></span> LIVE' + (live ? ' · RTSP' : '') + '</span>' : '<span class="pill p-muted">' + I18n.t('غير متصلة') + '</span>') +
+          (window.ViewsShared.canManage(ctx) ? '<button class="btn ghost sm" data-camedit="' + c.id + '">✏️</button>' : '') +
+          (window.ViewsShared.canDelete(ctx, 'cameras') ? '<button class="btn danger sm" data-camdel="' + c.id + '">🗑️</button>' : '') +
+          '</div></div>' +
           '<div class="cam-feed' + (on ? '' : ' cam-off') + '">' + feed + '</div>' +
           '<div class="flex" style="justify-content:space-between;padding:12px 18px" class="small">' +
           '<span class="small muted">📍 ' + esc(c.location) + ' · ' + I18n.t('مركبة منذ ') + esc(c.installed || '') + '</span>' +
@@ -5307,6 +5344,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
         toast(I18n.t('✅ رُبطت الكاميرا وبدأ تحليل بثها'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
+    });
+    el.querySelectorAll('[data-camedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const c = cams.find(function (x) { return x.id === b.getAttribute('data-camedit'); });
+        window.ViewsShared.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل بيانات الكاميرا'), collection: 'cameras', id: c.id, item: c,
+          fields: [
+            { key: 'name', label: I18n.t('اسم الكاميرا'), type: 'text' },
+            { key: 'location', label: I18n.t('الموقع'), type: 'text' },
+            { key: 'url', label: I18n.t('رابط المصدر RTSP'), type: 'text' },
+            { key: 'streamPath', label: I18n.t('مسار البث (على خادم الوسائط)'), type: 'text' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-camdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const c = cams.find(function (x) { return x.id === b.getAttribute('data-camdel'); });
+        window.ViewsShared.genericDelete(ctx, 'cameras', c.id, c.name);
+      });
     });
   }
 
@@ -6112,6 +6169,82 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return '<div class="bar ' + cls + '"><i style="width:' + w + '%"></i></div>';
   }
 
+  // ============ تعديل/حذف عام — نواة واحدة يعاد استخدامها في كل الوحدات ============
+  // (التقديمات والاعتمادات، المكتب الفني، التسليم، الكاميرات، BIM، المستندات...) بدل
+  // بناء نافذة منفصلة لكل شاشة. يُحدَّد الحذف الفعلي من الخادم دائماً (deleteItem في
+  // api-core.js) — هذه القائمة هنا فقط لإظهار/إخفاء زر الحذف في الواجهة بما يطابقه،
+  // ويجب إبقاؤها مطابقة لـ BROAD_DELETE_COLLECTIONS في shared/api-core.js عند تعديل أي منهما.
+  const MANAGE_ROLES = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
+  const BROAD_DELETE_COLLECTIONS = [
+    'shopDrawings', 'materials', 'scheduleSubmittals', 'boqSubmittals', 'wirs', 'changeOrders', 'payments',
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs', 'rfis', 'rfps',
+    'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests', 'meetings', 'correspondence'
+  ];
+  /** هل يملك المستخدم الحالي صلاحية تعديل/إدارة عامة (ليست خاصة بمقاول) */
+  function canManage(ctx) { return MANAGE_ROLES.indexOf(ctx.U.role) !== -1; }
+  /** هل يُظهَر زر الحذف لهذا المستخدم على هذه المجموعة — يطابق قاعدة الخادم تماماً */
+  function canDelete(ctx, collection) {
+    if (ctx.U.role === 'admin') return true;
+    return BROAD_DELETE_COLLECTIONS.indexOf(collection) !== -1 && MANAGE_ROLES.indexOf(ctx.U.role) !== -1;
+  }
+
+  /**
+   * نافذة تعديل عامة: تبني نموذجاً من وصف حقول بسيط وتحفظ عبر Api.update.
+   * opts: { ctx, title, collection, id, item, fields: [{key,label,type:'text'|'textarea'|'number'|'date'}], onSaved? }
+   */
+  function openGenericEdit(opts) {
+    const ctx = opts.ctx, item = opts.item || {};
+    const fieldsHtml = opts.fields.map(function (f) {
+      const raw = item[f.key];
+      const val = esc(raw == null ? '' : raw);
+      const elId = 'ge-' + f.key;
+      if (f.type === 'textarea') {
+        return '<label class="fl">' + esc(f.label) + '</label><textarea class="inp" id="' + elId + '" rows="3">' + val + '</textarea>';
+      }
+      const type = f.type === 'number' ? 'number' : (f.type === 'date' ? 'date' : 'text');
+      return '<label class="fl">' + esc(f.label) + '</label><input class="inp' + (type === 'number' ? ' num' : '') + '" id="' + elId + '" type="' + type + '" value="' + val + '">';
+    }).join('');
+    const m = modal(
+      '<h3>✏️ ' + esc(opts.title || I18n.t('تعديل البيانات')) + '</h3>' +
+      fieldsHtml +
+      '<div class="m-actions"><button class="btn" id="ge-save">' + I18n.t('حفظ التعديلات') + '</button><button class="btn mutedb" id="ge-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#ge-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#ge-save').addEventListener('click', async function () {
+      // الحقل الأول هو دائماً الحقل المعرِّف الأساسي (عنوان/اسم/بند...) بحسب اصطلاح كل نداءات هذه الدالة —
+      // يُمنع حفظه فارغاً لتفادي إفساد السجل في كل القوائم والأرشيف
+      const first = opts.fields[0];
+      if (first && first.type !== 'number') {
+        const firstVal = m.querySelector('#ge-' + first.key).value;
+        if (!firstVal || !firstVal.trim()) {
+          toast(I18n.t('هذا الحقل مطلوب — لا يمكن حفظه فارغاً'), true);
+          return;
+        }
+      }
+      const patch = {};
+      opts.fields.forEach(function (f) {
+        const el = m.querySelector('#ge-' + f.key);
+        patch[f.key] = f.type === 'number' ? (Number(el.value) || 0) : el.value;
+      });
+      try {
+        await Api.update(opts.collection, opts.id, patch);
+        m.remove();
+        toast('✅ ' + I18n.t('تم حفظ التعديلات'));
+        if (opts.onSaved) opts.onSaved(); else ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+  }
+
+  /** حذف عام بتأكيد — يعتمد على الخادم لفرض الصلاحية الفعلية */
+  async function genericDelete(ctx, collection, id, label) {
+    if (!confirm(I18n.t('سيُحذف هذا العنصر نهائياً') + (label ? ' — ' + label : '') + I18n.t('. هل أنت متأكد؟'))) return;
+    try {
+      await Api.remove(collection, id);
+      toast('✅ ' + I18n.t('تم الحذف'));
+      ctx.refresh();
+    } catch (e) { toast(e.message, true); }
+  }
+
   window.ViewsShared = {
     pill: pill, statusPill: statusPill, money: money, millions: millions, fmtInt: fmtInt,
     barClass: barClass, progressBar: progressBar,
@@ -6119,6 +6252,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     discOf: discOf, floorName: floorName, weightedProgress: weightedProgress,
     thresholds: thresholdsOf, DEFAULT_THRESHOLDS: DEFAULT_THRESHOLDS,
     summarize: summarize, STATUS: STATUS, esc: esc, att: att,
+    canManage: canManage, canDelete: canDelete, openGenericEdit: openGenericEdit, genericDelete: genericDelete,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras
@@ -6812,8 +6946,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:220px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
             (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
-            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') + '</div></td>' +
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' + window.DrawingViewer.btn(it) +
+            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-arv-edit="' + it.id + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, tab) ? '<button class="btn danger sm" data-arv-del="' + it.id + '">🗑️</button>' : '') +
+            '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا توجد طلبات في هذا القسم') + '</div>') +
@@ -6833,6 +6970,22 @@ textarea.inp { resize: vertical; min-height: 80px; }
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-dview'); });
         window.DrawingViewer.open(ctx, tab, it, { canEdit: true, canReview: it.status === 'pending' });
+      });
+    });
+    el.querySelectorAll('[data-arv-edit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-arv-edit'); });
+        const fields = [{ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' }];
+        if ('amount' in it) fields.push({ key: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' });
+        if ('days' in it) fields.push({ key: 'days', label: I18n.t('الأيام الإضافية'), type: 'number' });
+        fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+        VS.openGenericEdit({ ctx: ctx, title: I18n.t('تعديل الطلب'), collection: tab, id: it.id, item: it, fields: fields });
+      });
+    });
+    el.querySelectorAll('[data-arv-del]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-arv-del'); });
+        VS.genericDelete(ctx, tab, it.id, it.title);
       });
     });
   }
@@ -7089,7 +7242,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<span class="pill p-info">' + I18n.t('القيمة: ') + money(Math.round(total)) + '</span>' +
       '<span class="pill p-ok">' + I18n.t('المنفذ: ') + money(Math.round(earned)) + ' (' + (total ? Math.round(earned / total * 100) : 0) + '%)</span></div>' +
       '<div class="tbl-wrap" style="max-height:60vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th></tr></thead><tbody>' +
+      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       items.map(function (b) {
         const d = discOf(ctx, b.discipline);
         return '<tr><td class="num small">' + esc(b.code) + '</td>' +
@@ -7101,7 +7254,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '<td><div class="flex">' +
           (canEdit ? '<input type="range" min="0" max="100" value="' + b.progress + '" data-bq="' + b.id + '" style="flex:1;accent-color:' + d.color + '">' :
             '<div class="bar" style="flex:1"><i style="width:' + b.progress + '%"></i></div>') +
-          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td></tr>';
+          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td>' +
+          (canEdit ? '<td><div class="flex" style="gap:6px;flex-wrap:nowrap">' +
+            '<button class="btn ghost sm" data-bqedit="' + b.id + '">✏️</button>' +
+            (VS.canDelete(ctx, 'boqItems') ? '<button class="btn danger sm" data-bqdel="' + b.id + '">🗑️</button>' : '') +
+            '</div></td>' : '') + '</tr>';
       }).join('') + '</tbody></table></div></div>';
 
     el.querySelector('#bq-filter').addEventListener('change', function (e) {
@@ -7169,6 +7326,27 @@ textarea.inp { resize: vertical; min-height: 80px; }
       });
     });
     if (window.ViewsExtra && window.ViewsExtra.wireBaselineReview) window.ViewsExtra.wireBaselineReview(el, ctx);
+    el.querySelectorAll('[data-bqedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-bqedit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل بند الكميات'), collection: 'boqItems', id: it.id, item: it,
+          fields: [
+            { key: 'code', label: I18n.t('الكود'), type: 'text' },
+            { key: 'description', label: I18n.t('وصف البند'), type: 'text' },
+            { key: 'unit', label: I18n.t('الوحدة'), type: 'text' },
+            { key: 'qty', label: I18n.t('الكمية'), type: 'number' },
+            { key: 'unitPrice', label: I18n.t('سعر الوحدة'), type: 'number' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-bqdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-bqdel'); });
+        VS.genericDelete(ctx, 'boqItems', it.id, it.description);
+      });
+    });
   }
 
   // ============ إعداد التقارير (الاستشاري): يومي / أسبوعي / شهري ============
@@ -7202,7 +7380,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<h3>' + I18n.t('🗄️ أرشيف التقارير اليومية') + '</h3>' +
         ctx.S.dailyReports.map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
-            '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="small muted">' + I18n.t('عمالة: ') + r.manpower + ' · 📎 ' + ((r.photos || []).length + (r.attachments || []).length) + '</span></div>' +
+            '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="flex" style="gap:8px"><span class="small muted">' + I18n.t('عمالة: ') + r.manpower + ' · 📎 ' + ((r.photos || []).length + (r.attachments || []).length) + '</span>' +
+            (VS.canDelete(ctx, 'dailyReports') ? '<button class="btn danger sm" data-drdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + (r.works || []).map(esc).join(' • ') + '</div></div>';
         }).join('');
     } else if (tab === 'weekly') {
@@ -7223,7 +7402,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         (ctx.S.weeklyReports || []).map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
             '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
-            '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+            '<span class="flex" style="gap:8px"><span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span>' +
+            (VS.canDelete(ctx, 'weeklyReports') ? '<button class="btn danger sm" data-wrrdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + esc(r.summary || '') + '</div>' +
             '<div class="small muted" style="margin-top:6px">📎 ' + ((r.photos || []).length + (r.attachments || []).length) + I18n.t(' مرفقات') + '</div></div>';
         }).join('');
@@ -7242,7 +7422,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         ctx.S.monthlyReports.map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
             '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
-            '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+            '<span class="flex" style="gap:8px"><span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span>' +
+            (VS.canDelete(ctx, 'monthlyReports') ? '<button class="btn danger sm" data-mrrdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + esc(r.summary || '') + '</div></div>';
         }).join('');
     }
@@ -7259,6 +7440,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     el.querySelectorAll('[data-rtab]').forEach(function (t) {
       t.addEventListener('click', function () { rptState.tab = t.getAttribute('data-rtab'); renderDailyReport(el, ctx); });
+    });
+    el.querySelectorAll('[data-drdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'dailyReports', b.getAttribute('data-drdel')); });
+    });
+    el.querySelectorAll('[data-wrrdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'weeklyReports', b.getAttribute('data-wrrdel')); });
+    });
+    el.querySelectorAll('[data-mrrdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'monthlyReports', b.getAttribute('data-mrrdel')); });
     });
 
     const dSave = el.querySelector('#dr-save');
@@ -8362,7 +8552,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
             t.cols.map(function (c) { return '<td>' + c.r(it, ctx) + '</td>'; }).join('') +
             '<td class="small muted num">' + esc(it.date || '') + '</td>' +
             (t.noStatus ? '' : '<td>' + pill(it[t.statusKey || 'status']) + '</td>') +
-            '<td>' + (act ? '<button class="btn sm" data-tact="' + idx + '">' + act.label + '</button>' : '') + '</td>' +
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+            (act ? '<button class="btn sm" data-tact="' + idx + '">' + act.label + '</button>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-ttedit="' + idx + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, t.col) ? '<button class="btn danger sm" data-ttdel="' + idx + '">🗑️</button>' : '') +
+            '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا سجلات بعد') + '</div>') +
@@ -8378,6 +8572,23 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const it = items[Number(b.getAttribute('data-tact'))];
         const act = t.action(ctx, it);
         if (act) act.run();
+      });
+    });
+    el.querySelectorAll('[data-ttedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items[Number(b.getAttribute('data-ttedit'))];
+        const fields = [];
+        if ('title' in it) fields.push({ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' });
+        if ('question' in it) fields.push({ key: 'question', label: I18n.t('نص الاستفسار'), type: 'textarea' });
+        if ('details' in it) fields.push({ key: 'details', label: I18n.t('التفاصيل'), type: 'textarea' });
+        fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+        VS.openGenericEdit({ ctx: ctx, title: esc(I18n.t(t.name)) + ' — ' + I18n.t('تعديل'), collection: t.col, id: it.id, item: it, fields: fields });
+      });
+    });
+    el.querySelectorAll('[data-ttdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items[Number(b.getAttribute('data-ttdel'))];
+        VS.genericDelete(ctx, t.col, it.id, it.title || it.ref);
       });
     });
   }
@@ -8497,6 +8708,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '</div>' +
       '<div class="m-actions">' +
       (hasDrawing ? '<button class="btn" id="ad-view">🖊 ' + I18n.t('فتح المخطط') + ((it.annotations || []).length ? ' (' + it.annotations.length + ' ' + I18n.t('ترميز') + ')' : '') + '</button>' : '') +
+      (VS.canManage(ctx) ? '<button class="btn ghost" id="ad-edit">✏️ ' + I18n.t('تعديل') + '</button>' : '') +
+      (VS.canDelete(ctx, row.col) ? '<button class="btn danger" id="ad-del">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
       '<button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
     );
     const v = m.querySelector('#ad-view');
@@ -8504,6 +8717,27 @@ textarea.inp { resize: vertical; min-height: 80px; }
       m.remove();
       const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
       window.DrawingViewer.open(ctx, row.col, it, { canEdit: canEdit, canReview: canEdit && it.status === 'pending' });
+    });
+    const edBtn = m.querySelector('#ad-edit');
+    if (edBtn) edBtn.addEventListener('click', function () {
+      m.remove();
+      // حقول تعديل تُبنى ديناميكياً بحسب ما يحمله السجل فعلياً — يناسب كل أنواع السجلات الـ28 بنموذج واحد
+      const fields = [];
+      if ('title' in it) fields.push({ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' });
+      else if ('name' in it) fields.push({ key: 'name', label: I18n.t('الاسم'), type: 'text' });
+      if ('description' in it) fields.push({ key: 'description', label: I18n.t('الوصف'), type: 'textarea' });
+      if ('question' in it) fields.push({ key: 'question', label: I18n.t('نص الاستفسار'), type: 'textarea' });
+      if ('summary' in it) fields.push({ key: 'summary', label: I18n.t('الملخص'), type: 'textarea' });
+      if ('amount' in it) fields.push({ key: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' });
+      if ('days' in it) fields.push({ key: 'days', label: I18n.t('الأيام الإضافية'), type: 'number' });
+      if ('notes' in it) fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+      if (!fields.length) fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+      VS.openGenericEdit({ ctx: ctx, title: row.typeName + ' — ' + I18n.t('تعديل'), collection: row.col, id: it.id, item: it, fields: fields });
+    });
+    const delBtn = m.querySelector('#ad-del');
+    if (delBtn) delBtn.addEventListener('click', function () {
+      m.remove();
+      VS.genericDelete(ctx, row.col, it.id, row.title);
     });
   }
 
@@ -9117,8 +9351,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
                 })()) + '</td>' +
             '<td>' + pill(r.status) + '</td>' +
             '<td class="num small">' + ((it.revisions || []).length + 1) + '</td>' +
-            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
-            '<button class="btn ghost sm" data-hist="' + i + '">🕓 ' + I18n.t('السجل') + '</button></div></td></tr>';
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' + window.DrawingViewer.btn(it) +
+            '<button class="btn ghost sm" data-hist="' + i + '">🕓 ' + I18n.t('السجل') + '</button>' +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-subedit="' + i + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, r.col) ? '<button class="btn danger sm" data-subdel="' + i + '">🗑️</button>' : '') +
+            '</div></td></tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📋</div>' + I18n.t('لا تقديمات مطابقة') + '</div>') +
       '</div>';
@@ -9142,6 +9379,22 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
     el.querySelectorAll('[data-hist]').forEach(function (b) {
       b.addEventListener('click', function () { historyModal(ctx, rows[Number(b.getAttribute('data-hist'))]); });
+    });
+    el.querySelectorAll('[data-subedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const r = rows[Number(b.getAttribute('data-subedit'))]; const it = r.item;
+        const fields = [{ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' }];
+        if ('amount' in it) fields.push({ key: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' });
+        if ('days' in it) fields.push({ key: 'days', label: I18n.t('الأيام الإضافية'), type: 'number' });
+        fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+        VS.openGenericEdit({ ctx: ctx, title: I18n.t('تعديل الطلب'), collection: r.col, id: it.id, item: it, fields: fields });
+      });
+    });
+    el.querySelectorAll('[data-subdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const r = rows[Number(b.getAttribute('data-subdel'))];
+        VS.genericDelete(ctx, r.col, r.item.id, r.title);
+      });
     });
     el.querySelectorAll('[data-dview]').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -9218,7 +9471,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
                       : '<span class="muted">' + I18n.t('بانتظار الرد منذ ') + d + I18n.t(' يوم') + '</span>';
                   })()
                 : '<span class="muted">—</span>') + '</td>' +
-            '<td>' + (canAnswer && it.status === 'open' ? '<button class="btn sm" data-ans="' + it.id + '">↩️ ' + I18n.t('رد') + '</button>' : '') + '</td></tr>';
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+            (canAnswer && it.status === 'open' ? '<button class="btn sm" data-ans="' + it.id + '">↩️ ' + I18n.t('رد') + '</button>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-rxedit="' + it.id + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, tab) ? '<button class="btn danger sm" data-rxdel="' + it.id + '">🗑️</button>' : '') +
+            '</div></td></tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا سجلات — أرسل أول ') + (isRfp ? 'RFP' : 'RFI') + '</div>') +
       '</div>';
@@ -9292,6 +9549,24 @@ textarea.inp { resize: vertical; min-height: 80px; }
         });
       });
     });
+    el.querySelectorAll('[data-rxedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-rxedit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل الطلب'), collection: tab, id: it.id, item: it,
+          fields: [
+            { key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' },
+            { key: 'question', label: I18n.t(isRfp ? 'تفاصيل العرض / الطلب' : 'نص الاستفسار'), type: 'textarea' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-rxdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-rxdel'); });
+        VS.genericDelete(ctx, tab, it.id, it.title);
+      });
+    });
   }
 
   // ============ 3) أوامر التغيير والتعديلات: أثر التكلفة والمدة ودورة الاعتماد ============
@@ -9343,8 +9618,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td>' + stageChips(it) + '</td>' +
             '<td class="small" style="max-width:200px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
             (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
-            (canReview && it.status === 'pending' ? '<button class="btn sm" data-vrev="' + it.id + '">✍️ ' + I18n.t('قرار') + '</button>' : '') + '</div></td></tr>';
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' + window.DrawingViewer.btn(it) +
+            (canReview && it.status === 'pending' ? '<button class="btn sm" data-vrev="' + it.id + '">✍️ ' + I18n.t('قرار') + '</button>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-vredit="' + it.id + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, 'changeOrders') ? '<button class="btn danger sm" data-vrdel="' + it.id + '">🗑️</button>' : '') +
+            '</div></td></tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">🔁</div>' + I18n.t('لا أوامر تغيير بعد') + '</div>') +
       '</div>';
@@ -9382,6 +9660,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-dview'); });
         if (it) window.DrawingViewer.open(ctx, 'changeOrders', it, { canEdit: canReview, canReview: canReview && it.status === 'pending' });
+      });
+    });
+    el.querySelectorAll('[data-vredit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-vredit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل الطلب'), collection: 'changeOrders', id: it.id, item: it,
+          fields: [
+            { key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' },
+            { key: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' },
+            { key: 'days', label: I18n.t('الأيام الإضافية'), type: 'number' },
+            { key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-vrdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-vrdel'); });
+        VS.genericDelete(ctx, 'changeOrders', it.id, it.title);
       });
     });
   }
@@ -9508,9 +9806,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td class="small">' + esc(f.by || '—') + '</td>' +
             '<td class="small muted num">' + esc(f.date || '') + '</td>' +
             '<td class="num small">' + (nv ? '<button class="btn ghost sm" data-vers="' + i + '">🗂 ' + (nv + 1) + '</button>' : '1') + '</td>' +
-            '<td><div class="flex" style="gap:6px">' +
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
             (f.url ? '<a class="btn ghost sm" href="' + esc(f.url) + '" target="_blank">⬇ ' + I18n.t('تحميل') + '</a>' : '') +
-            '<button class="btn mutedb sm" data-newver="' + i + '">⬆ ' + I18n.t('نسخة جديدة') + '</button></div></td></tr>';
+            '<button class="btn mutedb sm" data-newver="' + i + '">⬆ ' + I18n.t('نسخة جديدة') + '</button>' +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-fsedit="' + i + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, 'files') ? '<button class="btn danger sm" data-fsdel="' + i + '">🗑️</button>' : '') +
+            '</div></td></tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">🗄️</div>' + I18n.t('لا ملفات مطابقة — ارفع أول ملف للخادم المركزي') + '</div>') +
       '<input type="file" id="fs-verfile" style="display:none">' +
@@ -9563,6 +9864,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
           }).join('') +
           '<div class="m-actions"><button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
         );
+      });
+    });
+    el.querySelectorAll('[data-fsedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const f = files[Number(b.getAttribute('data-fsedit'))];
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل بيانات الملف'), collection: 'files', id: f.id, item: f,
+          fields: [{ key: 'name', label: I18n.t('اسم الملف'), type: 'text' }]
+        });
+      });
+    });
+    el.querySelectorAll('[data-fsdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const f = files[Number(b.getAttribute('data-fsdel'))];
+        VS.genericDelete(ctx, 'files', f.id, f.name);
       });
     });
 
@@ -9623,7 +9939,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
               '<td class="small">' + esc(f.by || '—') + '</td>' +
               '<td class="small muted num">' + esc(f.date || '') + '</td>' +
               '<td class="num small">' + ((f.versions || []).length + 1) + '</td>' +
-              '<td>' + (f.url ? '<a class="btn ghost sm" href="' + esc(f.url) + '" target="_blank">⬇ ' + I18n.t('تحميل') + '</a>' : '') + '</td></tr>';
+              '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+              (f.url ? '<a class="btn ghost sm" href="' + esc(f.url) + '" target="_blank">⬇ ' + I18n.t('تحميل') + '</a>' : '') +
+              (VS.canDelete(ctx, 'files') ? '<button class="btn danger sm" data-pddel="' + esc(f.id) + '">🗑️</button>' : '') +
+              '</div></td></tr>';
           }).join('') + '</tbody></table></div>'
           : '<div class="empty"><div class="e-ico">📁</div>' + I18n.t('لا وثائق في هذه الفئة بعد') + '</div>') + '</div>'
         : '<div class="small muted mt">' + I18n.t('اختر فئة لعرض وثائقها') + '</div>');
@@ -9642,6 +9961,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
         await Api.upload(f, { category: el.querySelector('#pd2-cat').value });
         toast(I18n.t('✅ أُضيف للمستودع وكُوّد تلقائياً')); ctx.refresh();
       } catch (e) { toast(e.message, true); }
+    });
+    el.querySelectorAll('[data-pddel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const f = files.find(function (x) { return x.id === b.getAttribute('data-pddel'); });
+        VS.genericDelete(ctx, 'files', f.id, f.name);
+      });
     });
   }
 
@@ -9743,9 +10068,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td class="small num">' + fmtSize(m.size) + '</td>' +
             '<td class="small muted num">' + esc(m.date || '') + '</td>' +
             '<td>' + (m.linkedBoq ? '<span class="pill p-ok">' + I18n.t('مربوط بجدول الكميات ✓') + '</span>' : '<span class="pill p-muted">' + I18n.t('غير مربوط') + '</span>') + '</td>' +
-            '<td><div class="flex" style="gap:6px">' +
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
             (m.url && /\.ifc$/i.test(m.url) ? '<button class="btn sm" data-bim3d="' + esc(m.url) + '" data-bimname="' + esc(m.name) + '" data-bimid="' + esc(m.id) + '">🧊 3D</button>' : '') +
-            (m.url ? '<a class="btn ghost sm" href="' + esc(m.url) + '" target="_blank">' + I18n.t('فتح') + ' ↗</a>' : '') + '</div></td></tr>';
+            (m.url ? '<a class="btn ghost sm" href="' + esc(m.url) + '" target="_blank">' + I18n.t('فتح') + ' ↗</a>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-bmedit="' + m.id + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, 'bimModels') ? '<button class="btn danger sm" data-bmdel="' + m.id + '">🗑️</button>' : '') +
+            '</div></td></tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">🏢</div>' + I18n.t('لا نماذج بعد — اربط سحابياً أو ارفع من الجهاز') + '</div>') +
       '</div>';
@@ -9799,6 +10127,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
         toast('✅ ' + I18n.t('رُفع النموذج (') + fmtSize(f.size) + I18n.t(') وربط بجدول الكميات')); ctx.refresh();
       } catch (e) { prog.textContent = ''; toast(e.message, true); }
     });
+    el.querySelectorAll('[data-bmedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const m = models.find(function (x) { return x.id === b.getAttribute('data-bmedit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل بيانات النموذج'), collection: 'bimModels', id: m.id, item: m,
+          fields: [{ key: 'name', label: I18n.t('اسم النموذج'), type: 'text' }, { key: 'rev', label: I18n.t('الإصدار'), type: 'text' }]
+        });
+      });
+    });
+    el.querySelectorAll('[data-bmdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const m = models.find(function (x) { return x.id === b.getAttribute('data-bmdel'); });
+        VS.genericDelete(ctx, 'bimModels', m.id, m.name);
+      });
+    });
   }
 
   function renderBimDocs(el, ctx) {
@@ -9824,7 +10167,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
             '<td class="small muted num">' + esc(d2.date || '') + '</td>' +
             '<td class="small">' + esc(d2.by || '') + '</td>' +
             '<td>' + pill(d2.status || '') + '</td>' +
-            '<td><button class="btn ghost sm" data-bdoc="' + d2.id + '">📖 ' + I18n.t('فتح') + '</button></td></tr>';
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+            '<button class="btn ghost sm" data-bdoc="' + d2.id + '">📖 ' + I18n.t('فتح') + '</button>' +
+            (VS.canDelete(ctx, 'bimDocs') ? '<button class="btn danger sm" data-bdocdel="' + d2.id + '">🗑️</button>' : '') +
+            '</div></td></tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📚</div>' + I18n.t('لا وثائق بعد — أنشئ أول وثيقة من القوالب أعلاه') + '</div>') +
       '</div>';
@@ -9869,6 +10215,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
           }).join('') +
           '<div class="m-actions"><button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
         );
+      });
+    });
+    el.querySelectorAll('[data-bdocdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const d2 = docs.find(function (x) { return x.id === b.getAttribute('data-bdocdel'); });
+        VS.genericDelete(ctx, 'bimDocs', d2.id, d2.title);
       });
     });
   }
@@ -10020,6 +10372,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
   'use strict';
 
   I18n.registerDict({
+    'تعديل ملاحظة التسليم': 'Edit Punch List Item',
+    'تعديل الضمان': 'Edit Warranty',
+    'تعديل سجل المفاتيح': 'Edit Keys Log Entry',
     // ---- طباعة/تصدير عام ----
     'اسمح بالنوافذ المنبثقة للطباعة': 'Please allow pop-ups to print',
     'بصير — عيون المالك': 'Bassir — Owner Eyes',
@@ -10418,7 +10773,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
               '<td class="small muted num">' + esc(it.raisedDate || '') + '</td>' +
               '<td>' + (it.file && it.file.url ? '<a class="btn ghost sm" href="' + esc(it.file.url) + '" target="_blank">📎 ' + I18n.t('فتح') + '</a>' : '<span class="muted small">—</span>') + '</td>' +
               '<td>' + (it.status === 'closed' ? '<span class="pill p-ok">' + I18n.t('مغلقة ✓') + '</span><div class="small muted num">' + esc(it.closedDate || '') + '</div>' : '<span class="pill p-warn">' + I18n.t('مفتوحة') + '</span>') + '</td>' +
-              '<td>' + ((canManage || isContractor) && it.status === 'open' ? '<button class="btn sm" data-plclose="' + it.id + '">✅ ' + I18n.t('إغلاق') + '</button>' : '') + '</td></tr>';
+              '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+              ((canManage || isContractor) && it.status === 'open' ? '<button class="btn sm" data-plclose="' + it.id + '">✅ ' + I18n.t('إغلاق') + '</button>' : '') +
+              (VS.canManage(ctx) ? '<button class="btn ghost sm" data-pledit="' + it.id + '">✏️</button>' : '') +
+              (VS.canDelete(ctx, 'punchList') ? '<button class="btn danger sm" data-pldel="' + it.id + '">🗑️</button>' : '') +
+              '</div></td></tr>';
           }).join('') + '</tbody></table></div></div>';
       }).join('') +
       (items.length ? '' : '<div class="empty"><div class="e-ico">📌</div>' + I18n.t('لا ملاحظات تسليم') + '</div>') +
@@ -10469,6 +10828,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
     el.querySelector('#pl-print').addEventListener('click', function () {
       printDoc(I18n.t('قائمة الملاحظات') + ' — Punch List', punchReportHtml(ctx, items));
     });
+    el.querySelectorAll('[data-pledit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-pledit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل ملاحظة التسليم'), collection: 'punchList', id: it.id, item: it,
+          fields: [{ key: 'title', label: I18n.t('الملاحظة'), type: 'text' }, { key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' }]
+        });
+      });
+    });
+    el.querySelectorAll('[data-pldel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-pldel'); });
+        VS.genericDelete(ctx, 'punchList', it.id, it.title);
+      });
+    });
   }
 
   function punchReportHtml(ctx, items) {
@@ -10502,7 +10876,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
       '<h3 style="margin:0">🛡️ ' + I18n.t('سجل ضمانات الموردين والمقاولين من الباطن') + '</h3>' +
       (canAdd ? '<button class="btn sm" id="wr-add">➕ ' + I18n.t('إضافة ضمان') + '</button>' : '') + '</div>' +
-      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند/النظام') + '</th><th>' + I18n.t('المورّد') + '</th><th>' + I18n.t('المقاول') + '</th><th>' + I18n.t('البداية') + '</th><th>' + I18n.t('الانتهاء') + '</th><th>' + I18n.t('المدة') + '</th><th>' + I18n.t('المرفق') + '</th><th>' + I18n.t('الحالة') + '</th></tr></thead><tbody>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند/النظام') + '</th><th>' + I18n.t('المورّد') + '</th><th>' + I18n.t('المقاول') + '</th><th>' + I18n.t('البداية') + '</th><th>' + I18n.t('الانتهاء') + '</th><th>' + I18n.t('المدة') + '</th><th>' + I18n.t('المرفق') + '</th><th>' + I18n.t('الحالة') + '</th><th></th></tr></thead><tbody>' +
       items.map(function (w) {
         const d = daysFromNow(w.endDate);
         const st = d == null ? '' : d < 0 ? '<span class="pill p-danger">' + I18n.t('منتهٍ') + '</span>' : d <= 90 ? '<span class="pill p-warn">≤ ' + d + ' ' + I18n.t('يوم') + '</span>' : '<span class="pill p-ok">' + I18n.t('ساري') + '</span>';
@@ -10512,7 +10886,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '<td class="small muted num">' + esc(w.startDate || '') + '</td><td class="small num">' + esc(w.endDate || '') + '</td>' +
           '<td class="num small">' + (w.months || '—') + I18n.t(' شهر') + '</td>' +
           '<td>' + (w.file && w.file.url ? '<a class="btn ghost sm" href="' + esc(w.file.url) + '" target="_blank">📎 ' + I18n.t('فتح') + '</a>' : '<span class="muted small">—</span>') + '</td>' +
-          '<td>' + st + '</td></tr>';
+          '<td>' + st + '</td>' +
+          '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+          (VS.canManage(ctx) ? '<button class="btn ghost sm" data-wedit="' + w.id + '">✏️</button>' : '') +
+          (VS.canDelete(ctx, 'warranties') ? '<button class="btn danger sm" data-wdel="' + w.id + '">🗑️</button>' : '') +
+          '</div></td></tr>';
       }).join('') + '</tbody></table></div>' +
       (items.length ? '' : '<div class="empty"><div class="e-ico">🛡️</div>' + I18n.t('لا ضمانات مسجلة') + '</div>') + '</div>';
 
@@ -10548,6 +10926,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
         } catch (e) { toast(e.message, true); }
       });
     });
+    el.querySelectorAll('[data-wedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-wedit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل الضمان'), collection: 'warranties', id: it.id, item: it,
+          fields: [
+            { key: 'item', label: I18n.t('البند / النظام'), type: 'text' },
+            { key: 'supplier', label: I18n.t('المورّد'), type: 'text' },
+            { key: 'startDate', label: I18n.t('تاريخ البداية'), type: 'date' },
+            { key: 'endDate', label: I18n.t('الانتهاء'), type: 'date' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-wdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-wdel'); });
+        VS.genericDelete(ctx, 'warranties', it.id, it.item);
+      });
+    });
   }
 
   // ---- سجل تسليم المفاتيح ----
@@ -10557,12 +10955,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
     el.innerHTML =
       '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
       '<h3 style="margin:0">🔑 ' + I18n.t('سجل تسليم المفاتيح') + '</h3>' + (canAdd ? '<button class="btn sm" id="k-add">➕ ' + I18n.t('تسجيل تسليم') + '</button>' : '') + '</div>' +
-      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المنطقة') + '</th><th>' + I18n.t('عدد المفاتيح') + '</th><th>' + I18n.t('سُلّمت إلى') + '</th><th>' + I18n.t('بواسطة') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('المرفق') + '</th><th>' + I18n.t('التوقيع') + '</th></tr></thead><tbody>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المنطقة') + '</th><th>' + I18n.t('عدد المفاتيح') + '</th><th>' + I18n.t('سُلّمت إلى') + '</th><th>' + I18n.t('بواسطة') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('المرفق') + '</th><th>' + I18n.t('التوقيع') + '</th><th></th></tr></thead><tbody>' +
       items.map(function (k) {
         return '<tr><td>' + esc(k.area) + '</td><td class="num">' + (k.count || '') + '</td><td class="small">' + esc(k.handedTo || '') + '</td>' +
           '<td class="small">' + esc(k.by || '') + '</td><td class="small muted num">' + (k.date || '<span class="pill p-warn">' + I18n.t('لم تُسلّم') + '</span>') + '</td>' +
           '<td>' + (k.file && k.file.url ? '<a class="btn ghost sm" href="' + esc(k.file.url) + '" target="_blank">📎 ' + I18n.t('فتح') + '</a>' : '<span class="muted small">—</span>') + '</td>' +
-          '<td class="small">' + (k.signature ? '✍️ ' + esc(k.signature) : '—') + '</td></tr>';
+          '<td class="small">' + (k.signature ? '✍️ ' + esc(k.signature) : '—') + '</td>' +
+          '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+          (VS.canManage(ctx) ? '<button class="btn ghost sm" data-kedit="' + k.id + '">✏️</button>' : '') +
+          (VS.canDelete(ctx, 'keysLog') ? '<button class="btn danger sm" data-kdel="' + k.id + '">🗑️</button>' : '') +
+          '</div></td></tr>';
       }).join('') + '</tbody></table></div>' +
       (items.length ? '' : '<div class="empty"><div class="e-ico">🔑</div>' + I18n.t('لا سجلات') + '</div>') + '</div>';
 
@@ -10592,6 +10994,25 @@ textarea.inp { resize: vertical; min-height: 80px; }
           await Api.create('keysLog', data);
           m.remove(); toast(I18n.t('✅ سُجّل تسليم المفاتيح')); ctx.refresh();
         } catch (e) { toast(e.message, true); }
+      });
+    });
+    el.querySelectorAll('[data-kedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-kedit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل سجل المفاتيح'), collection: 'keysLog', id: it.id, item: it,
+          fields: [
+            { key: 'area', label: I18n.t('المنطقة'), type: 'text' },
+            { key: 'count', label: I18n.t('عدد المفاتيح'), type: 'number' },
+            { key: 'handedTo', label: I18n.t('سُلّمت إلى'), type: 'text' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-kdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-kdel'); });
+        VS.genericDelete(ctx, 'keysLog', it.id, it.area);
       });
     });
   }

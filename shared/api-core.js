@@ -123,6 +123,16 @@
     bimMappings: ['consultant', 'project_manager', 'admin']
   };
 
+  // الحذف افتراضياً للأدمن فقط (+ممثل المالك لحساب المستخدمين) — عدا مجموعات دورة التقديمات
+  // والاعتمادات/المكتب الفني أدناه، حيث يُسمح أيضاً للمالك/الاستشاري/ممثل المالك/مدير المشروع بالحذف
+  // (طلب العميل صراحة: تصحيح تقديم خاطئ أو مكرر دون انتظار الأدمن — ثم وسّع الطلب ليشمل المالك أيضاً)
+  const BROAD_DELETE_COLLECTIONS = [
+    'shopDrawings', 'materials', 'scheduleSubmittals', 'boqSubmittals', 'wirs', 'changeOrders', 'payments',
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs', 'rfis', 'rfps',
+    'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests', 'meetings', 'correspondence'
+  ];
+  const BROAD_DELETE_ROLES = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
+
   function createCore(db, persist, opts) {
     persist = persist || function () {};
     opts = opts || {};
@@ -514,6 +524,14 @@
           if (!allowed) throw err('لا يمكن تعديل طلب تم البت فيه — يمكنك الرد على الملاحظات أو رفع نسخة معدلة', 403);
         }
       }
+      // بعد اعتماد/رفض الطلب فعلياً: القيمة المالية والأثر الزمني يُقفلان لكل الأدوار (بما فيها الأدمن)
+      // لضمان بقاء السجل مطابقاً تماماً للقرار الموثَّق — أي تصحيح لاحق يجب أن يمر عبر أمر تغيير جديد
+      // لا عبر تعديل صامت يُبقي الحالة «معتمد» بأرقام مختلفة عما اعتُمد فعلياً (أثر مالي/جدولي غير موثّق)
+      if (item.status && ['approved', 'approved_notes', 'rejected', 'fail'].indexOf(item.status) !== -1) {
+        if ('amount' in patch || 'days' in patch) {
+          throw err('لا يمكن تعديل القيمة المالية أو الأثر الزمني بعد اعتماد/رفض الطلب — أنشئ أمر تغيير جديداً لأي تعديل لاحق', 403);
+        }
+      }
       if (collection === 'users') {
         // تعديل حسابات المستخدمين صلاحية الأدمن وممثل المالك فقط (تطابق CREATE_RULES.users) —
         // تعديل الملف الشخصي لأي مستخدم عن نفسه يمر عبر updateProfile، لا هذا المسار العام
@@ -552,8 +570,10 @@
     }
 
     function deleteItem(user, collection, id) {
-      if (user.role !== 'admin' && !(user.role === 'owner_rep' && collection === 'users')) {
-        throw err('الحذف متاح للأدمن فقط', 403);
+      const broadDelete = BROAD_DELETE_COLLECTIONS.indexOf(collection) !== -1 && BROAD_DELETE_ROLES.indexOf(user.role) !== -1;
+      const narrowDelete = user.role === 'admin' || (user.role === 'owner_rep' && collection === 'users');
+      if (!broadDelete && !narrowDelete) {
+        throw err('لا تملك صلاحية الحذف', 403);
       }
       const list = db[collection];
       if (!list) throw err('مجموعة غير معروفة', 404);
