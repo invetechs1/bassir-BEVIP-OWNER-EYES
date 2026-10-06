@@ -18,6 +18,23 @@
     'الملخص': 'Summary',
     'الأيام الإضافية': 'Additional Days',
     'هذا الحقل مطلوب — لا يمكن حفظه فارغاً': 'This field is required — it cannot be saved empty',
+    'المخطط المرفوع · المناطق المنفّذة تضيء باعتماد الكميات': 'Uploaded drawing · executed zones light up as BOQ is approved',
+    'لا يوجد مخطط مرفوع لهذا الدور — ارفعه من «النماذج والمخططات» ليظهر هنا ويضيء مع اعتماد جدول الكميات': 'No drawing uploaded for this floor — upload it from "BIM Models & Drawings" to show it here and light up as the BOQ is approved',
+    'مواقع المشاريع على الخريطة': 'Projects on the Map',
+    'اضغط على أي مشروع للانتقال إليه': 'Click any project to open it',
+    'خريطة مواقع المشاريع في المملكة العربية السعودية': 'Map of project locations in Saudi Arabia',
+    'في الوقت والميزانية': 'On time & on budget',
+    'يحتاج إجراء': 'Needs action',
+    'متأخر / تجاوز ميزانية': 'Behind / over budget',
+    'ماشٍ حسب الوقت والميزانية': 'On schedule and within budget',
+    'يحتاج إجراء (قبل التحوّل للأحمر)': 'Needs action (before turning red)',
+    'متأخر عن الجدول أو تجاوز الميزانية': 'Behind schedule or over budget',
+    'الإنجاز:': 'Progress:',
+    'تأخر ': 'behind by ',
+    ' يوماً': ' days',
+    'تجاوز الميزانية ': 'over budget ',
+    'لا توجد مشاريع بإحداثيات بعد — تُضاف إحداثيات الموقع عند إنشاء المشروع': 'No projects with coordinates yet — location is added when a project is created',
+    'مشروع بلا إحداثيات لم يظهر على الخريطة (يُضاف الموقع من صفحة المشاريع)': 'project(s) without coordinates not shown on the map (add location from the Projects page)',
     'توليد PDF متاح فقط عند الاتصال بالخادم الفعلي': 'PDF generation is only available when connected to the real server',
     'فشل توليد التقرير': 'Failed to generate the report',
     'التدفق النقدي حسب الفترة': 'Cash Flow by Period',
@@ -945,6 +962,116 @@
     });
   }
 
+  // ============ خريطة مواقع المشاريع (المملكة العربية السعودية) ============
+  // مسار حدود المملكة مُسقَط مسبقاً (equirectangular مع تصحيح خط العرض) داخل
+  // فضاء إحداثيات ثابت 915×754 — لا يحتاج أي اتصال بالإنترنت أو خرائط خارجية.
+  const KSA_PROJ = { W: 915, H: 754, LNG_MIN: 34.2, LNG_MAX: 56, LAT_MIN: 16, LAT_MAX: 32.4, K: 46, cosMeanLat: 0.912120116172273 };
+  const KSA_PATH = 'M360 738.4L354.5 718.8L341.9 704.9L338.6 686.6L317 670.1L294.6 631.5L282.8 594L253.7 562.4L235 554.8L207.2 511L202.4 479L204.2 451.7L180.1 400.7L160.4 382.8L137.8 373.3L124 346.9L126.3 336.5L114.6 312.7L102.4 302.4L86 268.2L60.4 231.1L39 199.5L18.1 199.7L24.7 174.5L26.5 158.4L31.7 140L78.4 147.3L96.6 133.2L106.6 116.6L138.6 110.2L145.5 94.8L159.4 87L117.6 41L201.6 17.9L209.6 11L260.1 23.5L322.7 55.7L441 148.2L519 151.8L556.3 156.3L566.8 178.2L596.5 177L612.9 216.7L633.5 227.2L640.7 243.3L669.3 262.7L671.9 281.7L667.7 297L673 312.4L685.1 325.3L690.6 340.4L696.9 351.7L709.6 360.8L721.2 357.5L729.2 375.1L730.8 385.7L746.9 432.3L873 455.5L881.5 445.8L900.7 478.4L872.7 570.4L746.8 616.4L625.9 634L586.7 654.7L556.6 703L537.1 710.7L526.6 695.4L510.5 697.7L469.9 693.1L462.2 688.5L413.8 689.5L402.4 693.7L385.2 681.7L374.1 704.3L378.4 723.7L360 738.4Z';
+  // إحداثيات مدن سعودية شائعة [خط العرض, خط الطول] — تُستخدم كحل احتياطي عند
+  // عدم إدخال إحداثيات صريحة، ولملء نموذج إضافة المشروع بنقرة واحدة.
+  const CITY_COORDS = {
+    'الرياض': [24.69, 46.72], 'جدة': [21.54, 39.20], 'مكة': [21.42, 39.83], 'المدينة': [24.47, 39.61],
+    'الدمام': [26.43, 50.10], 'الخبر': [26.28, 50.21], 'الظهران': [26.29, 50.12], 'الطائف': [21.27, 40.42],
+    'تبوك': [28.38, 36.55], 'أبها': [18.22, 42.51], 'خميس مشيط': [18.31, 42.73], 'بريدة': [26.36, 43.97],
+    'عنيزة': [26.09, 43.99], 'حائل': [27.52, 41.69], 'نجران': [17.49, 44.13], 'جازان': [16.89, 42.55],
+    'ينبع': [24.09, 38.06], 'الجبيل': [27.01, 49.66], 'العلا': [26.61, 37.92], 'الأحساء': [25.38, 49.59],
+    'الهفوف': [25.36, 49.59], 'القطيف': [26.56, 49.99], 'رابغ': [22.80, 39.03], 'نيوم': [28.00, 35.20],
+    'عرعر': [30.98, 41.02], 'سكاكا': [29.97, 40.21], 'الباحة': [20.01, 41.47], 'بيشة': [20.00, 42.60]
+  };
+
+  function ksaPx(lat, lng) {
+    return [(lng - KSA_PROJ.LNG_MIN) * KSA_PROJ.cosMeanLat * KSA_PROJ.K, (KSA_PROJ.LAT_MAX - lat) * KSA_PROJ.K];
+  }
+  // إحداثيات المشروع: صريحة (lat/lng) أولاً، ثم استنتاج من اسم المدينة في الموقع
+  function projectLatLng(P) {
+    if (P && typeof P.lat === 'number' && typeof P.lng === 'number') return [P.lat, P.lng];
+    if (P && P.lat != null && P.lng != null && !isNaN(+P.lat) && !isNaN(+P.lng)) return [+P.lat, +P.lng];
+    const loc = (P && P.location) || '';
+    for (const key in CITY_COORDS) { if (loc.indexOf(key) !== -1) return CITY_COORDS[key]; }
+    return null;
+  }
+
+  // حالة نقطة الخريطة: أحمر = متأخر عن الجدول أو تجاوز الميزانية، أصفر = يحتاج
+  // إجراءً قبل أن يصبح أحمر، أخضر = ماشٍ في الوقت والميزانية.
+  function mapStatus(ctx, P) {
+    const g = projectGlance(ctx, P);
+    const h = projectHealth(ctx, P, ctx.Sall || ctx.S);
+    const critBehind = g.progVar <= -10 || g.delayDays > 30;
+    const critBudget = g.costVarPct >= 10;
+    if (critBehind || critBudget || h.cls === 'danger') return 'danger';
+    const warnBehind = g.progVar <= -3 || g.delayDays > 7;
+    const warnBudget = g.costVarPct >= 3;
+    if (warnBehind || warnBudget || h.cls === 'warn') return 'warn';
+    return 'ok';
+  }
+
+  const MAP_STATUS_AR = { ok: 'ماشٍ حسب الوقت والميزانية', warn: 'يحتاج إجراء (قبل التحوّل للأحمر)', danger: 'متأخر عن الجدول أو تجاوز الميزانية' };
+
+  // بطاقة خريطة المملكة مع نقاط المشاريع
+  function projectsMapHtml(ctx) {
+    const A = ctx.Sall || ctx.S;
+    const projects = (A.projects || []);
+    const pts = [];
+    projects.forEach(function (P) {
+      const ll = projectLatLng(P);
+      if (!ll) return;
+      const xy = ksaPx(ll[0], ll[1]);
+      const st = mapStatus(ctx, P);
+      const g = projectGlance(ctx, P);
+      pts.push({ P: P, x: Math.round(xy[0] * 10) / 10, y: Math.round(xy[1] * 10) / 10, st: st, g: g });
+    });
+    const noCoords = projects.length - pts.length;
+    const cnt = { ok: 0, warn: 0, danger: 0 };
+    pts.forEach(function (p) { cnt[p.st]++; });
+
+    // فصل النقاط المتقاربة بسيط: إزاحة اللاصقة نصف قطرها
+    const dots = pts.map(function (p) {
+      const col = HEALTH_COLORS[p.st];
+      const tip = esc(p.P.name) + ' — ' + I18n.t(MAP_STATUS_AR[p.st]) +
+        ' · ' + I18n.t('الإنجاز:') + ' ' + (p.P.progressActual || 0) + '%' +
+        (p.g.delayDays > 0 ? ' · ' + I18n.t('تأخر ') + p.g.delayDays + I18n.t(' يوماً') : '') +
+        (p.g.costVarPct > 0 ? ' · ' + I18n.t('تجاوز الميزانية ') + p.g.costVarPct + '%' : '');
+      return '<g class="map-pt' + (p.st === 'danger' ? ' is-crit' : '') + '" data-proj="' + esc(p.P.id) + '" tabindex="0" role="button" aria-label="' + tip + '">' +
+        '<title>' + tip + '</title>' +
+        (p.st === 'danger' ? '<circle class="map-pulse" cx="' + p.x + '" cy="' + p.y + '" r="9" fill="' + col + '"/>' : '') +
+        '<circle class="map-hit" cx="' + p.x + '" cy="' + p.y + '" r="18" fill="transparent"/>' +
+        '<circle class="map-dot" cx="' + p.x + '" cy="' + p.y + '" r="8" fill="' + col + '" stroke="#fff" stroke-width="2"/>' +
+        '<text class="map-lbl" x="' + p.x + '" y="' + (p.y - 14) + '" text-anchor="middle">' + esc(p.P.name) + '</text>' +
+        '</g>';
+    }).join('');
+
+    const legend = '<div class="map-legend">' +
+      '<span class="ml"><i style="background:' + HEALTH_COLORS.ok + '"></i>' + I18n.t('في الوقت والميزانية') + ' <b class="num">' + cnt.ok + '</b></span>' +
+      '<span class="ml"><i style="background:' + HEALTH_COLORS.warn + '"></i>' + I18n.t('يحتاج إجراء') + ' <b class="num">' + cnt.warn + '</b></span>' +
+      '<span class="ml"><i style="background:' + HEALTH_COLORS.danger + '"></i>' + I18n.t('متأخر / تجاوز ميزانية') + ' <b class="num">' + cnt.danger + '</b></span>' +
+      '</div>';
+
+    const empty = pts.length ? '' :
+      '<div class="empty"><div class="e-ico">🗺️</div>' + I18n.t('لا توجد مشاريع بإحداثيات بعد — تُضاف إحداثيات الموقع عند إنشاء المشروع') + '</div>';
+    const noCoordsNote = noCoords > 0 ?
+      '<div class="small muted mt">📍 ' + noCoords + ' ' + I18n.t('مشروع بلا إحداثيات لم يظهر على الخريطة (يُضاف الموقع من صفحة المشاريع)') + '</div>' : '';
+
+    return '<div class="card" id="ksa-map-card"><h3>🗺️ ' + I18n.t('مواقع المشاريع على الخريطة') +
+      ' <span class="hint">' + I18n.t('اضغط على أي مشروع للانتقال إليه') + '</span></h3>' +
+      legend +
+      (pts.length ? '<div class="ksa-map-wrap"><svg class="ksa-map" viewBox="0 0 ' + KSA_PROJ.W + ' ' + KSA_PROJ.H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="' + I18n.t('خريطة مواقع المشاريع في المملكة العربية السعودية') + '">' +
+        '<path class="ksa-land" d="' + KSA_PATH + '"/>' + dots + '</svg></div>' : empty) +
+      noCoordsNote + '</div>';
+  }
+
+  function wireProjectsMap(el, ctx) {
+    el.querySelectorAll('#ksa-map-card .map-pt').forEach(function (g) {
+      const go = function () {
+        const pid = g.getAttribute('data-proj');
+        if (!pid) return;
+        if (ctx.setProject) ctx.setProject(pid);
+        if (ctx.nav) ctx.nav('dashboard');
+      };
+      g.addEventListener('click', go);
+      g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    });
+  }
+
   // ============ لوحة القيادة ============
   function renderDashboard(el, ctx) {
     const P = ctx.S.projects[0];
@@ -994,11 +1121,15 @@
 
       '<div class="card"><h3>🔔 ' + I18n.t('تنبيهات بصير الذكية') + ' <span class="hint">' + I18n.t('من تحليل الصور والكاميرات') + '</span></h3>' +
       (alerts.length ? alerts.map(function (a) { return aiItemHtml(a, ctx); }).join('') : '<div class="empty"><div class="e-ico">✨</div>' + I18n.t('لا توجد تنبيهات حرجة') + '</div>') +
-      '<button class="btn ghost sm" data-nav="ai">' + I18n.t('فتح صفحة الذكاء الاصطناعي ←') + '</button></div>';
+      '<button class="btn ghost sm" data-nav="ai">' + I18n.t('فتح صفحة الذكاء الاصطناعي ←') + '</button></div>' +
+
+      // خريطة مواقع المشاريع في أسفل الصفحة (§ طلب المالك)
+      projectsMapHtml(ctx);
 
     el.querySelectorAll('[data-nav]').forEach(function (b) {
       b.addEventListener('click', function () { ctx.nav(b.getAttribute('data-nav')); });
     });
+    wireProjectsMap(el, ctx);
 
     // تسجيل لقطة الصحة الشهرية وإطلاق تنبيه تلقائي عند هبوط الدرجة لفئة أدنى
     if (['consultant', 'project_manager', 'admin', 'owner'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
@@ -1361,6 +1492,15 @@
         renderVision(el, ctx);
       });
     });
+
+    // عرض المخطط الحقيقي المرفوع كخلفية لخريطة الإنجاز (ثنائية الأبعاد)
+    if (st.tab === '2d') {
+      const bgEl = el.querySelector('#map2d-bg');
+      const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
+      if (bgEl && bgDr && window.DrawingViewer && window.DrawingViewer.renderPlanInto) {
+        window.DrawingViewer.renderPlanInto(bgEl, bgDr).catch(function () { /* تجاهل */ });
+      }
+    }
   }
 
   // مواقع مناطق المخطط 2D (ست مناطق + ممر)
@@ -1373,6 +1513,34 @@
     { x: 530, y: 300, w: 230, h: 180, name: 'الجناح الجنوبي الغربي' }
   ];
 
+  // المخطط المرفوع لكامل الدور (zone غير محدد) — يُستخدم كخلفية حقيقية للخريطة
+  function floorPlanDrawing(ctx, floor, disc) {
+    const all = (ctx.S.planDrawings || []).filter(function (dr) {
+      return dr.floor === floor && (dr.zone == null || dr.zone === '' || dr.zone === 'all');
+    });
+    if (!all.length) return null;
+    return (disc !== 'all' && all.find(function (d) { return d.discipline === disc; })) ||
+      all.find(function (d) { return d.discipline === 'architectural'; }) || all[0];
+  }
+  // مخطط مرفوع لمنطقة محددة داخل الدور
+  function zonePlanDrawing(ctx, floor, zone, disc) {
+    return (ctx.S.planDrawings || []).find(function (dr) {
+      return dr.floor === floor && Number(dr.zone) === Number(zone) &&
+        (disc === 'all' || dr.discipline === disc || dr.discipline === 'architectural');
+    }) || null;
+  }
+  function hasPlanFile(dr) {
+    if (!dr) return false;
+    const fo = window.DrawingViewer && window.DrawingViewer.fileOf ? window.DrawingViewer.fileOf(dr) : { url: (dr.file && dr.file.url) || '' };
+    return !!fo.url;
+  }
+  // لون rgba شفاف (لإظهار المخطط الحقيقي خلف طبقة الإنجاز)
+  function hexA(hex, a) {
+    const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+    if (!m) return hex;
+    return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + a + ')';
+  }
+
   function render2d(ctx) {
     const P = ctx.S.projects[0];
     const st = visionState;
@@ -1384,30 +1552,43 @@
         (fp != null ? ' <span class="muted num">' + fp + '%</span>' : '') + '</div>';
     }).join('') + '</div>';
 
+    // خلفية المخطط الحقيقي المرفوع لهذا الدور (إن وُجد)
+    const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
+    const hasBg = hasPlanFile(bgDr);
+
     // بناء SVG للمخطط
     let zonesSvg = '';
     ZONES.forEach(function (z, i) {
       const items = itemsFor(ctx, st.floor, st.disc, i);
       const p = weightedProgress(items);
       const t = p == null ? 0.04 : 0.06 + (p / 100) * 0.86;
-      const fill = mixColor(accent, t);
+      // فوق مخطط حقيقي: تعبئة شفافة تُظهر المخطط وتُضيء الجزء المنفَّذ؛ بدون مخطط: تعبئة صلبة
+      const fill = hasBg ? hexA(accent, p == null ? 0.05 : 0.12 + (p / 100) * 0.5) : mixColor(accent, t);
       const done = p != null && p >= 95;
       const sel = st.zone === i;
-      // خطوط المخطط الداخلية: باهتة للأعمال غير المنفذة وساطعة للمنفذة المعتمدة
+      const zoneDr = zonePlanDrawing(ctx, st.floor, i, st.disc);
+      const hasZoneDr = hasPlanFile(zoneDr);
+      // خطوط المخطط الداخلية: تظهر فقط حين لا يوجد مخطط حقيقي (المخطط يوفّر التفاصيل)
       const lineColor = mixColor(accent, Math.min(1, t * 1.25));
       let hatch = '';
-      for (let k = 1; k <= 3; k++) {
-        const hy = z.y + (z.h * k) / 4;
-        hatch += '<line x1="' + (z.x + 14) + '" y1="' + hy + '" x2="' + (z.x + z.w - 14) + '" y2="' + hy + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
+      if (!hasBg) {
+        for (let k = 1; k <= 3; k++) {
+          const hy = z.y + (z.h * k) / 4;
+          hatch += '<line x1="' + (z.x + 14) + '" y1="' + hy + '" x2="' + (z.x + z.w - 14) + '" y2="' + hy + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
+        }
+        hatch += '<line x1="' + (z.x + z.w / 2) + '" y1="' + (z.y + 10) + '" x2="' + (z.x + z.w / 2) + '" y2="' + (z.y + z.h - 10) + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
       }
-      hatch += '<line x1="' + (z.x + z.w / 2) + '" y1="' + (z.y + 10) + '" x2="' + (z.x + z.w / 2) + '" y2="' + (z.y + z.h - 10) + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
-      zonesSvg += '<g class="zone-shape" data-zone="' + i + '">' +
+      const txtFillName = hasBg ? '#f2f5fb' : (t > 0.5 ? '#10151f' : '#aab3c5');
+      const txtFillPct = hasBg ? '#ffffff' : (t > 0.5 ? '#10151f' : '#e9ecf3');
+      const txtShadow = hasBg ? ' style="paint-order:stroke;stroke:#0a0f18;stroke-width:3px;stroke-linejoin:round"' : '';
+      zonesSvg += '<g class="zone-shape" data-zone="' + i + '"' + (hasZoneDr ? ' data-zdraw="' + esc(zoneDr.id) + '"' : '') + '>' +
         '<rect x="' + z.x + '" y="' + z.y + '" width="' + z.w + '" height="' + z.h + '" rx="6" fill="' + fill + '" ' +
-        'stroke="' + (sel ? '#fff' : done ? accent : '#26314a') + '" stroke-width="' + (sel ? 3 : done ? 2 : 1.4) + '"' +
+        'stroke="' + (sel ? '#fff' : done ? accent : (hasBg ? 'rgba(255,255,255,.35)' : '#26314a')) + '" stroke-width="' + (sel ? 3 : done ? 2 : 1.4) + '"' +
         (done ? ' filter="url(#glow)"' : '') + '>' +
-        '<title>' + esc(I18n.t(z.name)) + ' — ' + (p == null ? I18n.t('لا بنود') : I18n.t('الإنجاز') + ' ' + p + '%') + '</title></rect>' + hatch +
-        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 - 8) + '" text-anchor="middle" fill="' + (t > 0.5 ? '#10151f' : '#aab3c5') + '" font-size="13" font-weight="700" pointer-events="none">' + esc(I18n.t(z.name)) + '</text>' +
-        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 + 16) + '" text-anchor="middle" fill="' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '" font-size="18" font-weight="800" pointer-events="none">' + (p == null ? '—' : p + '%') + '</text>' +
+        '<title>' + esc(I18n.t(z.name)) + ' — ' + (p == null ? I18n.t('لا بنود') : I18n.t('الإنجاز') + ' ' + p + '%') + (hasZoneDr ? ' · 📎 ' + esc(zoneDr.ref || zoneDr.title || '') : '') + '</title></rect>' + hatch +
+        (hasZoneDr ? '<text x="' + (z.x + z.w - 16) + '" y="' + (z.y + 22) + '" text-anchor="end" font-size="15"' + txtShadow + '>📎</text>' : '') +
+        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 - 8) + '" text-anchor="middle" fill="' + txtFillName + '" font-size="13" font-weight="700" pointer-events="none"' + txtShadow + '>' + esc(I18n.t(z.name)) + '</text>' +
+        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 + 16) + '" text-anchor="middle" fill="' + txtFillPct + '" font-size="18" font-weight="800" pointer-events="none"' + txtShadow + '>' + (p == null ? '—' : p + '%') + '</text>' +
         '</g>';
     });
 
@@ -1457,8 +1638,10 @@
     // لوحة البنود الجانبية
     const panelItems = itemsFor(ctx, st.floor, st.disc, st.zone);
     const panelTitle = st.zone == null ? I18n.t('كل بنود ') + floorName(ctx, st.floor) : I18n.t(ZONES[st.zone].name) + ' — ' + floorName(ctx, st.floor);
+    const zoneDrSel = st.zone != null ? zonePlanDrawing(ctx, st.floor, st.zone, st.disc) : null;
     const panel =
       '<div class="card zone-panel"><h3>📋 ' + esc(panelTitle) + ' <span class="hint num">' + panelItems.length + ' ' + I18n.t('بند') + '</span></h3>' +
+      (hasPlanFile(zoneDrSel) ? '<div class="mb">📐 <b class="small">' + esc(zoneDrSel.ref || zoneDrSel.title || '') + '</b> ' + window.DrawingViewer.btn(zoneDrSel) + '</div>' : '') +
       (panelItems.length ? panelItems.map(function (b) {
         const d = discOf(ctx, b.discipline);
         const done = b.progress >= 100;
@@ -1471,8 +1654,13 @@
       drawingsHtml +
       '</div>';
 
+    const planHint = hasBg
+      ? '<div class="map2d-caption">📐 ' + esc(bgDr.ref ? bgDr.ref + ' · ' : '') + esc(bgDr.title || '') + ' — ' + I18n.t('المخطط المرفوع · المناطق المنفّذة تضيء باعتماد الكميات') + '</div>'
+      : '<div class="map2d-cta">🗺️ ' + I18n.t('لا يوجد مخطط مرفوع لهذا الدور — ارفعه من «النماذج والمخططات» ليظهر هنا ويضيء مع اعتماد جدول الكميات') + '</div>';
+
     return floorTabs + discStrip +
-      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage">' + svg + '</div>' + panel + '</div>';
+      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage' + (hasBg ? ' has-bg' : '') + '">' +
+      '<div class="map2d-bg" id="map2d-bg"></div>' + svg + planHint + '</div>' + panel + '</div>';
   }
 
   // ============ واجهات المبنى (High-Rise): كل دور بنسبة إنجازه ============
@@ -1831,6 +2019,9 @@
     thresholds: thresholdsOf, DEFAULT_THRESHOLDS: DEFAULT_THRESHOLDS,
     summarize: summarize, STATUS: STATUS, esc: esc, att: att,
     canManage: canManage, canDelete: canDelete, openGenericEdit: openGenericEdit, genericDelete: genericDelete,
+    CITY_COORDS: CITY_COORDS, projectLatLng: projectLatLng, mapStatus: mapStatus,
+    projectsMapHtml: projectsMapHtml, wireProjectsMap: wireProjectsMap,
+    ZONE_NAMES: ZONES.map(function (z) { return z.name; }),
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras

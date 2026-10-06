@@ -227,6 +227,15 @@
     'اسم المشروع': 'Project Name',
     'برج / فيلا / مجمع...': 'Tower / Villa / Complex...',
     'الموقع': 'Location',
+    'المنطقة': 'Zone',
+    'كامل الدور': 'Whole floor',
+    '✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر في خريطة الإنجاز ويضيء مع اعتماد الكميات': '✅ Drawing uploaded and linked to the floor BOQ — it will appear on the Progress Map and light up as the BOQ is approved',
+    'إحداثيات موقع المشروع (لعرضه على الخريطة) — إلزامي': 'Project location coordinates (to show on the map) — required',
+    'اختر مدينة لتعبئة الإحداثيات تلقائياً': 'Pick a city to auto-fill the coordinates',
+    'خط العرض (Latitude)': 'Latitude',
+    'خط الطول (Longitude)': 'Longitude',
+    'انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر المدينة أعلاه.': 'Copy coordinates from Google Maps (long-press the spot) or pick a city above.',
+    'أدخل إحداثيات صحيحة داخل المملكة (خط العرض 16–33، خط الطول 34–56) — أو اختر مدينة': 'Enter valid coordinates inside Saudi Arabia (lat 16–33, lng 34–56) — or pick a city',
     'المدينة - الحي': 'City - District',
     'الميزانية التقديرية (ر.س)': 'Estimated Budget (SAR)',
     'المكتب الاستشاري': 'Consulting Office',
@@ -1262,6 +1271,15 @@
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مشروع وتعيين استشاري') + '</h3>' +
       '<label class="fl">' + I18n.t('اسم المشروع') + '</label><input class="inp" id="np-name" placeholder="' + I18n.t('برج / فيلا / مجمع...') + '">' +
       '<label class="fl">' + I18n.t('الموقع') + '</label><input class="inp" id="np-loc" placeholder="' + I18n.t('المدينة - الحي') + '">' +
+      '<label class="fl">📍 ' + I18n.t('إحداثيات موقع المشروع (لعرضه على الخريطة) — إلزامي') + '</label>' +
+      '<select class="inp" id="np-city"><option value="">— ' + I18n.t('اختر مدينة لتعبئة الإحداثيات تلقائياً') + ' —</option>' +
+      Object.keys((window.ViewsShared && window.ViewsShared.CITY_COORDS) || {}).map(function (c) {
+        var ll = window.ViewsShared.CITY_COORDS[c];
+        return '<option value="' + ll[0] + ',' + ll[1] + '">' + esc(c) + '</option>';
+      }).join('') + '</select>' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('خط العرض (Latitude)') + '</label><input class="inp num" id="np-lat" type="number" step="0.0001" min="16" max="33" placeholder="24.7136" dir="ltr"></div>' +
+      '<div><label class="fl">' + I18n.t('خط الطول (Longitude)') + '</label><input class="inp num" id="np-lng" type="number" step="0.0001" min="34" max="56" placeholder="46.6753" dir="ltr"></div></div>' +
+      '<div class="small muted" style="margin:-4px 0 10px">' + I18n.t('انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر المدينة أعلاه.') + '</div>' +
       '<div class="grid g2"><div><label class="fl">' + I18n.t('تاريخ البدء') + '</label><input class="inp" id="np-start" type="date"></div>' +
       '<div><label class="fl">' + I18n.t('تاريخ الانتهاء') + '</label><input class="inp" id="np-end" type="date"></div></div>' +
       '<label class="fl">' + I18n.t('الميزانية التقديرية (ر.س)') + '</label><input class="inp num" id="np-budget" type="number" placeholder="10000000">' +
@@ -1272,12 +1290,28 @@
       '<label class="fl flex" style="cursor:pointer;margin-top:6px"><input type="checkbox" id="np-draft"> ' + I18n.t('حفظ كمسودة (لا يظهر لأحد سوى مَن تُسنِده لاحقاً، حتى تُنشره)') + '</label>' +
       '<div class="m-actions"><button class="btn block" id="np-save">' + I18n.t('إنشاء المشروع وحساب الاستشاري') + '</button></div></div></div>';
 
+    // اختيار مدينة يملأ حقلي الإحداثيات تلقائياً
+    var cityPick = el.querySelector('#np-city');
+    if (cityPick) cityPick.addEventListener('change', function () {
+      if (!this.value) return;
+      var parts = this.value.split(',');
+      el.querySelector('#np-lat').value = parts[0];
+      el.querySelector('#np-lng').value = parts[1];
+    });
+
     el.querySelector('#np-save').addEventListener('click', async function () {
       const name = el.querySelector('#np-name').value.trim();
       if (!name) { toast(I18n.t('أدخل اسم المشروع'), true); return; }
+      const lat = parseFloat(el.querySelector('#np-lat').value);
+      const lng = parseFloat(el.querySelector('#np-lng').value);
+      if (isNaN(lat) || isNaN(lng) || lat < 16 || lat > 33 || lng < 34 || lng > 56) {
+        toast(I18n.t('أدخل إحداثيات صحيحة داخل المملكة (خط العرض 16–33، خط الطول 34–56) — أو اختر مدينة'), true);
+        return;
+      }
       try {
         const res = await Api.addProject({
           name: name, location: el.querySelector('#np-loc').value,
+          lat: lat, lng: lng,
           startPlanned: el.querySelector('#np-start').value, endPlanned: el.querySelector('#np-end').value,
           budgetPlanned: el.querySelector('#np-budget').value,
           consultantName: el.querySelector('#np-cons').value,
@@ -1689,22 +1723,26 @@
       '<div class="small muted mt">' + I18n.t('💡 كل بند كميات مربوط بعناصر النموذج، فيتلوّن العنصر ساطعاً في عرض المالك عند اكتمال البند واعتماد مستخلصه.') + '</div></div></div>' +
 
       '<div class="card mt"><h3>' + I18n.t('📐 سجل مخططات المشروع ') + '<span class="hint">' + I18n.t('كل مخطط يرتبط بدور وتخصص وجدول كمياته — فيظهر داكناً/ساطعاً للمالك حسب التنفيذ') + '</span></h3>' +
-      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px">' +
+      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr 1.1fr;gap:8px;margin-bottom:14px">' +
       '<div><label class="fl">' + I18n.t('اسم المخطط') + '</label><input class="inp" id="pd-title" placeholder="' + I18n.t('المسقط المعماري - ...') + '"></div>' +
       '<div><label class="fl">' + I18n.t('الدور') + '</label><select class="inp" id="pd-floor">' +
       P.floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') +
       '<option value="ELEV">' + I18n.t('الواجهات') + '</option></select></div>' +
+      '<div><label class="fl">' + I18n.t('المنطقة') + '</label><select class="inp" id="pd-zone"><option value="">' + I18n.t('كامل الدور') + '</option>' +
+      ((VS.ZONE_NAMES || []).map(function (zn, zi) { return '<option value="' + zi + '">' + esc(I18n.t(zn)) + '</option>'; }).join('')) + '</select></div>' +
       '<div><label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="pd-disc">' +
       P.disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select></div>' +
-      '<div><label class="fl">' + I18n.t('الملف') + '</label><input class="inp" id="pd-file" type="file" accept=".dwg,.dxf,.pdf"></div>' +
+      '<div><label class="fl">' + I18n.t('الملف') + '</label><input class="inp" id="pd-file" type="file" accept=".dwg,.dxf,.pdf,.png,.jpg,.jpeg,.webp"></div>' +
       '</div>' +
       '<button class="btn sm mb" id="pd-add">' + I18n.t('➕ رفع المخطط وربطه بجدول الكميات') + '</button>' +
-      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('المخطط') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الربط') + '</th><th></th></tr></thead><tbody>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('المخطط') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('المنطقة') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الربط') + '</th></tr></thead><tbody>' +
       (ctx.S.planDrawings || []).map(function (dr) {
         const d = discOf(ctx, dr.discipline);
         const nLinked = (ctx.S.drawingMappings || []).filter(function (m) { return m.drawingId === dr.id; }).length;
+        const zoneLbl = (dr.zone == null || dr.zone === '') ? I18n.t('كامل الدور') : I18n.t((VS.ZONE_NAMES || [])[Number(dr.zone)] || ('منطقة ' + dr.zone));
         return '<tr><td class="num small"><b>' + esc(dr.ref) + '</b></td><td>' + esc(dr.title) + '<div class="small muted">📎 ' + VS.att(dr.file) + '</div></td>' +
           '<td class="small">' + (dr.floor === 'ELEV' ? I18n.t('الواجهات') : esc(VS.floorName(ctx, dr.floor))) + '</td>' +
+          '<td class="small">' + esc(zoneLbl) + '</td>' +
           '<td class="small">' + d.icon + ' ' + esc(d.name) + '</td>' +
           '<td class="small muted num">' + esc(dr.date || '') + '</td>' +
           '<td>' + (nLinked ? '<span class="pill p-ok">' + nLinked + ' ' + I18n.t('منطقة مربوطة') + '</span>' : '<span class="pill p-muted">' + I18n.t('غير مربوط') + '</span>') + '</td>' +
@@ -1742,13 +1780,15 @@
       btn.disabled = true;
       try {
         const fileRec = await Api.upload(f);
+        const zoneVal = el.querySelector('#pd-zone').value;
         await Api.create('planDrawings', {
           title: title,
           floor: el.querySelector('#pd-floor').value,
+          zone: zoneVal === '' ? null : Number(zoneVal),
           discipline: el.querySelector('#pd-disc').value,
           file: fileRec, by: ctx.U.name
         });
-        toast(I18n.t('✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر للمالك في رؤية المشروع'));
+        toast(I18n.t('✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر في خريطة الإنجاز ويضيء مع اعتماد الكميات'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); btn.disabled = false; }
     });

@@ -801,5 +801,51 @@
       (n ? ' <span class="pill p-warn" style="font-size:10px;padding:1px 7px">' + n + '</span>' : '') + '</button>';
   }
 
-  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn };
+  /**
+   * يعرض مخططاً (الصفحة الأولى من PDF أو صورة) داخل حاوية — يُستخدم كخلفية
+   * حقيقية في خريطة الإنجاز. يرجع true عند النجاح، false إن لم يوجد محتوى.
+   */
+  async function renderPlanInto(container, item) {
+    if (!container) return false;
+    const f = fileOf(item);
+    if (!f.url) return false;
+    container.innerHTML = '';
+    try {
+      if (f.isImage) {
+        const img = document.createElement('img');
+        img.src = f.url;
+        img.alt = (item && item.title) || '';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+        container.appendChild(img);
+        return true;
+      }
+      if (f.isPdf) {
+        const lib = await loadPdfjs();
+        let src;
+        if (/^data:/.test(f.url)) {
+          const b64 = f.url.split(',')[1] || '';
+          const bin = atob(b64);
+          const arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          src = { data: arr };
+        } else {
+          src = { url: new URL(f.url, location.href).href };
+        }
+        const pdf = await lib.getDocument(src).promise;
+        const pg = await pdf.getPage(1);
+        const vp0 = pg.getViewport({ scale: 1 });
+        const w = container.clientWidth || 760;
+        const vp = pg.getViewport({ scale: Math.max(0.2, w / vp0.width) });
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        canvas.style.cssText = 'width:100%;height:auto;display:block';
+        container.appendChild(canvas);
+        await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        return true;
+      }
+    } catch (e) { container.innerHTML = ''; return false; }
+    return false;
+  }
+
+  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn, renderPlanInto: renderPlanInto, fileOf: fileOf };
 })();
