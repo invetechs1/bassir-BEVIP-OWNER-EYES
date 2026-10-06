@@ -22,7 +22,7 @@
     "node": ">=22"
   },
   "optionalDependencies": {
-    "@anthropic-ai/sdk": "^0.112.0"
+    "@anthropic-ai/sdk": "^0.131.0"
   },
   "license": "MIT",
   "dependencies": {
