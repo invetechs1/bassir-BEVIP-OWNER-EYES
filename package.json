@@ -8,13 +8,15 @@
     "seed": "node server/seed.js --reset",
     "build:demo": "node tools/build-demo.js",
     "preflight": "node tools/preflight.js",
-    "test": "node tests/roles-smoke.js && node tests/crawl-all.js && node tests/drawing-boq-brightness.js && node tests/e2e-cycle.js && node tests/bim-render.js",
+    "test": "node tests/api-integration.js && node tests/roles-smoke.js && node tests/e2e-cycle.js && node tests/drawing-boq-brightness.js && node tests/bim-render.js",
     "test:smoke": "node tests/roles-smoke.js",
     "test:crawl": "node tests/crawl-all.js",
     "test:brightness": "node tests/drawing-boq-brightness.js",
     "test:cycle": "node tests/e2e-cycle.js",
     "test:bim": "node tests/bim-render.js",
-    "gen:ifc": "node tests/gen-ifc.js"
+    "gen:ifc": "node tests/gen-ifc.js",
+    "test:full": "npm test && node tests/crawl-all.js",
+    "test:api": "node tests/api-integration.js"
   },
   "engines": {
     "node": ">=22"

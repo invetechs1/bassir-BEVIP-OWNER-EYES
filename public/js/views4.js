@@ -13,6 +13,15 @@
   'use strict';
 
   I18n.registerDict({
+    'إحداثيات موقع المشروع': 'Project Location Coordinates',
+    'لعرض المشروع على خريطة المملكة في لوحة القيادة والمحفظة': 'Shows the project on the Kingdom map in the dashboard and portfolio',
+    'حفظ الإحداثيات': 'Save Coordinates',
+    'لا توجد إحداثيات لهذا المشروع — لن يظهر على الخريطة حتى تُضاف.': 'This project has no coordinates — it will not appear on the map until added.',
+    'اختر مدينة (تعبئة تلقائية)': 'Pick a City (auto-fill)',
+    'خط العرض (Latitude)': 'Latitude',
+    'خط الطول (Longitude)': 'Longitude',
+    '— اختر —': '— Select —',
+    'انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر مدينة.': 'Copy coordinates from Google Maps (long-press the location) or pick a city.',
     'تعديل ملاحظة التسليم': 'Edit Punch List Item',
     'تعديل الضمان': 'Edit Warranty',
     'تعديل سجل المفاتيح': 'Edit Keys Log Entry',
@@ -273,9 +282,11 @@
       '<div class="muted">' + I18n.t('تاريخ الإصدار: ') + todayStr() + '</div></div>' +
       bodyHtml +
       '<p class="muted" style="margin-top:26px;border-top:1px solid #ccc;padding-top:10px">' + I18n.t('وثيقة مُصدَّرة آلياً من منصة بصير — Bassir Owner Eyes Platform') + '</p>' +
-      '<div class="noprint" style="margin-top:20px"><button onclick="window.print()" style="padding:10px 22px;font-size:14px;cursor:pointer;background:#0b8457;color:#fff;border:0;border-radius:8px">🖨 ' + I18n.t('طباعة / حفظ PDF') + '</button></div>' +
+      '<div class="noprint" style="margin-top:20px"><button id="rpt-print" style="padding:10px 22px;font-size:14px;cursor:pointer;background:#0b8457;color:#fff;border:0;border-radius:8px">🖨 ' + I18n.t('طباعة / حفظ PDF') + '</button></div>' +
       '</body></html>');
     w.document.close();
+    const printBtn = w.document.getElementById('rpt-print');
+    if (printBtn) printBtn.addEventListener('click', function () { w.print(); });
   }
 
   // ============ صفحة التسليم والإغلاق (Handover) ============
@@ -790,14 +801,14 @@
         }).join('');
         const hasCoords = (P.lat != null && P.lng != null);
         return '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
-          '<h3 style="margin:0">📍 إحداثيات موقع المشروع <span class="hint">لعرض المشروع على خريطة المملكة في لوحة القيادة والمحفظة</span></h3>' +
-          '<button class="btn sm" id="loc-save">💾 حفظ الإحداثيات</button></div>' +
-          (hasCoords ? '' : '<div class="small" style="color:var(--warn);margin-top:8px">⚠️ لا توجد إحداثيات لهذا المشروع — لن يظهر على الخريطة حتى تُضاف.</div>') +
+          '<h3 style="margin:0">📍 ' + I18n.t('إحداثيات موقع المشروع') + ' <span class="hint">' + I18n.t('لعرض المشروع على خريطة المملكة في لوحة القيادة والمحفظة') + '</span></h3>' +
+          '<button class="btn sm" id="loc-save">💾 ' + I18n.t('حفظ الإحداثيات') + '</button></div>' +
+          (hasCoords ? '' : '<div class="small" style="color:var(--warn);margin-top:8px">⚠️ ' + I18n.t('لا توجد إحداثيات لهذا المشروع — لن يظهر على الخريطة حتى تُضاف.') + '</div>') +
           '<div class="grid g4" style="margin-top:12px">' +
-          '<div><label class="fl">اختر مدينة (تعبئة تلقائية)</label><select class="inp" id="loc-city"><option value="">— اختر —</option>' + cityOpts + '</select></div>' +
-          '<div><label class="fl">خط العرض (Latitude)</label><input class="inp num" id="loc-lat" type="number" step="0.0001" min="16" max="33" value="' + (P.lat != null ? P.lat : '') + '" placeholder="24.7136" dir="ltr"></div>' +
-          '<div><label class="fl">خط الطول (Longitude)</label><input class="inp num" id="loc-lng" type="number" step="0.0001" min="34" max="56" value="' + (P.lng != null ? P.lng : '') + '" placeholder="46.6753" dir="ltr"></div>' +
-          '<div><label class="fl">&nbsp;</label><div class="small muted">انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر مدينة.</div></div>' +
+          '<div><label class="fl">' + I18n.t('اختر مدينة (تعبئة تلقائية)') + '</label><select class="inp" id="loc-city"><option value="">' + I18n.t('— اختر —') + '</option>' + cityOpts + '</select></div>' +
+          '<div><label class="fl">' + I18n.t('خط العرض (Latitude)') + '</label><input class="inp num" id="loc-lat" type="number" step="0.0001" min="16" max="33" value="' + (P.lat != null ? P.lat : '') + '" placeholder="24.7136" dir="ltr"></div>' +
+          '<div><label class="fl">' + I18n.t('خط الطول (Longitude)') + '</label><input class="inp num" id="loc-lng" type="number" step="0.0001" min="34" max="56" value="' + (P.lng != null ? P.lng : '') + '" placeholder="46.6753" dir="ltr"></div>' +
+          '<div><label class="fl">&nbsp;</label><div class="small muted">' + I18n.t('انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر مدينة.') + '</div></div>' +
           '</div></div>';
       })() : '') +
 

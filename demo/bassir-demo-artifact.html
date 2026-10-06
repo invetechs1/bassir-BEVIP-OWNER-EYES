@@ -1295,7 +1295,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     db.notifications = [];
     db.comments = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 20, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 21, docSeq: docSeq };
 
     return db;
   }
@@ -1439,6 +1439,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests', 'meetings', 'correspondence'
   ];
   const BROAD_DELETE_ROLES = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
+  const KSA_BOUNDS = { latMin: 16, latMax: 33, lngMin: 34, lngMax: 56 };
+  const KSA_COORDS_ERROR = 'أدخل إحداثيات صحيحة داخل المملكة (خط العرض 16–33، خط الطول 34–56)';
+  function validKsaCoords(lat, lng) {
+    return typeof lat === 'number' && typeof lng === 'number' && isFinite(lat) && isFinite(lng) &&
+      lat >= KSA_BOUNDS.latMin && lat <= KSA_BOUNDS.latMax && lng >= KSA_BOUNDS.lngMin && lng <= KSA_BOUNDS.lngMax;
+  }
 
   function createCore(db, persist, opts) {
     persist = persist || function () {};
@@ -1858,6 +1864,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
           else patch.password = plain; // احتياط وضع الديمو بلا وحدة تشفير
         }
       }
+      if (collection === 'projects' && ('lat' in patch || 'lng' in patch)) {
+        const la = 'lat' in patch ? Number(patch.lat) : item.lat;
+        const lo = 'lng' in patch ? Number(patch.lng) : item.lng;
+        if (!validKsaCoords(la, lo)) throw err(KSA_COORDS_ERROR, 400);
+        if ('lat' in patch) patch.lat = la;
+        if ('lng' in patch) patch.lng = lo;
+      }
       const wasOpen = item.status === 'open';
       const prevAssignee = item.assignedTo;
       Object.assign(item, patch);
@@ -2120,12 +2133,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
     /** إضافة مشروع وتعيين استشاري بحسابه (صلاحية ممثل المالك) */
     function addProject(user, payload) {
       if (['owner_rep', 'admin'].indexOf(user.role) === -1) throw err('إضافة المشاريع صلاحية ممثل المالك', 403);
-      const lat = payload.lat != null ? Number(payload.lat) : null;
-      const lng = payload.lng != null ? Number(payload.lng) : null;
+      const name = String(payload.name || '').trim();
+      if (!name) throw err('اسم المشروع مطلوب', 400);
+      if (payload.lat == null || payload.lng == null) throw err(KSA_COORDS_ERROR, 400);
+      const lat = Number(payload.lat), lng = Number(payload.lng);
+      if (!validKsaCoords(lat, lng)) throw err(KSA_COORDS_ERROR, 400);
       const p = {
-        id: nextId('P'), name: payload.name, location: payload.location || '',
-        lat: (lat != null && !isNaN(lat)) ? lat : null,
-        lng: (lng != null && !isNaN(lng)) ? lng : null,
+        id: nextId('P'), name: name, location: payload.location || '',
+        lat: lat, lng: lng,
         description: payload.description || '', ownerName: payload.ownerName || '',
         consultantName: payload.consultantName || '',
         status: payload.status === 'draft' ? 'draft' : 'active', createdBy: user.id,
@@ -3613,7 +3628,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
     let THREE, renderer, scene, camera, root, raf = 0, meshes = [], wire = false;
     let selected = null; // آخر مesh مُختار
     const elementInfo = {}; // expressID -> {name, globalId, category}
-    let mappings = {}; // expressID -> سجل الربط الحالي (من ctx.S.bimMappings)
+    let mappings = {}; // expressID -> سجل الربط (للسجلات القديمة بلا GUID)
+    let mappingsByGuid = {}; // GUID العنصر -> سجل الربط (المعرّف الدائم في ملف IFC)
 
     // مدار يدوي (بلا اعتماد إضافي)
     const cam = { theta: Math.PI * 0.25, phi: Math.PI * 0.32, dist: 20, target: null };
@@ -3625,10 +3641,18 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     function refreshMappings() {
       mappings = {};
+      mappingsByGuid = {};
       if (!ctx || !modelId) return;
       (ctx.S.bimMappings || []).forEach(function (m) {
-        if (m.bimModelId === modelId) mappings[m.elementExpressId] = m;
+        if (m.bimModelId !== modelId) return;
+        if (m.globalId) mappingsByGuid[m.globalId] = m;
+        else mappings[m.elementExpressId] = m;
       });
+    }
+
+    function mappingFor(eid) {
+      const g = elementInfo[eid] && elementInfo[eid].globalId;
+      return (g && mappingsByGuid[g]) || mappings[eid] || null;
     }
 
     function boqOf(mapping) {
@@ -3642,7 +3666,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       refreshMappings();
       meshes.forEach(function (mesh) {
         const id = mesh.userData.expressID;
-        const mapping = mappings[id];
+        const mapping = mappingFor(id);
         if (!mapping) {
           // غير مربوط بعد: نُبقي اللون الأصلي لكن نُخفّف الشفافية (تحذير بصري بلا فقدان شكل النموذج)
           mesh.material.color.copy(mesh.userData.baseColor);
@@ -3679,7 +3703,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       }
       const id = selected.userData.expressID;
       const info2 = elementInfo[id] || {};
-      const mapping = mappings[id];
+      const mapping = mappingFor(id);
       const bq = boqOf(mapping);
       const st = statusOf(bq);
 
@@ -5486,7 +5510,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'عنيزة': [26.09, 43.99], 'حائل': [27.52, 41.69], 'نجران': [17.49, 44.13], 'جازان': [16.89, 42.55],
     'ينبع': [24.09, 38.06], 'الجبيل': [27.01, 49.66], 'العلا': [26.61, 37.92], 'الأحساء': [25.38, 49.59],
     'الهفوف': [25.36, 49.59], 'القطيف': [26.56, 49.99], 'رابغ': [22.80, 39.03], 'نيوم': [28.00, 35.20],
-    'عرعر': [30.98, 41.02], 'سكاكا': [29.97, 40.21], 'الباحة': [20.01, 41.47], 'بيشة': [20.00, 42.60]
+    'عرعر': [30.98, 41.02], 'سكاكا': [29.97, 40.21], 'الباحة': [20.01, 41.47], 'بيشة': [20.00, 42.60], 'حفر الباطن': [28.43, 45.96]
   };
 
   function ksaPx(lat, lng) {
@@ -7448,7 +7472,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
           modal('<h3>✅ ' + I18n.t('تم إنشاء المقاول وحسابه') + '</h3><div class="m-sub">' + I18n.t('سلّم هذه البيانات للمقاول للدخول على صفحة المشروع:') + '</div>' +
             '<div class="card" style="padding:16px"><div>' + I18n.t('👤 اسم المستخدم: ') + '<b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">' + I18n.t('🔑 كلمة المرور: ') + '<b class="num">' + esc(res.account.password) + '</b></div></div>' +
-            '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم') + '</button></div>');
+            '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم') + '</button></div>');
         } else toast(I18n.t('✅ تمت إضافة المقاول'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
@@ -7867,7 +7891,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
           modal('<h3>✅ ' + I18n.t('أُنشئ المشروع وحساب الاستشاري') + '</h3><div class="m-sub">' + I18n.t('بيانات دخول الاستشاري:') + '</div>' +
             '<div class="card" style="padding:16px"><div>👤 <b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">🔑 <b class="num">' + esc(res.account.password) + '</b></div></div>' +
-            '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم') + '</button></div>');
+            '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم') + '</button></div>');
         } else toast(I18n.t('✅ أُنشئ المشروع — استخدم زر "فتح المشروع" أو المبدّل أعلى الشاشة للانتقال إليه'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
@@ -8078,7 +8102,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '<div>' + ROLE_META[role].icon + ' <b>' + esc(name) + '</b> — ' + esc(I18n.t(ROLE_NAMES[role])) + '</div>' +
           '<div class="mt">' + I18n.t('👤 اسم المستخدم: ') + '<b class="num">' + esc(username) + '</b></div>' +
           '<div class="mt">' + I18n.t('🔑 كلمة المرور: ') + '<b class="num">' + esc(created.password || data.password) + '</b></div></div>' +
-          '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم التسليم') + '</button></div>');
+          '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم التسليم') + '</button></div>');
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
@@ -9029,7 +9053,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       (hasDrawing ? '<button class="btn" id="ad-view">🖊 ' + I18n.t('فتح المخطط') + ((it.annotations || []).length ? ' (' + it.annotations.length + ' ' + I18n.t('ترميز') + ')' : '') + '</button>' : '') +
       (VS.canManage(ctx) ? '<button class="btn ghost" id="ad-edit">✏️ ' + I18n.t('تعديل') + '</button>' : '') +
       (VS.canDelete(ctx, row.col) ? '<button class="btn danger" id="ad-del">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
-      '<button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
+      '<button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
     );
     const v = m.querySelector('#ad-view');
     if (v) v.addEventListener('click', function () {
@@ -9598,7 +9622,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         }).join('') + '</div>'
         : '<div class="small muted mt">' + I18n.t('لا سجل حالات لهذا التقديم بعد') + '</div>') + '</div>' +
       '</div>' +
-      '<div class="m-actions"><button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
+      '<div class="m-actions"><button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
     );
   }
 
@@ -10181,7 +10205,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
               '<div class="small muted num">' + esc(v.date || '') + ' · ' + fmtSize(v.size) + ' · ' + esc(v.by || '') + '</div>' +
               (v.url ? '<a class="btn ghost sm" style="margin-top:6px" href="' + esc(v.url) + '" target="_blank">⬇ ' + I18n.t('استرجاع هذه النسخة') + '</a>' : '') + '</div>';
           }).join('') +
-          '<div class="m-actions"><button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
+          '<div class="m-actions"><button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
         );
       });
     });
@@ -10532,7 +10556,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
             return '<div class="card" style="padding:12px;margin-bottom:8px"><b class="small">' + esc(I18n.t(k)) + '</b>' +
               '<div class="small" style="margin-top:6px;line-height:1.9;color:#c6cdda">' + esc(d2.sections[k]) + '</div></div>';
           }).join('') +
-          '<div class="m-actions"><button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
+          '<div class="m-actions"><button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
         );
       });
     });
@@ -10691,6 +10715,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
   'use strict';
 
   I18n.registerDict({
+    'إحداثيات موقع المشروع': 'Project Location Coordinates',
+    'لعرض المشروع على خريطة المملكة في لوحة القيادة والمحفظة': 'Shows the project on the Kingdom map in the dashboard and portfolio',
+    'حفظ الإحداثيات': 'Save Coordinates',
+    'لا توجد إحداثيات لهذا المشروع — لن يظهر على الخريطة حتى تُضاف.': 'This project has no coordinates — it will not appear on the map until added.',
+    'اختر مدينة (تعبئة تلقائية)': 'Pick a City (auto-fill)',
+    'خط العرض (Latitude)': 'Latitude',
+    'خط الطول (Longitude)': 'Longitude',
+    '— اختر —': '— Select —',
+    'انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر مدينة.': 'Copy coordinates from Google Maps (long-press the location) or pick a city.',
     'تعديل ملاحظة التسليم': 'Edit Punch List Item',
     'تعديل الضمان': 'Edit Warranty',
     'تعديل سجل المفاتيح': 'Edit Keys Log Entry',
@@ -10951,9 +10984,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="muted">' + I18n.t('تاريخ الإصدار: ') + todayStr() + '</div></div>' +
       bodyHtml +
       '<p class="muted" style="margin-top:26px;border-top:1px solid #ccc;padding-top:10px">' + I18n.t('وثيقة مُصدَّرة آلياً من منصة بصير — Bassir Owner Eyes Platform') + '</p>' +
-      '<div class="noprint" style="margin-top:20px"><button onclick="window.print()" style="padding:10px 22px;font-size:14px;cursor:pointer;background:#0b8457;color:#fff;border:0;border-radius:8px">🖨 ' + I18n.t('طباعة / حفظ PDF') + '</button></div>' +
+      '<div class="noprint" style="margin-top:20px"><button id="rpt-print" style="padding:10px 22px;font-size:14px;cursor:pointer;background:#0b8457;color:#fff;border:0;border-radius:8px">🖨 ' + I18n.t('طباعة / حفظ PDF') + '</button></div>' +
       '</body></html>');
     w.document.close();
+    const printBtn = w.document.getElementById('rpt-print');
+    if (printBtn) printBtn.addEventListener('click', function () { w.print(); });
   }
 
   // ============ صفحة التسليم والإغلاق (Handover) ============
@@ -11468,14 +11503,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
         }).join('');
         const hasCoords = (P.lat != null && P.lng != null);
         return '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
-          '<h3 style="margin:0">📍 إحداثيات موقع المشروع <span class="hint">لعرض المشروع على خريطة المملكة في لوحة القيادة والمحفظة</span></h3>' +
-          '<button class="btn sm" id="loc-save">💾 حفظ الإحداثيات</button></div>' +
-          (hasCoords ? '' : '<div class="small" style="color:var(--warn);margin-top:8px">⚠️ لا توجد إحداثيات لهذا المشروع — لن يظهر على الخريطة حتى تُضاف.</div>') +
+          '<h3 style="margin:0">📍 ' + I18n.t('إحداثيات موقع المشروع') + ' <span class="hint">' + I18n.t('لعرض المشروع على خريطة المملكة في لوحة القيادة والمحفظة') + '</span></h3>' +
+          '<button class="btn sm" id="loc-save">💾 ' + I18n.t('حفظ الإحداثيات') + '</button></div>' +
+          (hasCoords ? '' : '<div class="small" style="color:var(--warn);margin-top:8px">⚠️ ' + I18n.t('لا توجد إحداثيات لهذا المشروع — لن يظهر على الخريطة حتى تُضاف.') + '</div>') +
           '<div class="grid g4" style="margin-top:12px">' +
-          '<div><label class="fl">اختر مدينة (تعبئة تلقائية)</label><select class="inp" id="loc-city"><option value="">— اختر —</option>' + cityOpts + '</select></div>' +
-          '<div><label class="fl">خط العرض (Latitude)</label><input class="inp num" id="loc-lat" type="number" step="0.0001" min="16" max="33" value="' + (P.lat != null ? P.lat : '') + '" placeholder="24.7136" dir="ltr"></div>' +
-          '<div><label class="fl">خط الطول (Longitude)</label><input class="inp num" id="loc-lng" type="number" step="0.0001" min="34" max="56" value="' + (P.lng != null ? P.lng : '') + '" placeholder="46.6753" dir="ltr"></div>' +
-          '<div><label class="fl">&nbsp;</label><div class="small muted">انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر مدينة.</div></div>' +
+          '<div><label class="fl">' + I18n.t('اختر مدينة (تعبئة تلقائية)') + '</label><select class="inp" id="loc-city"><option value="">' + I18n.t('— اختر —') + '</option>' + cityOpts + '</select></div>' +
+          '<div><label class="fl">' + I18n.t('خط العرض (Latitude)') + '</label><input class="inp num" id="loc-lat" type="number" step="0.0001" min="16" max="33" value="' + (P.lat != null ? P.lat : '') + '" placeholder="24.7136" dir="ltr"></div>' +
+          '<div><label class="fl">' + I18n.t('خط الطول (Longitude)') + '</label><input class="inp num" id="loc-lng" type="number" step="0.0001" min="34" max="56" value="' + (P.lng != null ? P.lng : '') + '" placeholder="46.6753" dir="ltr"></div>' +
+          '<div><label class="fl">&nbsp;</label><div class="small muted">' + I18n.t('انسخ الإحداثيات من خرائط جوجل (اضغط مطولاً على الموقع) أو اختر مدينة.') + '</div></div>' +
           '</div></div>';
       })() : '') +
 
@@ -12846,6 +12881,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     draw();
   }
+
+  document.addEventListener('click', function (e) {
+    const closer = e.target.closest('[data-close-modal]');
+    if (closer) { const m = closer.closest('.modal-back'); if (m) m.remove(); }
+  });
 
   window.addEventListener('hashchange', function () {
     if (!ctx) return;

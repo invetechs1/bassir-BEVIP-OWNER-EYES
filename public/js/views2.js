@@ -906,7 +906,7 @@
           modal('<h3>✅ ' + I18n.t('تم إنشاء المقاول وحسابه') + '</h3><div class="m-sub">' + I18n.t('سلّم هذه البيانات للمقاول للدخول على صفحة المشروع:') + '</div>' +
             '<div class="card" style="padding:16px"><div>' + I18n.t('👤 اسم المستخدم: ') + '<b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">' + I18n.t('🔑 كلمة المرور: ') + '<b class="num">' + esc(res.account.password) + '</b></div></div>' +
-            '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم') + '</button></div>');
+            '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم') + '</button></div>');
         } else toast(I18n.t('✅ تمت إضافة المقاول'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
@@ -1325,7 +1325,7 @@
           modal('<h3>✅ ' + I18n.t('أُنشئ المشروع وحساب الاستشاري') + '</h3><div class="m-sub">' + I18n.t('بيانات دخول الاستشاري:') + '</div>' +
             '<div class="card" style="padding:16px"><div>👤 <b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">🔑 <b class="num">' + esc(res.account.password) + '</b></div></div>' +
-            '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم') + '</button></div>');
+            '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم') + '</button></div>');
         } else toast(I18n.t('✅ أُنشئ المشروع — استخدم زر "فتح المشروع" أو المبدّل أعلى الشاشة للانتقال إليه'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
@@ -1536,7 +1536,7 @@
           '<div>' + ROLE_META[role].icon + ' <b>' + esc(name) + '</b> — ' + esc(I18n.t(ROLE_NAMES[role])) + '</div>' +
           '<div class="mt">' + I18n.t('👤 اسم المستخدم: ') + '<b class="num">' + esc(username) + '</b></div>' +
           '<div class="mt">' + I18n.t('🔑 كلمة المرور: ') + '<b class="num">' + esc(created.password || data.password) + '</b></div></div>' +
-          '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم التسليم') + '</button></div>');
+          '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم التسليم') + '</button></div>');
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
@@ -2487,7 +2487,7 @@
       (hasDrawing ? '<button class="btn" id="ad-view">🖊 ' + I18n.t('فتح المخطط') + ((it.annotations || []).length ? ' (' + it.annotations.length + ' ' + I18n.t('ترميز') + ')' : '') + '</button>' : '') +
       (VS.canManage(ctx) ? '<button class="btn ghost" id="ad-edit">✏️ ' + I18n.t('تعديل') + '</button>' : '') +
       (VS.canDelete(ctx, row.col) ? '<button class="btn danger" id="ad-del">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
-      '<button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
+      '<button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
     );
     const v = m.querySelector('#ad-view');
     if (v) v.addEventListener('click', function () {

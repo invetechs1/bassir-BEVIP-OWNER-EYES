@@ -123,7 +123,8 @@
     let THREE, renderer, scene, camera, root, raf = 0, meshes = [], wire = false;
     let selected = null; // آخر مesh مُختار
     const elementInfo = {}; // expressID -> {name, globalId, category}
-    let mappings = {}; // expressID -> سجل الربط الحالي (من ctx.S.bimMappings)
+    let mappings = {}; // expressID -> سجل الربط (للسجلات القديمة بلا GUID)
+    let mappingsByGuid = {}; // GUID العنصر -> سجل الربط (المعرّف الدائم في ملف IFC)
 
     // مدار يدوي (بلا اعتماد إضافي)
     const cam = { theta: Math.PI * 0.25, phi: Math.PI * 0.32, dist: 20, target: null };
@@ -135,10 +136,18 @@
 
     function refreshMappings() {
       mappings = {};
+      mappingsByGuid = {};
       if (!ctx || !modelId) return;
       (ctx.S.bimMappings || []).forEach(function (m) {
-        if (m.bimModelId === modelId) mappings[m.elementExpressId] = m;
+        if (m.bimModelId !== modelId) return;
+        if (m.globalId) mappingsByGuid[m.globalId] = m;
+        else mappings[m.elementExpressId] = m;
       });
+    }
+
+    function mappingFor(eid) {
+      const g = elementInfo[eid] && elementInfo[eid].globalId;
+      return (g && mappingsByGuid[g]) || mappings[eid] || null;
     }
 
     function boqOf(mapping) {
@@ -152,7 +161,7 @@
       refreshMappings();
       meshes.forEach(function (mesh) {
         const id = mesh.userData.expressID;
-        const mapping = mappings[id];
+        const mapping = mappingFor(id);
         if (!mapping) {
           // غير مربوط بعد: نُبقي اللون الأصلي لكن نُخفّف الشفافية (تحذير بصري بلا فقدان شكل النموذج)
           mesh.material.color.copy(mesh.userData.baseColor);
@@ -189,7 +198,7 @@
       }
       const id = selected.userData.expressID;
       const info2 = elementInfo[id] || {};
-      const mapping = mappings[id];
+      const mapping = mappingFor(id);
       const bq = boqOf(mapping);
       const st = statusOf(bq);
 

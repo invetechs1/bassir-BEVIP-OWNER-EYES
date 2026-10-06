@@ -29,11 +29,25 @@ const UPLOADS_DOCS_DIR = path.join(UPLOADS_DIR, 'documents');
 const storage = storageModule.createStorage();
 const SEED_VERSION = seedModule.buildSeed().meta.version;
 
+// ترقية غير مدمِّرة: بيانات المستخدمين لا تُستبدل أبداً بالبذرة — تُكمَّل الحقول والمجموعات الناقصة فقط
+function migrateSavedDb(saved, seed) {
+  (seed.projects || []).forEach(function (sp) {
+    const p = (saved.projects || []).find(function (x) { return x.id === sp.id; });
+    if (p && (p.lat == null || p.lng == null) && sp.lat != null && sp.lng != null) { p.lat = sp.lat; p.lng = sp.lng; }
+  });
+  Object.keys(seed).forEach(function (k) { if (saved[k] === undefined) saved[k] = seed[k]; });
+  saved.meta.version = SEED_VERSION;
+  return saved;
+}
+
 function loadDb() {
   if (process.argv.indexOf('--reset') === -1) {
     const saved = storage.load();
     if (saved && saved.meta && saved.meta.version === SEED_VERSION) return saved;
-    if (saved) console.log('نسخة البيانات قديمة — سيعاد التهيئة بالبيانات المحدثة');
+    if (saved && saved.meta) {
+      console.log('ترقية بيانات محفوظة من النسخة ' + saved.meta.version + ' إلى ' + SEED_VERSION + ' دون فقد أي سجل');
+      return migrateSavedDb(saved, seedModule.buildSeed());
+    }
   }
   return seedModule.buildSeed();
 }
@@ -47,6 +61,11 @@ function persist() {
     try { storage.persist(db); }
     catch (e) { console.error('فشل حفظ قاعدة البيانات:', e.message); }
   }, 150);
+}
+function flushNow() {
+  if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+  try { storage.persist(db); }
+  catch (e) { console.error('فشل حفظ قاعدة البيانات:', e.message); }
 }
 
 // ============ تشفير كلمات المرور (scrypt المدمجة) ============
@@ -289,7 +308,16 @@ function serveStatic(req, res) {
 
 // ============ الموجّه ============
 const SERVER_STARTED = Date.now();
+const SECURITY_HEADERS = {
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' blob: data:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'",
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()'
+};
+
 const server = http.createServer(async function (req, res) {
+  Object.keys(SECURITY_HEADERS).forEach(function (h) { res.setHeader(h, SECURITY_HEADERS[h]); });
   try {
     const u = req.url.split('?')[0];
 
@@ -608,4 +636,12 @@ server.listen(PORT, function () {
   console.log('    consultant / consult123 (الاستشاري)');
   console.log('    cont-str / cont123      (مقاول إنشائي)');
   console.log('');
+});
+
+['SIGTERM', 'SIGINT'].forEach(function (sig) {
+  process.on(sig, function () {
+    flushNow();
+    server.close(function () { process.exit(0); });
+    setTimeout(function () { process.exit(0); }, 2000).unref();
+  });
 });

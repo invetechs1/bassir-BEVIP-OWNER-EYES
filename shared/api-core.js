@@ -132,6 +132,12 @@
     'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests', 'meetings', 'correspondence'
   ];
   const BROAD_DELETE_ROLES = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
+  const KSA_BOUNDS = { latMin: 16, latMax: 33, lngMin: 34, lngMax: 56 };
+  const KSA_COORDS_ERROR = 'أدخل إحداثيات صحيحة داخل المملكة (خط العرض 16–33، خط الطول 34–56)';
+  function validKsaCoords(lat, lng) {
+    return typeof lat === 'number' && typeof lng === 'number' && isFinite(lat) && isFinite(lng) &&
+      lat >= KSA_BOUNDS.latMin && lat <= KSA_BOUNDS.latMax && lng >= KSA_BOUNDS.lngMin && lng <= KSA_BOUNDS.lngMax;
+  }
 
   function createCore(db, persist, opts) {
     persist = persist || function () {};
@@ -551,6 +557,13 @@
           else patch.password = plain; // احتياط وضع الديمو بلا وحدة تشفير
         }
       }
+      if (collection === 'projects' && ('lat' in patch || 'lng' in patch)) {
+        const la = 'lat' in patch ? Number(patch.lat) : item.lat;
+        const lo = 'lng' in patch ? Number(patch.lng) : item.lng;
+        if (!validKsaCoords(la, lo)) throw err(KSA_COORDS_ERROR, 400);
+        if ('lat' in patch) patch.lat = la;
+        if ('lng' in patch) patch.lng = lo;
+      }
       const wasOpen = item.status === 'open';
       const prevAssignee = item.assignedTo;
       Object.assign(item, patch);
@@ -813,12 +826,14 @@
     /** إضافة مشروع وتعيين استشاري بحسابه (صلاحية ممثل المالك) */
     function addProject(user, payload) {
       if (['owner_rep', 'admin'].indexOf(user.role) === -1) throw err('إضافة المشاريع صلاحية ممثل المالك', 403);
-      const lat = payload.lat != null ? Number(payload.lat) : null;
-      const lng = payload.lng != null ? Number(payload.lng) : null;
+      const name = String(payload.name || '').trim();
+      if (!name) throw err('اسم المشروع مطلوب', 400);
+      if (payload.lat == null || payload.lng == null) throw err(KSA_COORDS_ERROR, 400);
+      const lat = Number(payload.lat), lng = Number(payload.lng);
+      if (!validKsaCoords(lat, lng)) throw err(KSA_COORDS_ERROR, 400);
       const p = {
-        id: nextId('P'), name: payload.name, location: payload.location || '',
-        lat: (lat != null && !isNaN(lat)) ? lat : null,
-        lng: (lng != null && !isNaN(lng)) ? lng : null,
+        id: nextId('P'), name: name, location: payload.location || '',
+        lat: lat, lng: lng,
         description: payload.description || '', ownerName: payload.ownerName || '',
         consultantName: payload.consultantName || '',
         status: payload.status === 'draft' ? 'draft' : 'active', createdBy: user.id,

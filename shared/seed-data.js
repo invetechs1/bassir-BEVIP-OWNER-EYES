@@ -771,7 +771,7 @@
 
     db.notifications = [];
     db.comments = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 20, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 21, docSeq: docSeq };
 
     return db;
   }

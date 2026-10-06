@@ -3,10 +3,11 @@
 const H = require('./_harness');
 
 (async () => {
-  const browser = await H.launch();
   const summary = {};
   let totalErr = 0;
-  for (const role of Object.keys(H.ROLES)) {
+  for (const role of (process.env.ROLE ? [process.env.ROLE] : Object.keys(H.ROLES))) {
+    console.log('▶ role: ' + role + ' — ' + new Date().toLocaleTimeString());
+    const browser = await H.launch();
     const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
     const errors = []; let cur = '(login)';
     page.on('pageerror', e => errors.push('PAGEERR@' + cur + ': ' + e.message));
@@ -26,8 +27,17 @@ const H = require('./_harness');
     }
     for (const id of pages) {
       cur = role + '/' + id;
+      console.log('   · ' + cur);
       await H.clearModals(page);
-      try { await page.click('.sidebar .nav-item[data-page="' + id + '"]', { timeout: 4000 }); } catch (e) { errors.push('NAVFAIL ' + cur); continue; }
+      try { await page.click('.sidebar .nav-item[data-page="' + id + '"]', { timeout: 15000 }); } catch (e) {
+        const blocker = await page.evaluate(function (sel) {
+          const el = document.querySelector(sel); if (!el) return 'not in DOM';
+          const r = el.getBoundingClientRect(); const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return top ? (top.tagName + '.' + top.className + ' #' + top.id + ' ' + (top.textContent || '').trim().slice(0, 30)) : 'none';
+        }, '.sidebar .nav-item[data-page="' + id + '"]').catch(function () { return '?'; });
+        errors.push('NAVFAIL ' + cur + ' — topmost at link: ' + blocker);
+        continue;
+      }
       await page.waitForTimeout(200);
       for (const sel of ['.tabbar .tab', '[data-atab]', '[data-ctab]', '[data-vtab]', '[data-disc]', '[data-floor]', '.floor-tabs .tab']) {
         const n = await page.$$eval('#page ' + sel, e => e.length).catch(() => 0);
@@ -46,9 +56,8 @@ const H = require('./_harness');
     summary[role] = { pages: pages.length, tabs, clicks, modals, errors: errors.length };
     totalErr += errors.length;
     errors.slice(0, 10).forEach(e => console.log('  ❌ ' + e));
-    await page.close();
+    await browser.close();
   }
-  await browser.close();
   console.log('\n=== Full-system crawl ===');
   Object.keys(summary).forEach(r => { const s = summary[r]; console.log(r + ': pages ' + s.pages + ' · tabs ' + s.tabs + ' · buttons ' + s.clicks + ' · modals ' + s.modals + ' · errors ' + s.errors); });
   console.log('total errors: ' + totalErr);

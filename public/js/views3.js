@@ -441,7 +441,7 @@
         }).join('') + '</div>'
         : '<div class="small muted mt">' + I18n.t('لا سجل حالات لهذا التقديم بعد') + '</div>') + '</div>' +
       '</div>' +
-      '<div class="m-actions"><button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
+      '<div class="m-actions"><button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
     );
   }
 
@@ -1024,7 +1024,7 @@
               '<div class="small muted num">' + esc(v.date || '') + ' · ' + fmtSize(v.size) + ' · ' + esc(v.by || '') + '</div>' +
               (v.url ? '<a class="btn ghost sm" style="margin-top:6px" href="' + esc(v.url) + '" target="_blank">⬇ ' + I18n.t('استرجاع هذه النسخة') + '</a>' : '') + '</div>';
           }).join('') +
-          '<div class="m-actions"><button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
+          '<div class="m-actions"><button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
         );
       });
     });
@@ -1375,7 +1375,7 @@
             return '<div class="card" style="padding:12px;margin-bottom:8px"><b class="small">' + esc(I18n.t(k)) + '</b>' +
               '<div class="small" style="margin-top:6px;line-height:1.9;color:#c6cdda">' + esc(d2.sections[k]) + '</div></div>';
           }).join('') +
-          '<div class="m-actions"><button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('إغلاق') + '</button></div>'
+          '<div class="m-actions"><button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
         );
       });
     });

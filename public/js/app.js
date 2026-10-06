@@ -523,6 +523,11 @@
     draw();
   }
 
+  document.addEventListener('click', function (e) {
+    const closer = e.target.closest('[data-close-modal]');
+    if (closer) { const m = closer.closest('.modal-back'); if (m) m.remove(); }
+  });
+
   window.addEventListener('hashchange', function () {
     if (!ctx) return;
     const id = location.hash.replace('#', '');
