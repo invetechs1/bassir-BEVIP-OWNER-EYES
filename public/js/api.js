@@ -110,7 +110,18 @@
     /** رفع ملف فعلي — opts: { category, versionOf } — في الديمو محاكاة بالاسم */
     async upload(file, opts) {
       opts = opts || {};
-      if (DEMO) return { name: file.name, url: '', demo: true, category: opts.category || 'أخرى' };
+      if (DEMO) {
+        // في الديمو: نقرأ الملف كـ data URL ليبقى قابلاً للعرض فعلياً (مخططات/صور/PDF)
+        const url = await new Promise(function (res) {
+          try {
+            const r = new FileReader();
+            r.onload = function () { res(r.result); };
+            r.onerror = function () { res(''); };
+            r.readAsDataURL(file);
+          } catch (e) { res(''); }
+        });
+        return { name: file.name, url: url, demo: true, category: opts.category || 'أخرى' };
+      }
       const token = sessionStorage.getItem('bassir-token');
       const headers = {
         'Authorization': 'Bearer ' + token,

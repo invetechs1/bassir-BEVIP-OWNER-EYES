@@ -226,6 +226,9 @@
     'اسم المشروع': 'Project Name',
     'برج / فيلا / مجمع...': 'Tower / Villa / Complex...',
     'الموقع': 'Location',
+    'المنطقة': 'Zone',
+    'كامل الدور': 'Whole floor',
+    '✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر في خريطة الإنجاز ويضيء مع اعتماد الكميات': '✅ Drawing uploaded and linked to the floor BOQ — it will appear on the Progress Map and light up as the BOQ is approved',
     'إحداثيات موقع المشروع (لعرضه على الخريطة) — إلزامي': 'Project location coordinates (to show on the map) — required',
     'اختر مدينة لتعبئة الإحداثيات تلقائياً': 'Pick a city to auto-fill the coordinates',
     'خط العرض (Latitude)': 'Latitude',
@@ -1452,21 +1455,25 @@
       '<div class="small muted mt">' + I18n.t('💡 كل بند كميات مربوط بعناصر النموذج، فيتلوّن العنصر ساطعاً في عرض المالك عند اكتمال البند واعتماد مستخلصه.') + '</div></div></div>' +
 
       '<div class="card mt"><h3>' + I18n.t('📐 سجل مخططات المشروع ') + '<span class="hint">' + I18n.t('كل مخطط يرتبط بدور وتخصص وجدول كمياته — فيظهر داكناً/ساطعاً للمالك حسب التنفيذ') + '</span></h3>' +
-      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px">' +
+      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr 1.1fr;gap:8px;margin-bottom:14px">' +
       '<div><label class="fl">' + I18n.t('اسم المخطط') + '</label><input class="inp" id="pd-title" placeholder="' + I18n.t('المسقط المعماري - ...') + '"></div>' +
       '<div><label class="fl">' + I18n.t('الدور') + '</label><select class="inp" id="pd-floor">' +
       P.floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') +
       '<option value="ELEV">' + I18n.t('الواجهات') + '</option></select></div>' +
+      '<div><label class="fl">' + I18n.t('المنطقة') + '</label><select class="inp" id="pd-zone"><option value="">' + I18n.t('كامل الدور') + '</option>' +
+      ((VS.ZONE_NAMES || []).map(function (zn, zi) { return '<option value="' + zi + '">' + esc(I18n.t(zn)) + '</option>'; }).join('')) + '</select></div>' +
       '<div><label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="pd-disc">' +
       P.disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select></div>' +
-      '<div><label class="fl">' + I18n.t('الملف') + '</label><input class="inp" id="pd-file" type="file" accept=".dwg,.dxf,.pdf"></div>' +
+      '<div><label class="fl">' + I18n.t('الملف') + '</label><input class="inp" id="pd-file" type="file" accept=".dwg,.dxf,.pdf,.png,.jpg,.jpeg,.webp"></div>' +
       '</div>' +
       '<button class="btn sm mb" id="pd-add">' + I18n.t('➕ رفع المخطط وربطه بجدول الكميات') + '</button>' +
-      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('المخطط') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الربط') + '</th></tr></thead><tbody>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('المخطط') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('المنطقة') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الربط') + '</th></tr></thead><tbody>' +
       (ctx.S.planDrawings || []).map(function (dr) {
         const d = discOf(ctx, dr.discipline);
+        const zoneLbl = (dr.zone == null || dr.zone === '') ? I18n.t('كامل الدور') : I18n.t((VS.ZONE_NAMES || [])[Number(dr.zone)] || ('منطقة ' + dr.zone));
         return '<tr><td class="num small"><b>' + esc(dr.ref) + '</b></td><td>' + esc(dr.title) + '<div class="small muted">📎 ' + VS.att(dr.file) + '</div></td>' +
           '<td class="small">' + (dr.floor === 'ELEV' ? I18n.t('الواجهات') : esc(VS.floorName(ctx, dr.floor))) + '</td>' +
+          '<td class="small">' + esc(zoneLbl) + '</td>' +
           '<td class="small">' + d.icon + ' ' + esc(d.name) + '</td>' +
           '<td class="small muted num">' + esc(dr.date || '') + '</td>' +
           '<td><span class="pill p-ok">' + I18n.t('مربوط بجدول الكميات ✓') + '</span></td></tr>';
@@ -1503,13 +1510,15 @@
       btn.disabled = true;
       try {
         const fileRec = await Api.upload(f);
+        const zoneVal = el.querySelector('#pd-zone').value;
         await Api.create('planDrawings', {
           title: title,
           floor: el.querySelector('#pd-floor').value,
+          zone: zoneVal === '' ? null : Number(zoneVal),
           discipline: el.querySelector('#pd-disc').value,
           file: fileRec, by: ctx.U.name
         });
-        toast(I18n.t('✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر للمالك في رؤية المشروع'));
+        toast(I18n.t('✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر في خريطة الإنجاز ويضيء مع اعتماد الكميات'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); btn.disabled = false; }
     });

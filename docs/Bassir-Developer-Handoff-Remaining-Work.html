@@ -63,7 +63,7 @@
   <li><b>PDF reports</b> generated server-side (pdfkit + Arabic reshaping).</li>
   <li><b>In-browser viewers, fully offline:</b> 3D BIM/IFC, vector DXF, and PDF drawings — no external/paid services.</li>
   <li><b>Contractor BOQ &amp; Schedule</b> pages with file parsing (CSV/Excel/Primavera XER/P6 XML/PDF), baseline lock, and dual-approval revisions.</li>
-  <li><b>Progress Map</b> that brightens dark → bright as work is completed and approved.</li>
+  <li><b>Progress Map</b> that renders your <b>real uploaded drawings</b> and brightens dark → bright per zone as work is completed and approved.</li>
   <li><b>Saudi Arabia project map</b> (newest feature — see §6).</li>
   <li><b>Automated regression tests</b> (Playwright) — smoke, full crawl (0 JS errors, all roles), brightness, end-to-end cycle, BIM render.</li>
 </ul>
@@ -88,9 +88,10 @@
 <tr><td class="item">WhatsApp</td><td>Add <code>WHATSAPP_TOKEN</code> + <code>WHATSAPP_PHONE_ID</code> (Meta WhatsApp Cloud API) for real WhatsApp delivery.</td><td><code>.env</code></td></tr>
 <tr><td class="item">Live cameras</td><td>Deploy <b>MediaMTX</b> and set <code>MEDIA_SERVER_URL</code> for RTSP→HLS/WebRTC live view; set <code>CAMERA_KEY</code> and point the NVR/cameras to POST snapshots. Camera URLs in seed data are placeholders.</td><td><code>DEPLOY.md</code> §5, <code>.env</code></td></tr>
 <tr><td class="item">AI visual monitoring</td><td>Add <code>ANTHROPIC_API_KEY</code> to enable real site-photo analysis. For fully automatic per-element progress % detection, scope a dedicated CV pipeline with stakeholders — insights beyond keyed analysis are simulated seed data today.</td><td><code>.env</code>, <code>server/integrations.js</code></td></tr>
-<tr><td class="item">BIM/IFC per project</td><td>Replace the sample tower IFC with each project's real IFC and connect model elements to BOQ items so the Progress Map reflects real geometry. Current element↔BOQ linkage is demo-mapped.</td><td><code>public/vendor/bim/</code>, <code>public/js/bim-viewer.js</code></td></tr>
+<tr><td class="item">Project drawings (2D)</td><td><b>Now working</b> — upload a real drawing per floor/zone and it appears on the Progress Map, lighting up executed zones as the BOQ is approved (see §6). Remaining: upload the full drawing set for every floor/zone of each live project.</td><td><code>public/js/views2.js</code>, <code>public/js/views.js</code></td></tr>
+<tr><td class="item">BIM/IFC per project</td><td>Replace the sample tower IFC with each project's real IFC. Floor-level lighting from BOQ already works; <b>per-element</b> lighting remains (see the BIM row in §5).</td><td><code>public/vendor/bim/</code>, <code>public/js/bim-viewer.js</code></td></tr>
 <tr><td class="item">Schedule/BOQ parsing at scale</td><td>Validate the parsers against your real Primavera/Excel exports; consider moving very large-file parsing server-side.</td><td><code>public/js/views5.js</code></td></tr>
-<tr><td class="item">Coordinates backfill</td><td>New projects now <b>require</b> lat/lng. Add coordinates to any pre-existing/imported project via <b>Project Settings → "إحداثيات موقع المشروع"</b> or it will not appear on the map (see §6).</td><td>Project Settings page</td></tr>
+<tr><td class="item">Coordinates backfill</td><td>New projects now <b>require</b> lat/lng. Add coordinates to any pre-existing/imported project via <b>Project Settings → "إحداثيات موقع المشروع"</b> or it will not appear on the map (see §7).</td><td>Project Settings page</td></tr>
 </table>
 
 <div class="pagebreak"></div>
@@ -102,9 +103,20 @@
 <tr><td class="item">Server integration tests</td><td>Current Playwright tests run in browser demo mode. Add tests that hit the real API + SQLite.</td></tr>
 <tr><td class="item">Native mobile app</td><td>A design handoff exists in <code>docs/mobile-design-handoff/</code>; the native app itself is not built.</td></tr>
 <tr><td class="item">Security hardening</td><td>Rate limiting, secure/HTTP-only cookies, CSP headers, audit-log retention/rotation, and routine dependency updates.</td></tr>
+<tr><td class="item">BIM/IFC per-element linking</td><td>The 2D Progress Map now renders the real uploaded drawing and lights zones from approved BOQ (done); the 3D BIM tab lights up <b>per floor</b> from BOQ (done). What remains is <b>per-element</b> linking: map each IFC element (by GUID) to its BOQ item so individual components light up. This needs an IFC parse + a mapping step (UI or import), then the viewer colors elements by their BOQ progress.</td></tr>
 </table>
 
-<h2>6. Newest feature — Saudi Arabia project map</h2>
+<h2>6. Progress Map now runs on your real drawings</h2>
+<p>Previously the Progress Map drew a synthetic schematic, so uploaded drawings never appeared and it "looked like a demo." Fixed:</p>
+<ul>
+  <li>Upload a drawing from <b>BIM Models &amp; Drawings → "رفع مخطط/نموذج"</b>, tagged by <b>floor</b>, <b>zone</b> (whole floor or one of 6 zones), and discipline.</li>
+  <li>The Progress Map <b>2D Drawings</b> tab renders that <b>actual uploaded drawing</b> as the (dimmed) background; the executed zones <b>light up over the real plan</b> as their BOQ is approved. A clear call-to-action shows for floors with no drawing yet.</li>
+  <li>Each zone can open its own uploaded drawing; the side panel lists the linked BOQ items.</li>
+  <li><b>Demo note:</b> uploads now persist the file content (data URL in demo, disk on the server) so drawings are actually viewable — this is why the page is no longer "just a demo."</li>
+</ul>
+<p class="muted">Code: <code>public/js/views.js</code> (<code>render2d</code>, <code>floorPlanDrawing</code>, background render), <code>public/js/viewer.js</code> (<code>renderPlanInto</code>), upload + zone field in <code>public/js/views2.js</code>, demo file persistence in <code>public/js/api.js</code>.</p>
+
+<h2>7. Earlier feature — Saudi Arabia project map</h2>
 <p>Added to the <b>owner dashboard</b> (bottom) and the <b>owner-rep portfolio</b> page:</p>
 <ul>
   <li>A real, <b>offline</b> map of the Kingdom (projected boundary baked into the code — no external map tiles).</li>

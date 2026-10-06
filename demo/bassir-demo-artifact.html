@@ -278,7 +278,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .floor-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 
 .plan-stage { background: #0a0d13; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; position: relative; }
-.plan-stage svg { width: 100%; height: auto; display: block; }
+.plan-stage svg { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
+/* خلفية المخطط الحقيقي المرفوع تحت طبقة مناطق الإنجاز */
+.plan-stage .map2d-bg { position: absolute; inset: 10px; border-radius: 8px; overflow: hidden; z-index: 0; display: flex; align-items: center; justify-content: center; }
+.plan-stage.has-bg .map2d-bg { background: #0a0d13; }
+.plan-stage.has-bg .map2d-bg canvas, .plan-stage.has-bg .map2d-bg img { filter: brightness(.82) contrast(1.05); }
+.plan-stage.has-bg svg { mix-blend-mode: normal; }
+.map2d-caption { position: relative; z-index: 2; margin-top: 8px; font-size: 12px; color: var(--muted); text-align: center; }
+.map2d-cta { position: relative; z-index: 2; margin-top: 8px; font-size: 12px; color: var(--warn); text-align: center; background: rgba(245,165,36,.08); border: 1px dashed rgba(245,165,36,.4); border-radius: 8px; padding: 7px 10px; }
 
 .legend { display: flex; gap: 18px; align-items: center; font-size: 12px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
 .legend .sw { display: inline-block; width: 26px; height: 12px; border-radius: 4px; vertical-align: middle; margin-inline-end: 6px; }
@@ -2339,7 +2346,18 @@ textarea.inp { resize: vertical; min-height: 80px; }
     /** رفع ملف فعلي — opts: { category, versionOf } — في الديمو محاكاة بالاسم */
     async upload(file, opts) {
       opts = opts || {};
-      if (DEMO) return { name: file.name, url: '', demo: true, category: opts.category || 'أخرى' };
+      if (DEMO) {
+        // في الديمو: نقرأ الملف كـ data URL ليبقى قابلاً للعرض فعلياً (مخططات/صور/PDF)
+        const url = await new Promise(function (res) {
+          try {
+            const r = new FileReader();
+            r.onload = function () { res(r.result); };
+            r.onerror = function () { res(''); };
+            r.readAsDataURL(file);
+          } catch (e) { res(''); }
+        });
+        return { name: file.name, url: url, demo: true, category: opts.category || 'أخرى' };
+      }
       const token = sessionStorage.getItem('bassir-token');
       const headers = {
         'Authorization': 'Bearer ' + token,
@@ -3061,7 +3079,53 @@ textarea.inp { resize: vertical; min-height: 80px; }
       (n ? ' <span class="pill p-warn" style="font-size:10px;padding:1px 7px">' + n + '</span>' : '') + '</button>';
   }
 
-  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn };
+  /**
+   * يعرض مخططاً (الصفحة الأولى من PDF أو صورة) داخل حاوية — يُستخدم كخلفية
+   * حقيقية في خريطة الإنجاز. يرجع true عند النجاح، false إن لم يوجد محتوى.
+   */
+  async function renderPlanInto(container, item) {
+    if (!container) return false;
+    const f = fileOf(item);
+    if (!f.url) return false;
+    container.innerHTML = '';
+    try {
+      if (f.isImage) {
+        const img = document.createElement('img');
+        img.src = f.url;
+        img.alt = (item && item.title) || '';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+        container.appendChild(img);
+        return true;
+      }
+      if (f.isPdf) {
+        const lib = await loadPdfjs();
+        let src;
+        if (/^data:/.test(f.url)) {
+          const b64 = f.url.split(',')[1] || '';
+          const bin = atob(b64);
+          const arr = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+          src = { data: arr };
+        } else {
+          src = { url: new URL(f.url, location.href).href };
+        }
+        const pdf = await lib.getDocument(src).promise;
+        const pg = await pdf.getPage(1);
+        const vp0 = pg.getViewport({ scale: 1 });
+        const w = container.clientWidth || 760;
+        const vp = pg.getViewport({ scale: Math.max(0.2, w / vp0.width) });
+        const canvas = document.createElement('canvas');
+        canvas.width = vp.width; canvas.height = vp.height;
+        canvas.style.cssText = 'width:100%;height:auto;display:block';
+        container.appendChild(canvas);
+        await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+        return true;
+      }
+    } catch (e) { container.innerHTML = ''; return false; }
+    return false;
+  }
+
+  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn, renderPlanInto: renderPlanInto, fileOf: fileOf };
 })();
 
 
@@ -3851,6 +3915,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
   const esc = Charts.esc;
 
   I18n.registerDict({
+    'المخطط المرفوع · المناطق المنفّذة تضيء باعتماد الكميات': 'Uploaded drawing · executed zones light up as BOQ is approved',
+    'لا يوجد مخطط مرفوع لهذا الدور — ارفعه من «النماذج والمخططات» ليظهر هنا ويضيء مع اعتماد جدول الكميات': 'No drawing uploaded for this floor — upload it from "BIM Models & Drawings" to show it here and light up as the BOQ is approved',
     'مواقع المشاريع على الخريطة': 'Projects on the Map',
     'اضغط على أي مشروع للانتقال إليه': 'Click any project to open it',
     'خريطة مواقع المشاريع في المملكة العربية السعودية': 'Map of project locations in Saudi Arabia',
@@ -5184,6 +5250,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
         renderVision(el, ctx);
       });
     });
+
+    // عرض المخطط الحقيقي المرفوع كخلفية لخريطة الإنجاز (ثنائية الأبعاد)
+    if (st.tab === '2d') {
+      const bgEl = el.querySelector('#map2d-bg');
+      const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
+      if (bgEl && bgDr && window.DrawingViewer && window.DrawingViewer.renderPlanInto) {
+        window.DrawingViewer.renderPlanInto(bgEl, bgDr).catch(function () { /* تجاهل */ });
+      }
+    }
   }
 
   // مواقع مناطق المخطط 2D (ست مناطق + ممر)
@@ -5196,6 +5271,34 @@ textarea.inp { resize: vertical; min-height: 80px; }
     { x: 530, y: 300, w: 230, h: 180, name: 'الجناح الجنوبي الغربي' }
   ];
 
+  // المخطط المرفوع لكامل الدور (zone غير محدد) — يُستخدم كخلفية حقيقية للخريطة
+  function floorPlanDrawing(ctx, floor, disc) {
+    const all = (ctx.S.planDrawings || []).filter(function (dr) {
+      return dr.floor === floor && (dr.zone == null || dr.zone === '' || dr.zone === 'all');
+    });
+    if (!all.length) return null;
+    return (disc !== 'all' && all.find(function (d) { return d.discipline === disc; })) ||
+      all.find(function (d) { return d.discipline === 'architectural'; }) || all[0];
+  }
+  // مخطط مرفوع لمنطقة محددة داخل الدور
+  function zonePlanDrawing(ctx, floor, zone, disc) {
+    return (ctx.S.planDrawings || []).find(function (dr) {
+      return dr.floor === floor && Number(dr.zone) === Number(zone) &&
+        (disc === 'all' || dr.discipline === disc || dr.discipline === 'architectural');
+    }) || null;
+  }
+  function hasPlanFile(dr) {
+    if (!dr) return false;
+    const fo = window.DrawingViewer && window.DrawingViewer.fileOf ? window.DrawingViewer.fileOf(dr) : { url: (dr.file && dr.file.url) || '' };
+    return !!fo.url;
+  }
+  // لون rgba شفاف (لإظهار المخطط الحقيقي خلف طبقة الإنجاز)
+  function hexA(hex, a) {
+    const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+    if (!m) return hex;
+    return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + a + ')';
+  }
+
   function render2d(ctx) {
     const P = ctx.S.projects[0];
     const st = visionState;
@@ -5207,30 +5310,43 @@ textarea.inp { resize: vertical; min-height: 80px; }
         (fp != null ? ' <span class="muted num">' + fp + '%</span>' : '') + '</div>';
     }).join('') + '</div>';
 
+    // خلفية المخطط الحقيقي المرفوع لهذا الدور (إن وُجد)
+    const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
+    const hasBg = hasPlanFile(bgDr);
+
     // بناء SVG للمخطط
     let zonesSvg = '';
     ZONES.forEach(function (z, i) {
       const items = itemsFor(ctx, st.floor, st.disc, i);
       const p = weightedProgress(items);
       const t = p == null ? 0.04 : 0.06 + (p / 100) * 0.86;
-      const fill = mixColor(accent, t);
+      // فوق مخطط حقيقي: تعبئة شفافة تُظهر المخطط وتُضيء الجزء المنفَّذ؛ بدون مخطط: تعبئة صلبة
+      const fill = hasBg ? hexA(accent, p == null ? 0.05 : 0.12 + (p / 100) * 0.5) : mixColor(accent, t);
       const done = p != null && p >= 95;
       const sel = st.zone === i;
-      // خطوط المخطط الداخلية: باهتة للأعمال غير المنفذة وساطعة للمنفذة المعتمدة
+      const zoneDr = zonePlanDrawing(ctx, st.floor, i, st.disc);
+      const hasZoneDr = hasPlanFile(zoneDr);
+      // خطوط المخطط الداخلية: تظهر فقط حين لا يوجد مخطط حقيقي (المخطط يوفّر التفاصيل)
       const lineColor = mixColor(accent, Math.min(1, t * 1.25));
       let hatch = '';
-      for (let k = 1; k <= 3; k++) {
-        const hy = z.y + (z.h * k) / 4;
-        hatch += '<line x1="' + (z.x + 14) + '" y1="' + hy + '" x2="' + (z.x + z.w - 14) + '" y2="' + hy + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
+      if (!hasBg) {
+        for (let k = 1; k <= 3; k++) {
+          const hy = z.y + (z.h * k) / 4;
+          hatch += '<line x1="' + (z.x + 14) + '" y1="' + hy + '" x2="' + (z.x + z.w - 14) + '" y2="' + hy + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
+        }
+        hatch += '<line x1="' + (z.x + z.w / 2) + '" y1="' + (z.y + 10) + '" x2="' + (z.x + z.w / 2) + '" y2="' + (z.y + z.h - 10) + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
       }
-      hatch += '<line x1="' + (z.x + z.w / 2) + '" y1="' + (z.y + 10) + '" x2="' + (z.x + z.w / 2) + '" y2="' + (z.y + z.h - 10) + '" stroke="' + lineColor + '" stroke-width="1.1" stroke-dasharray="' + (done ? 'none' : '7 5') + '" pointer-events="none"/>';
-      zonesSvg += '<g class="zone-shape" data-zone="' + i + '">' +
+      const txtFillName = hasBg ? '#f2f5fb' : (t > 0.5 ? '#10151f' : '#aab3c5');
+      const txtFillPct = hasBg ? '#ffffff' : (t > 0.5 ? '#10151f' : '#e9ecf3');
+      const txtShadow = hasBg ? ' style="paint-order:stroke;stroke:#0a0f18;stroke-width:3px;stroke-linejoin:round"' : '';
+      zonesSvg += '<g class="zone-shape" data-zone="' + i + '"' + (hasZoneDr ? ' data-zdraw="' + esc(zoneDr.id) + '"' : '') + '>' +
         '<rect x="' + z.x + '" y="' + z.y + '" width="' + z.w + '" height="' + z.h + '" rx="6" fill="' + fill + '" ' +
-        'stroke="' + (sel ? '#fff' : done ? accent : '#26314a') + '" stroke-width="' + (sel ? 3 : done ? 2 : 1.4) + '"' +
+        'stroke="' + (sel ? '#fff' : done ? accent : (hasBg ? 'rgba(255,255,255,.35)' : '#26314a')) + '" stroke-width="' + (sel ? 3 : done ? 2 : 1.4) + '"' +
         (done ? ' filter="url(#glow)"' : '') + '>' +
-        '<title>' + esc(I18n.t(z.name)) + ' — ' + (p == null ? I18n.t('لا بنود') : I18n.t('الإنجاز') + ' ' + p + '%') + '</title></rect>' + hatch +
-        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 - 8) + '" text-anchor="middle" fill="' + (t > 0.5 ? '#10151f' : '#aab3c5') + '" font-size="13" font-weight="700" pointer-events="none">' + esc(I18n.t(z.name)) + '</text>' +
-        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 + 16) + '" text-anchor="middle" fill="' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '" font-size="18" font-weight="800" pointer-events="none">' + (p == null ? '—' : p + '%') + '</text>' +
+        '<title>' + esc(I18n.t(z.name)) + ' — ' + (p == null ? I18n.t('لا بنود') : I18n.t('الإنجاز') + ' ' + p + '%') + (hasZoneDr ? ' · 📎 ' + esc(zoneDr.ref || zoneDr.title || '') : '') + '</title></rect>' + hatch +
+        (hasZoneDr ? '<text x="' + (z.x + z.w - 16) + '" y="' + (z.y + 22) + '" text-anchor="end" font-size="15"' + txtShadow + '>📎</text>' : '') +
+        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 - 8) + '" text-anchor="middle" fill="' + txtFillName + '" font-size="13" font-weight="700" pointer-events="none"' + txtShadow + '>' + esc(I18n.t(z.name)) + '</text>' +
+        '<text x="' + (z.x + z.w / 2) + '" y="' + (z.y + z.h / 2 + 16) + '" text-anchor="middle" fill="' + txtFillPct + '" font-size="18" font-weight="800" pointer-events="none"' + txtShadow + '>' + (p == null ? '—' : p + '%') + '</text>' +
         '</g>';
     });
 
@@ -5278,8 +5394,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
     // لوحة البنود الجانبية
     const panelItems = itemsFor(ctx, st.floor, st.disc, st.zone);
     const panelTitle = st.zone == null ? I18n.t('كل بنود ') + floorName(ctx, st.floor) : I18n.t(ZONES[st.zone].name) + ' — ' + floorName(ctx, st.floor);
+    const zoneDrSel = st.zone != null ? zonePlanDrawing(ctx, st.floor, st.zone, st.disc) : null;
     const panel =
       '<div class="card zone-panel"><h3>📋 ' + esc(panelTitle) + ' <span class="hint num">' + panelItems.length + ' ' + I18n.t('بند') + '</span></h3>' +
+      (hasPlanFile(zoneDrSel) ? '<div class="mb">📐 <b class="small">' + esc(zoneDrSel.ref || zoneDrSel.title || '') + '</b> ' + window.DrawingViewer.btn(zoneDrSel) + '</div>' : '') +
       (panelItems.length ? panelItems.map(function (b) {
         const d = discOf(ctx, b.discipline);
         const done = b.progress >= 100;
@@ -5292,8 +5410,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       drawingsHtml +
       '</div>';
 
+    const planHint = hasBg
+      ? '<div class="map2d-caption">📐 ' + esc(bgDr.ref ? bgDr.ref + ' · ' : '') + esc(bgDr.title || '') + ' — ' + I18n.t('المخطط المرفوع · المناطق المنفّذة تضيء باعتماد الكميات') + '</div>'
+      : '<div class="map2d-cta">🗺️ ' + I18n.t('لا يوجد مخطط مرفوع لهذا الدور — ارفعه من «النماذج والمخططات» ليظهر هنا ويضيء مع اعتماد جدول الكميات') + '</div>';
+
     return floorTabs + discStrip +
-      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage">' + svg + '</div>' + panel + '</div>';
+      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage' + (hasBg ? ' has-bg' : '') + '">' +
+      '<div class="map2d-bg" id="map2d-bg"></div>' + svg + planHint + '</div>' + panel + '</div>';
   }
 
   // ============ واجهات المبنى (High-Rise): كل دور بنسبة إنجازه ============
@@ -5577,6 +5700,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     summarize: summarize, STATUS: STATUS, esc: esc, att: att,
     CITY_COORDS: CITY_COORDS, projectLatLng: projectLatLng, mapStatus: mapStatus,
     projectsMapHtml: projectsMapHtml, wireProjectsMap: wireProjectsMap,
+    ZONE_NAMES: ZONES.map(function (z) { return z.name; }),
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras
@@ -5813,6 +5937,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'اسم المشروع': 'Project Name',
     'برج / فيلا / مجمع...': 'Tower / Villa / Complex...',
     'الموقع': 'Location',
+    'المنطقة': 'Zone',
+    'كامل الدور': 'Whole floor',
+    '✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر في خريطة الإنجاز ويضيء مع اعتماد الكميات': '✅ Drawing uploaded and linked to the floor BOQ — it will appear on the Progress Map and light up as the BOQ is approved',
     'إحداثيات موقع المشروع (لعرضه على الخريطة) — إلزامي': 'Project location coordinates (to show on the map) — required',
     'اختر مدينة لتعبئة الإحداثيات تلقائياً': 'Pick a city to auto-fill the coordinates',
     'خط العرض (Latitude)': 'Latitude',
@@ -7039,21 +7166,25 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="small muted mt">' + I18n.t('💡 كل بند كميات مربوط بعناصر النموذج، فيتلوّن العنصر ساطعاً في عرض المالك عند اكتمال البند واعتماد مستخلصه.') + '</div></div></div>' +
 
       '<div class="card mt"><h3>' + I18n.t('📐 سجل مخططات المشروع ') + '<span class="hint">' + I18n.t('كل مخطط يرتبط بدور وتخصص وجدول كمياته — فيظهر داكناً/ساطعاً للمالك حسب التنفيذ') + '</span></h3>' +
-      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr;gap:8px;margin-bottom:14px">' +
+      '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr 1.1fr;gap:8px;margin-bottom:14px">' +
       '<div><label class="fl">' + I18n.t('اسم المخطط') + '</label><input class="inp" id="pd-title" placeholder="' + I18n.t('المسقط المعماري - ...') + '"></div>' +
       '<div><label class="fl">' + I18n.t('الدور') + '</label><select class="inp" id="pd-floor">' +
       P.floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') +
       '<option value="ELEV">' + I18n.t('الواجهات') + '</option></select></div>' +
+      '<div><label class="fl">' + I18n.t('المنطقة') + '</label><select class="inp" id="pd-zone"><option value="">' + I18n.t('كامل الدور') + '</option>' +
+      ((VS.ZONE_NAMES || []).map(function (zn, zi) { return '<option value="' + zi + '">' + esc(I18n.t(zn)) + '</option>'; }).join('')) + '</select></div>' +
       '<div><label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="pd-disc">' +
       P.disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select></div>' +
-      '<div><label class="fl">' + I18n.t('الملف') + '</label><input class="inp" id="pd-file" type="file" accept=".dwg,.dxf,.pdf"></div>' +
+      '<div><label class="fl">' + I18n.t('الملف') + '</label><input class="inp" id="pd-file" type="file" accept=".dwg,.dxf,.pdf,.png,.jpg,.jpeg,.webp"></div>' +
       '</div>' +
       '<button class="btn sm mb" id="pd-add">' + I18n.t('➕ رفع المخطط وربطه بجدول الكميات') + '</button>' +
-      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('المخطط') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الربط') + '</th></tr></thead><tbody>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('المخطط') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('المنطقة') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الربط') + '</th></tr></thead><tbody>' +
       (ctx.S.planDrawings || []).map(function (dr) {
         const d = discOf(ctx, dr.discipline);
+        const zoneLbl = (dr.zone == null || dr.zone === '') ? I18n.t('كامل الدور') : I18n.t((VS.ZONE_NAMES || [])[Number(dr.zone)] || ('منطقة ' + dr.zone));
         return '<tr><td class="num small"><b>' + esc(dr.ref) + '</b></td><td>' + esc(dr.title) + '<div class="small muted">📎 ' + VS.att(dr.file) + '</div></td>' +
           '<td class="small">' + (dr.floor === 'ELEV' ? I18n.t('الواجهات') : esc(VS.floorName(ctx, dr.floor))) + '</td>' +
+          '<td class="small">' + esc(zoneLbl) + '</td>' +
           '<td class="small">' + d.icon + ' ' + esc(d.name) + '</td>' +
           '<td class="small muted num">' + esc(dr.date || '') + '</td>' +
           '<td><span class="pill p-ok">' + I18n.t('مربوط بجدول الكميات ✓') + '</span></td></tr>';
@@ -7090,13 +7221,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
       btn.disabled = true;
       try {
         const fileRec = await Api.upload(f);
+        const zoneVal = el.querySelector('#pd-zone').value;
         await Api.create('planDrawings', {
           title: title,
           floor: el.querySelector('#pd-floor').value,
+          zone: zoneVal === '' ? null : Number(zoneVal),
           discipline: el.querySelector('#pd-disc').value,
           file: fileRec, by: ctx.U.name
         });
-        toast(I18n.t('✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر للمالك في رؤية المشروع'));
+        toast(I18n.t('✅ رُفع المخطط وربط بجدول كميات الدور — سيظهر في خريطة الإنجاز ويضيء مع اعتماد الكميات'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); btn.disabled = false; }
     });

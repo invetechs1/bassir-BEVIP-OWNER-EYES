@@ -275,7 +275,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .floor-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
 
 .plan-stage { background: #0a0d13; border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; position: relative; }
-.plan-stage svg { width: 100%; height: auto; display: block; }
+.plan-stage svg { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
+/* خلفية المخطط الحقيقي المرفوع تحت طبقة مناطق الإنجاز */
+.plan-stage .map2d-bg { position: absolute; inset: 10px; border-radius: 8px; overflow: hidden; z-index: 0; display: flex; align-items: center; justify-content: center; }
+.plan-stage.has-bg .map2d-bg { background: #0a0d13; }
+.plan-stage.has-bg .map2d-bg canvas, .plan-stage.has-bg .map2d-bg img { filter: brightness(.82) contrast(1.05); }
+.plan-stage.has-bg svg { mix-blend-mode: normal; }
+.map2d-caption { position: relative; z-index: 2; margin-top: 8px; font-size: 12px; color: var(--muted); text-align: center; }
+.map2d-cta { position: relative; z-index: 2; margin-top: 8px; font-size: 12px; color: var(--warn); text-align: center; background: rgba(245,165,36,.08); border: 1px dashed rgba(245,165,36,.4); border-radius: 8px; padding: 7px 10px; }
 
 .legend { display: flex; gap: 18px; align-items: center; font-size: 12px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
 .legend .sw { display: inline-block; width: 26px; height: 12px; border-radius: 4px; vertical-align: middle; margin-inline-end: 6px; }
