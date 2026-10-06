@@ -27,7 +27,7 @@
   "license": "MIT",
   "dependencies": {
     "arabic-reshaper": "^1.1.0",
-    "pdfjs-dist": "^6.1.200",
+    "pdfjs-dist": "^6.3.289",
     "pdfkit": "^0.19.1"
   },
   "devDependencies": {
