@@ -321,11 +321,20 @@
     /** يرشّح اللقطة لبيانات المشروع المحدد (كل عنصر يحمل projectId) */
     function scopedState(full, pid) {
       if (!pid || full.projects.length <= 1) return full;
+      const firstPid = full.projects[0] && full.projects[0].id;
       const c = {};
       Object.keys(full).forEach(function (k) {
-        c[k] = Array.isArray(full[k])
-          ? full[k].filter(function (x) { return !x || typeof x !== 'object' || !x.projectId || x.projectId === pid; })
-          : full[k];
+        const v = full[k];
+        if (!Array.isArray(v)) { c[k] = v; return; }
+        // مجموعة مرتبطة بمشروع = أيٌّ من عناصرها يحمل projectId؛ غيرها عامّة (مستخدمون، تخصصات…)
+        const scoped = v.some(function (x) { return x && typeof x === 'object' && x.projectId; });
+        if (!scoped) { c[k] = v; return; }
+        c[k] = v.filter(function (x) {
+          if (!x || typeof x !== 'object') return true;
+          // السجلات بلا مشروع (قديمة) تُنسب للمشروع الأول — لا تتسرّب لكل المشاريع ولا تختفي
+          const xp = x.projectId || firstPid;
+          return xp === pid;
+        });
       });
       c.projects = full.projects.filter(function (p) { return p.id === pid; });
       if (!c.projects.length) c.projects = full.projects;

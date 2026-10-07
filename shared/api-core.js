@@ -472,7 +472,11 @@
       } else if (collection !== 'users') {
         // حساب المستخدم (users) ليس كياناً مقيَّداً بمشروع واحد بطبيعته — نطاقه الفعلي يُحدَّد عبر
         // projectIds (مالك/استشاري) أو contractorId (مقاول)، فلا معنى لِوَسم كل حساب جديد بمشروع افتراضي P1
-        item.projectId = item.projectId || 'P1';
+        // المشروع من العميل (المشروع المعروض) أولاً، وإلا مشروع المستخدم الحالي، وإلا أول مشروع في النظام —
+        // يمنع تسرّب المستندات لمشروع P1 افتراضياً حين يعمل المستخدم فعلياً على مشروع آخر
+        item.projectId = item.projectId ||
+          (user.projectIds && user.projectIds[0]) ||
+          (db.projects[0] && db.projects[0].id) || 'P1';
       }
       if (REF_PREFIX[collection]) item.ref = nextRef(collection); // يتجاهل أي ref مُرسَل من العميل عمداً
       if (!item.date) item.date = todayStr();
