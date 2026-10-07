@@ -600,8 +600,9 @@
       items.forEach(function (it, i) {
         db.boqItems.push({
           id: nextId('BQ'), projectId: pid, contractorId: cid, discipline: disc,
-          floor: it.floor || 'GF', zone: i % 6,
-          code: (disc || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(3, '0'),
+          floor: it.floor || 'GF',
+          zone: (it.zone != null && it.zone !== '') ? Number(it.zone) : i % 6,
+          code: it.code || ((disc || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(3, '0')),
           description: it.description || 'بند', unit: it.unit || 'وحدة',
           qty: Number(it.qty) || 0, unitPrice: Number(it.unitPrice) || 0,
           progress: 0, status: 'لم يبدأ'

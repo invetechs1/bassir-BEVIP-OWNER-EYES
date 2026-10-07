@@ -1903,8 +1903,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
       items.forEach(function (it, i) {
         db.boqItems.push({
           id: nextId('BQ'), projectId: pid, contractorId: cid, discipline: disc,
-          floor: it.floor || 'GF', zone: i % 6,
-          code: (disc || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(3, '0'),
+          floor: it.floor || 'GF',
+          zone: (it.zone != null && it.zone !== '') ? Number(it.zone) : i % 6,
+          code: it.code || ((disc || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(3, '0')),
           description: it.description || 'بند', unit: it.unit || 'وحدة',
           qty: Number(it.qty) || 0, unitPrice: Number(it.unitPrice) || 0,
           progress: 0, status: 'لم يبدأ'
@@ -9762,6 +9763,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
   const esc = VS.esc, money = VS.money, toast = VS.toast, floorName = VS.floorName, discOf = VS.discOf;
   const t = I18n.t;
 
+  // مسودة بنود جدول الكميات المُدخلة يدوياً (قبل الإرسال للاعتماد) — تبقى أثناء الإضافة
+  let boqDraft = [];
+
   I18n.registerDict({
     'جدول الكميات': 'Bill of Quantities',
     'الجدول الزمني': 'Schedule',
@@ -9874,8 +9878,22 @@ textarea.inp { resize: vertical; min-height: 80px; }
       (hasBaseline ? '<div class="small" style="margin:8px 0"><span class="pill p-ok">🔒 جدول الكميات معتمد ومقفل</span> أي تعديل يتطلب موافقة الاستشاري وممثل المالك معاً.</div>' : '<div class="small muted" style="margin:8px 0">ارفع جدول كمياتك ليُراجعه الاستشاري ويعتمده، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.</div>') +
       (pendingSub
         ? '<div class="pill p-warn">⏳ لديك جدول كميات قيد المراجعة (' + esc(pendingSub.docCode || pendingSub.ref || '') + ') — بانتظار قرار الاستشاري</div>'
-        : '<div class="flex"><input class="inp" id="cboq-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" style="max-width:260px"><button class="btn sm" id="cboq-read">📖 قراءة الملف</button></div>' +
-          '<div id="cboq-prev" class="small muted mt">اختر الملف ثم «قراءة الملف».</div>') +
+        : '<div class="small muted" style="margin:2px 0 6px">يمكنك إضافة البنود يدوياً بنداً بنداً، أو رفع ملف — رفع الملف اختياري.</div>' +
+          '<div class="flex" style="align-items:flex-end;gap:6px;flex-wrap:wrap">' +
+          '<div><label class="fl">وصف البند</label><input class="inp" id="mb-desc" placeholder="خرسانة مسلحة للأعمدة..." style="min-width:220px"></div>' +
+          '<div><label class="fl">الوحدة</label><input class="inp" id="mb-unit" placeholder="م³ / م² / عدد" style="max-width:90px"></div>' +
+          '<div><label class="fl">الكمية</label><input class="inp num" id="mb-qty" type="number" min="0" step="any" style="max-width:90px"></div>' +
+          '<div><label class="fl">سعر الوحدة</label><input class="inp num" id="mb-price" type="number" min="0" step="any" style="max-width:110px"></div>' +
+          '<div><label class="fl">الدور</label><select class="inp" id="mb-floor">' +
+          ((ctx.S.projects[0] || {}).floors || []).map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select></div>' +
+          '<div><label class="fl">المنطقة</label><select class="inp" id="mb-zone">' +
+          ((VS.ZONE_NAMES || []).map(function (zn, zi) { return '<option value="' + zi + '">' + esc(t(zn)) + '</option>'; }).join('')) + '</select></div>' +
+          '<button class="btn sm" id="mb-add">➕ أضف بند</button>' +
+          '</div>' +
+          '<div id="cboq-draft"></div>' +
+          '<div class="flex" style="margin:10px 0;gap:8px;align-items:center"><span class="small muted">— أو —</span>' +
+          '<input class="inp" id="cboq-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" style="max-width:240px"><button class="btn ghost sm" id="cboq-read">📖 رفع ملف (اختياري)</button></div>' +
+          '<div id="cboq-prev" class="small muted"></div>') +
       (subs.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>المرجع</th><th>النوع</th><th>البنود</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
         subs.map(function (s) { return '<tr><td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td>' + (s.kind === 'revision' ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + ((s.parsedItems || []).length || '—') + '</td><td class="small muted num">' + esc(s.date || '') + '</td><td>' + VS.pill(s.status) + '</td></tr>'; }).join('') +
         '</tbody></table></div>' : '') +
@@ -9930,6 +9948,67 @@ textarea.inp { resize: vertical; min-height: 80px; }
           } catch (e) { toast(e.message, true); sendBtn.disabled = false; }
         });
       } catch (e) { prev.innerHTML = '❌ تعذّرت قراءة الملف: ' + esc(e.message); }
+    });
+
+    // ===== الإدخال اليدوي للبنود (رفع الملف اختياري) =====
+    const draftBox = el.querySelector('#cboq-draft');
+    function renderDraft() {
+      if (!draftBox) return;
+      if (!boqDraft.length) { draftBox.innerHTML = '<div class="small muted mt">لم تُضف بنوداً بعد — أضف بنداً أو ارفع ملفاً.</div>'; return; }
+      const total = boqDraft.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
+      draftBox.innerHTML =
+        '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr>' +
+        '<th>الوصف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الدور</th><th>المنطقة</th><th></th></tr></thead><tbody>' +
+        boqDraft.map(function (it, i) {
+          return '<tr><td class="small">' + esc(it.description) + '</td><td class="small">' + esc(it.unit) + '</td>' +
+            '<td class="num small">' + it.qty + '</td><td class="num small">' + it.unitPrice.toLocaleString('en-US') + '</td>' +
+            '<td class="small">' + esc(floorName(ctx, it.floor)) + '</td>' +
+            '<td class="small">' + esc(t((VS.ZONE_NAMES || [])[Number(it.zone)] || '')) + '</td>' +
+            '<td><button class="btn danger sm" data-mbdel="' + i + '">✕</button></td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        '<div class="flex mt" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b class="small">' + boqDraft.length + ' بند · القيمة ' + money(Math.round(total)) + '</b>' +
+        '<button class="btn sm" id="mb-send">📤 ' + (hasBaseline ? 'إرسال طلب التعديل للاعتماد' : 'إرسال للاستشاري للاعتماد') + '</button></div>';
+      draftBox.querySelectorAll('[data-mbdel]').forEach(function (b) {
+        b.addEventListener('click', function () { boqDraft.splice(Number(b.getAttribute('data-mbdel')), 1); renderDraft(); });
+      });
+      const mbSend = draftBox.querySelector('#mb-send');
+      if (mbSend) mbSend.addEventListener('click', async function () {
+        if (!boqDraft.length) return;
+        mbSend.disabled = true;
+        try {
+          await Api.create('boqSubmittals', {
+            title: (hasBaseline ? 'تعديل جدول الكميات (إدخال يدوي) — ' : 'جدول الكميات (إدخال يدوي) — ') + boqDraft.length + ' بند',
+            parsedItems: boqDraft.slice(), kind: hasBaseline ? 'revision' : 'baseline'
+          });
+          boqDraft = [];
+          toast(hasBaseline ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل جدول الكميات للاستشاري للاعتماد');
+          ctx.refresh();
+        } catch (e) { toast(e.message, true); mbSend.disabled = false; }
+      });
+    }
+    renderDraft();
+
+    const mbAdd = el.querySelector('#mb-add');
+    if (mbAdd) mbAdd.addEventListener('click', function () {
+      const desc = (el.querySelector('#mb-desc').value || '').trim();
+      const qty = Number(el.querySelector('#mb-qty').value);
+      const price = Number(el.querySelector('#mb-price').value);
+      if (!desc) { toast('أدخل وصف البند', true); return; }
+      if (!(qty > 0)) { toast('أدخل كمية صحيحة', true); return; }
+      boqDraft.push({
+        description: desc,
+        unit: (el.querySelector('#mb-unit').value || 'وحدة').trim(),
+        qty: qty, unitPrice: price > 0 ? price : 0,
+        floor: el.querySelector('#mb-floor').value,
+        zone: Number(el.querySelector('#mb-zone').value) || 0
+      });
+      // تفريغ الحقول لإدخال البند التالي بسرعة
+      el.querySelector('#mb-desc').value = '';
+      el.querySelector('#mb-qty').value = '';
+      el.querySelector('#mb-price').value = '';
+      el.querySelector('#mb-unit').value = '';
+      el.querySelector('#mb-desc').focus();
+      renderDraft();
     });
   }
 
