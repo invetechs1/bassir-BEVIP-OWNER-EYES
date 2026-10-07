@@ -727,7 +727,11 @@
         startActual: null, endForecast: payload.endPlanned,
         budgetPlanned: Number(payload.budgetPlanned) || 0, costActual: 0, costPlannedToDate: 0,
         progressPlanned: 0, progressActual: 0,
-        floors: db.projects[0] ? db.projects[0].floors : [], disciplines: db.projects[0] ? db.projects[0].disciplines : []
+        type: payload.type || (db.projects[0] ? db.projects[0].type : ''),
+        structureType: payload.structureType || 'building',
+        unitLabel: payload.unitLabel || 'دور',
+        floors: (Array.isArray(payload.floors) && payload.floors.length) ? payload.floors : (db.projects[0] ? db.projects[0].floors : []),
+        disciplines: db.projects[0] ? db.projects[0].disciplines : []
       };
       db.projects.push(p);
       let account = null;

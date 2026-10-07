@@ -101,7 +101,7 @@
       startActual: '2025-03-15', endForecast: '2027-02-15',
       budgetPlanned: 52000000, costActual: 29800000, costPlannedToDate: 27200000,
       progressPlanned: 62, progressActual: 54.5,
-      type: 'برج تجاري / إداري',
+      type: 'برج تجاري / إداري', structureType: 'building', unitLabel: 'دور',
       dlpStart: '2027-02-15', dlpMonths: 12,
       thresholds: { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' },
       floors: FLOORS, disciplines: DISCIPLINES
@@ -117,7 +117,7 @@
       startActual: '2025-09-10', endForecast: '2026-11-20',
       budgetPlanned: 8500000, costActual: 3350000, costPlannedToDate: 3450000,
       progressPlanned: 39, progressActual: 41,
-      type: 'فيلا سكنية',
+      type: 'فيلا سكنية', structureType: 'building', unitLabel: 'دور',
       dlpStart: '2026-12-15', dlpMonths: 12,
       thresholds: { slaReviewDays: 10, warrantyWarnDays: 60, contractorDelayPct: 5, healthAlertGrade: 'B' },
       floors: FLOORS, disciplines: DISCIPLINES
@@ -770,7 +770,7 @@
 
     db.notifications = [];
     db.comments = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 20, docSeq: docSeq };
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 21, docSeq: docSeq };
 
     return db;
   }

@@ -920,6 +920,52 @@
     });
   }
 
+  // ============ أنواع المشاريع وتوليد الهيكل (أدوار/كيلومترات/مقاطع…) ============
+  const PROJECT_TYPES = [
+    { id: 'building', name: 'مبنى / إنشائي (أبراج، فلل، مجمعات)', unit: 'دور', model: 'building' },
+    { id: 'roads', name: 'طرق', unit: 'كم', model: 'linear' },
+    { id: 'infrastructure', name: 'بنية تحتية', unit: 'مقطع', model: 'linear' },
+    { id: 'water_sewer', name: 'شبكات مياه وصرف صحي', unit: 'كم', model: 'linear' },
+    { id: 'bridge', name: 'جسور وأنفاق', unit: 'بحر', model: 'zones' },
+    { id: 'dam', name: 'سدود', unit: 'قطاع', model: 'zones' },
+    { id: 'industrial', name: 'صناعي / محطات', unit: 'منطقة', model: 'zones' },
+    { id: 'landscaping', name: 'أعمال خارجية وتنسيق مواقع', unit: 'منطقة', model: 'zones' },
+    { id: 'general', name: 'أخرى / مخصّص', unit: 'وحدة', model: 'custom' }
+  ];
+  function projectTypeOf(id) { return PROJECT_TYPES.find(function (t) { return t.id === id; }) || PROJECT_TYPES[0]; }
+
+  // يولّد قائمة وحدات المشروع حسب النوع والمعطيات. يعيد { floors, unitLabel, structureType }
+  function buildStructure(typeId, params) {
+    params = params || {};
+    const t = projectTypeOf(typeId);
+    const units = [];
+    if (t.model === 'building') {
+      const base = Math.max(0, parseInt(params.basements, 10) || 0);
+      const flr = Math.max(0, parseInt(params.floors, 10) || 0);
+      for (let i = base; i >= 1; i--) units.push({ id: 'B' + i, name: base > 1 ? ('القبو ' + i) : 'القبو' });
+      units.push({ id: 'GF', name: 'الدور الأرضي' });
+      if (params.mezzanine) units.push({ id: 'MZ', name: 'الميزانين' });
+      for (let i = 1; i <= flr; i++) units.push({ id: 'F' + i, name: 'الدور ' + i });
+      if (params.roof) units.push({ id: 'RF', name: 'السطح' });
+    } else if (t.model === 'linear') {
+      const total = Number(params.length) || 0;
+      const seg = Number(params.segment) || 1;
+      const n = total > 0 ? Math.max(1, Math.ceil(total / seg)) : Math.max(1, parseInt(params.count, 10) || 1);
+      for (let i = 0; i < n; i++) {
+        const from = i * seg, to = total > 0 ? Math.min(total, (i + 1) * seg) : (i + 1) * seg;
+        units.push({ id: 'KM' + i, name: 'كم ' + (Math.round(from * 1000) / 1000) + ' — ' + (Math.round(to * 1000) / 1000) });
+      }
+    } else if (t.model === 'zones') {
+      const n = Math.max(1, parseInt(params.count, 10) || 1);
+      const word = (params.unitWord || t.unit);
+      for (let i = 1; i <= n; i++) units.push({ id: 'Z' + i, name: word + ' ' + i });
+    } else { // custom
+      (params.names || []).forEach(function (nm, i) { if (String(nm).trim()) units.push({ id: 'U' + (i + 1), name: String(nm).trim() }); });
+      if (!units.length) units.push({ id: 'U1', name: 'الموقع العام' });
+    }
+    return { floors: units, unitLabel: t.unit, structureType: t.id };
+  }
+
   // ============ لوحة القيادة ============
   function renderDashboard(el, ctx) {
     const P = ctx.S.projects[0];
@@ -1791,6 +1837,7 @@
     CITY_COORDS: CITY_COORDS, projectLatLng: projectLatLng, mapStatus: mapStatus,
     projectsMapHtml: projectsMapHtml, wireProjectsMap: wireProjectsMap,
     ZONE_NAMES: ZONES.map(function (z) { return z.name; }),
+    PROJECT_TYPES: PROJECT_TYPES, projectTypeOf: projectTypeOf, buildStructure: buildStructure,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras
