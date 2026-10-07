@@ -9,6 +9,11 @@
 
   const DEMO = !!window.DEMO_MODE;
 
+  // المشروع المعروض حالياً — لربط كل إنشاء/رفع بمشروعه (عزل المشاريع)
+  function currentProjectId() {
+    try { return sessionStorage.getItem('bassir-project') || null; } catch (e) { return null; }
+  }
+
   // ============ وضع الديمو: نواة داخل المتصفح ============
   let demoCore = null, demoUser = null;
 
@@ -100,7 +105,12 @@
     },
     state() { return call('/api/state'); },
     contractorsSummary() { return call('/api/summary/contractors'); },
-    create(collection, data) { return call('/api/collections/' + collection, 'POST', data); },
+    create(collection, data) {
+      // اربط كل سجل جديد بالمشروع المعروض حالياً (عزل المشاريع)
+      const d = Object.assign({}, data);
+      if (d.projectId == null) { const pid = currentProjectId(); if (pid) d.projectId = pid; }
+      return call('/api/collections/' + collection, 'POST', d);
+    },
     update(collection, id, patch) { return call('/api/collections/' + collection + '/' + id, 'PUT', patch); },
     remove(collection, id) { return call('/api/collections/' + collection + '/' + id, 'DELETE'); },
     review(opts) { return call('/api/actions/review', 'POST', opts); },
@@ -128,6 +138,8 @@
         'Content-Type': file.type || 'application/octet-stream',
         'x-filename': encodeURIComponent(file.name)
       };
+      const pid = opts.projectId || currentProjectId();
+      if (pid) headers['x-project'] = pid;
       if (opts.category) headers['x-category'] = encodeURIComponent(opts.category);
       if (opts.versionOf) headers['x-version-of'] = opts.versionOf;
       const res = await fetch('/api/upload', { method: 'POST', headers: headers, body: file });

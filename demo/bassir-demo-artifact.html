@@ -1717,7 +1717,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
         item.projectId = (myContractor && myContractor.projectId) || item.projectId || 'P1';
         if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
       } else {
-        item.projectId = item.projectId || 'P1';
+        // المشروع من العميل (المشروع المعروض)، وإلا مشروع المستخدم الأول، وإلا الأول في النظام
+        item.projectId = item.projectId ||
+          (user.projectIds && user.projectIds[0]) ||
+          (db.projects[0] && db.projects[0].id) || 'P1';
       }
       if (REF_PREFIX[collection]) item.ref = nextRef(collection); // يتجاهل أي ref مُرسَل من العميل عمداً
       if (!item.date) item.date = todayStr();
@@ -2245,6 +2248,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
   const DEMO = !!window.DEMO_MODE;
 
+  // المشروع المعروض حالياً — لربط كل إنشاء/رفع بمشروعه (عزل المشاريع)
+  function currentProjectId() {
+    try { return sessionStorage.getItem('bassir-project') || null; } catch (e) { return null; }
+  }
+
   // ============ وضع الديمو: نواة داخل المتصفح ============
   let demoCore = null, demoUser = null;
 
@@ -2336,7 +2344,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
     },
     state() { return call('/api/state'); },
     contractorsSummary() { return call('/api/summary/contractors'); },
-    create(collection, data) { return call('/api/collections/' + collection, 'POST', data); },
+    create(collection, data) {
+      // اربط كل سجل جديد بالمشروع المعروض حالياً (عزل المشاريع)
+      const d = Object.assign({}, data);
+      if (d.projectId == null) { const pid = currentProjectId(); if (pid) d.projectId = pid; }
+      return call('/api/collections/' + collection, 'POST', d);
+    },
     update(collection, id, patch) { return call('/api/collections/' + collection + '/' + id, 'PUT', patch); },
     remove(collection, id) { return call('/api/collections/' + collection + '/' + id, 'DELETE'); },
     review(opts) { return call('/api/actions/review', 'POST', opts); },
@@ -2364,6 +2377,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         'Content-Type': file.type || 'application/octet-stream',
         'x-filename': encodeURIComponent(file.name)
       };
+      const pid = opts.projectId || currentProjectId();
+      if (pid) headers['x-project'] = pid;
       if (opts.category) headers['x-category'] = encodeURIComponent(opts.category);
       if (opts.versionOf) headers['x-version-of'] = opts.versionOf;
       const res = await fetch('/api/upload', { method: 'POST', headers: headers, body: file });
@@ -10595,11 +10610,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
     /** يرشّح اللقطة لبيانات المشروع المحدد (كل عنصر يحمل projectId) */
     function scopedState(full, pid) {
       if (!pid || full.projects.length <= 1) return full;
+      const firstPid = full.projects[0] && full.projects[0].id;
       const c = {};
       Object.keys(full).forEach(function (k) {
-        c[k] = Array.isArray(full[k])
-          ? full[k].filter(function (x) { return !x || typeof x !== 'object' || !x.projectId || x.projectId === pid; })
-          : full[k];
+        const v = full[k];
+        if (!Array.isArray(v)) { c[k] = v; return; }
+        // مجموعة مرتبطة بمشروع = أيٌّ من عناصرها يحمل projectId؛ غيرها عامّة (مستخدمون، تخصصات…)
+        const scoped = v.some(function (x) { return x && typeof x === 'object' && x.projectId; });
+        if (!scoped) { c[k] = v; return; }
+        c[k] = v.filter(function (x) {
+          if (!x || typeof x !== 'object') return true;
+          // السجلات بلا مشروع (قديمة) تُنسب للمشروع الأول — لا تتسرّب لكل المشاريع ولا تختفي
+          const xp = x.projectId || firstPid;
+          return xp === pid;
+        });
       });
       c.projects = full.projects.filter(function (p) { return p.id === pid; });
       if (!c.projects.length) c.projects = full.projects;

@@ -414,7 +414,10 @@
         item.projectId = (myContractor && myContractor.projectId) || item.projectId || 'P1';
         if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
       } else {
-        item.projectId = item.projectId || 'P1';
+        // المشروع من العميل (المشروع المعروض)، وإلا مشروع المستخدم الأول، وإلا الأول في النظام
+        item.projectId = item.projectId ||
+          (user.projectIds && user.projectIds[0]) ||
+          (db.projects[0] && db.projects[0].id) || 'P1';
       }
       if (REF_PREFIX[collection]) item.ref = nextRef(collection); // يتجاهل أي ref مُرسَل من العميل عمداً
       if (!item.date) item.date = todayStr();
