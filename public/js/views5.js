@@ -74,6 +74,28 @@
   }
 
   // ============ 1) جدول كميات المقاول ============
+  // يوزّع كمية إجمالية على الأدوار: method='equal' بالتساوي، 'area' حسب مساحة الدور
+  // (areasMap = { floorId: م² }). يحافظ على مطابقة المجموع للإجمالي بعد التقريب.
+  function distributeAcrossFloors(total, floors, method, areasMap) {
+    total = Number(total) || 0;
+    const fl = (floors || []).filter(Boolean);
+    if (!fl.length || !total) return [];
+    areasMap = areasMap || {};
+    let weights;
+    if (method === 'area' && fl.some(function (f) { return (Number(areasMap[f.id]) || 0) > 0; })) {
+      weights = fl.map(function (f) { return Math.max(0, Number(areasMap[f.id]) || 0); });
+    } else {
+      weights = fl.map(function () { return 1; }); // بالتساوي
+    }
+    const sumW = weights.reduce(function (a, b) { return a + b; }, 0) || 1;
+    const out = fl.map(function (f, i) { return { floor: f.id, qty: Math.round(total * weights[i] / sumW * 100) / 100 }; });
+    // تصحيح فرق التقريب على الدور صاحب أكبر كمية ليطابق المجموع الإجمالي تماماً
+    let acc = 0; out.forEach(function (r) { acc += r.qty; });
+    const diff = Math.round((total - acc) * 100) / 100;
+    if (diff !== 0) { let mi = 0; out.forEach(function (r, i) { if (r.qty > out[mi].qty) mi = i; }); out[mi].qty = Math.round((out[mi].qty + diff) * 100) / 100; }
+    return out.filter(function (r) { return r.qty > 0; });
+  }
+
   function renderContractorBoq(el, ctx) {
     const items = (ctx.S.boqItems || []).slice();
     const th = VS.thresholds(ctx.S.projects[0]);
@@ -104,7 +126,7 @@
       const fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
       return '<tr>' +
         '<td class="num small">' + esc(b.code) + '</td>' +
-        '<td>' + d.icon + ' ' + esc(b.description) + '<div class="small muted">' + esc(floorName(ctx, b.floor)) + '</div></td>' +
+        '<td>' + d.icon + ' ' + esc(b.description) + '<div class="small muted">' + esc(b.floor === 'ALL' ? 'كامل المشروع' : floorName(ctx, b.floor)) + '</div></td>' +
         '<td class="num small">' + b.unitPrice.toLocaleString('en-US') + '<div class="muted">' + esc(b.unit) + '</div></td>' +
         '<td class="num small">' + b.qty + '</td>' +
         '<td class="num small" style="color:var(--status-ok)">' + fmt(doneQty) + '<div class="muted">' + approved + '%</div></td>' +
@@ -135,6 +157,12 @@
           ((ctx.S.projects[0] || {}).floors || []).map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select></div>' +
           '<div><label class="fl">المنطقة</label><select class="inp" id="mb-zone">' +
           ((VS.ZONE_NAMES || []).map(function (zn, zi) { return '<option value="' + zi + '">' + esc(t(zn)) + '</option>'; }).join('')) + '</select></div>' +
+          '<div><label class="fl">التوزيع</label><select class="inp" id="mb-dist">' +
+          '<option value="single">دور واحد (المحدد)</option>' +
+          '<option value="equal">وزّع بالتساوي على الأدوار</option>' +
+          '<option value="area">وزّع حسب مساحة الأدوار</option>' +
+          '<option value="whole">كامل المشروع (دون دور)</option>' +
+          '</select></div>' +
           '<button class="btn sm" id="mb-add">➕ أضف بند</button>' +
           '</div>' +
           '<div id="cboq-draft"></div>' +
@@ -175,25 +203,59 @@
       prev.innerHTML = '⏳ جارٍ قراءة الملف…';
       try {
         const floors = (ctx.S.projects[0] || {}).floors || [];
+        const areasMap = (ctx.S.projects[0] || {}).floorAreas || {};
         const parsed = await parseBoqFile(f, floors);
         if (!parsed.length) { prev.innerHTML = '⚠️ لم تُستخرج بنود. استخدم CSV/Excel بعناوين: الوصف/الوحدة/الكمية/السعر.'; return; }
-        const totalVal = parsed.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
-        prev.innerHTML =
-          '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ استُخرج ' + parsed.length + ' بند (قيمة ' + money(Math.round(totalVal)) + ')</b>' +
-          '<button class="btn sm" id="cboq-send">📤 ' + (hasBaseline ? 'إرسال طلب التعديل للاعتماد' : 'إرسال للاستشاري للاعتماد') + '</button></div>' +
-          '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr><th>الوصف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th></tr></thead><tbody>' +
-          parsed.slice(0, 200).map(function (p) { return '<tr><td class="small">' + esc(p.description) + '</td><td class="small">' + esc(p.unit) + '</td><td class="num small">' + p.qty + '</td><td class="num small">' + p.unitPrice.toLocaleString('en-US') + '</td></tr>'; }).join('') +
-          '</tbody></table></div>';
-        const sendBtn = el.querySelector('#cboq-send');
-        sendBtn.addEventListener('click', async function () {
-          sendBtn.disabled = true;
-          try {
-            const fileObj = await Api.upload(f, { category: 'جداول الكميات BOQ' });
-            await Api.create('boqSubmittals', { title: (hasBaseline ? 'تعديل جدول الكميات — ' : 'جدول الكميات — ') + f.name, file: fileObj, parsedItems: parsed, kind: hasBaseline ? 'revision' : 'baseline' });
-            toast(hasBaseline ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل جدول الكميات للاستشاري للاعتماد');
-            ctx.refresh();
-          } catch (e) { toast(e.message, true); sendBtn.disabled = false; }
-        });
+        let working = parsed.slice();
+        const hasAreas = floors.some(function (fl) { return (Number(areasMap[fl.id]) || 0) > 0; });
+
+        function expand(method) {
+          if (method === 'keep') return parsed.slice();
+          if (method === 'whole') return parsed.map(function (p) { return Object.assign({}, p, { floor: 'ALL' }); });
+          const out = [];
+          parsed.forEach(function (p) {
+            const dist = distributeAcrossFloors(p.qty, floors, method, areasMap);
+            if (!dist.length) { out.push(p); return; }
+            dist.forEach(function (d) { out.push(Object.assign({}, p, { floor: d.floor, qty: d.qty })); });
+          });
+          return out;
+        }
+        function fname(fid) { return fid === 'ALL' ? 'كامل المشروع' : floorName(ctx, fid); }
+
+        function renderPrev() {
+          const totalVal = working.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
+          prev.innerHTML =
+            '<div class="card" style="padding:10px 12px;margin:8px 0;background:var(--bg2)">' +
+            '<b class="small">🏢 توزيع كميات الملف على الأدوار:</b> ' +
+            '<select class="inp" id="cboq-dist" style="max-width:220px;display:inline-block">' +
+            '<option value="keep">كما في الملف (دون توزيع)</option>' +
+            '<option value="equal">بالتساوي على كل الأدوار</option>' +
+            '<option value="area"' + (hasAreas ? '' : ' disabled') + '>حسب مساحة كل دور' + (hasAreas ? '' : ' (أدخل المساحات في إعدادات المشروع)') + '</option>' +
+            '<option value="whole">اترك كل بند كاملاً للمشروع</option>' +
+            '</select> <button class="btn ghost sm" id="cboq-apply-dist">تطبيق التوزيع</button>' +
+            '<div class="small muted mt">مثال: بند «دهان داخلي 10,000 م²» يُقسَّم على الأدوار حسب الطريقة المختارة.</div></div>' +
+            '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ ' + working.length + ' بند (قيمة ' + money(Math.round(totalVal)) + ')</b>' +
+            '<button class="btn sm" id="cboq-send">📤 ' + (hasBaseline ? 'إرسال طلب التعديل للاعتماد' : 'إرسال للاستشاري للاعتماد') + '</button></div>' +
+            '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr><th>الوصف</th><th>الدور</th><th>الوحدة</th><th>الكمية</th><th>السعر</th></tr></thead><tbody>' +
+            working.slice(0, 300).map(function (p) { return '<tr><td class="small">' + esc(p.description) + '</td><td class="small">' + esc(fname(p.floor)) + '</td><td class="small">' + esc(p.unit) + '</td><td class="num small">' + p.qty + '</td><td class="num small">' + p.unitPrice.toLocaleString('en-US') + '</td></tr>'; }).join('') +
+            '</tbody></table></div>';
+          el.querySelector('#cboq-apply-dist').addEventListener('click', function () {
+            working = expand(el.querySelector('#cboq-dist').value);
+            renderPrev();
+            toast('✅ وُزّعت الكميات — راجع الجدول ثم أرسل للاعتماد');
+          });
+          el.querySelector('#cboq-send').addEventListener('click', async function () {
+            const sendBtn = el.querySelector('#cboq-send');
+            sendBtn.disabled = true;
+            try {
+              const fileObj = await Api.upload(f, { category: 'جداول الكميات BOQ' });
+              await Api.create('boqSubmittals', { title: (hasBaseline ? 'تعديل جدول الكميات — ' : 'جدول الكميات — ') + f.name, file: fileObj, parsedItems: working, kind: hasBaseline ? 'revision' : 'baseline' });
+              toast(hasBaseline ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل جدول الكميات للاستشاري للاعتماد');
+              ctx.refresh();
+            } catch (e) { toast(e.message, true); sendBtn.disabled = false; }
+          });
+        }
+        renderPrev();
       } catch (e) { prev.innerHTML = '❌ تعذّرت قراءة الملف: ' + esc(e.message); }
     });
 
@@ -209,7 +271,7 @@
         boqDraft.map(function (it, i) {
           return '<tr><td class="small">' + esc(it.description) + '</td><td class="small">' + esc(it.unit) + '</td>' +
             '<td class="num small">' + it.qty + '</td><td class="num small">' + it.unitPrice.toLocaleString('en-US') + '</td>' +
-            '<td class="small">' + esc(floorName(ctx, it.floor)) + '</td>' +
+            '<td class="small">' + esc(it.floor === 'ALL' ? 'كامل المشروع' : floorName(ctx, it.floor)) + '</td>' +
             '<td class="small">' + esc(t((VS.ZONE_NAMES || [])[Number(it.zone)] || '')) + '</td>' +
             '<td><button class="btn danger sm" data-mbdel="' + i + '">✕</button></td></tr>';
         }).join('') + '</tbody></table></div>' +
@@ -242,14 +304,21 @@
       const price = Number(el.querySelector('#mb-price').value);
       if (!desc) { toast('أدخل وصف البند', true); return; }
       if (!(qty > 0)) { toast('أدخل كمية صحيحة', true); return; }
-      boqDraft.push({
-        description: desc,
-        unit: (el.querySelector('#mb-unit').value || 'وحدة').trim(),
-        qty: qty, unitPrice: price > 0 ? price : 0,
-        floor: el.querySelector('#mb-floor').value,
-        zone: Number(el.querySelector('#mb-zone').value) || 0
-      });
-      // تفريغ الحقول لإدخال البند التالي بسرعة
+      const unit = (el.querySelector('#mb-unit').value || 'وحدة').trim();
+      const zone = Number(el.querySelector('#mb-zone').value) || 0;
+      const dist = el.querySelector('#mb-dist').value;
+      const floors = (ctx.S.projects[0] || {}).floors || [];
+      const areasMap = (ctx.S.projects[0] || {}).floorAreas || {};
+      if (dist === 'equal' || dist === 'area') {
+        const parts = distributeAcrossFloors(qty, floors, dist, areasMap);
+        if (!parts.length) { toast('تعذّر التوزيع — تحقق من الأدوار', true); return; }
+        parts.forEach(function (d) { boqDraft.push({ description: desc, unit: unit, qty: d.qty, unitPrice: price > 0 ? price : 0, floor: d.floor, zone: zone }); });
+        toast('✅ وُزّع «' + desc + '» على ' + parts.length + ' دور');
+      } else if (dist === 'whole') {
+        boqDraft.push({ description: desc, unit: unit, qty: qty, unitPrice: price > 0 ? price : 0, floor: 'ALL', zone: zone });
+      } else {
+        boqDraft.push({ description: desc, unit: unit, qty: qty, unitPrice: price > 0 ? price : 0, floor: el.querySelector('#mb-floor').value, zone: zone });
+      }
       el.querySelector('#mb-desc').value = '';
       el.querySelector('#mb-qty').value = '';
       el.querySelector('#mb-price').value = '';

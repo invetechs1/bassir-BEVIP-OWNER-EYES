@@ -493,6 +493,20 @@
           '</div></div>';
       })() : '') +
 
+      (canEdit ? (function () {
+        const fa = P.floorAreas || {};
+        const totalA = (P.floors || []).reduce(function (a, f) { return a + (Number(fa[f.id]) || 0); }, 0);
+        return '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+          '<h3 style="margin:0">📐 مساحات الأدوار (م²) <span class="hint">تُستخدم لتوزيع كميات جدول الكميات على الأدوار «حسب المساحة»</span></h3>' +
+          '<button class="btn sm" id="fa-save">💾 حفظ المساحات</button></div>' +
+          '<div class="small muted" style="margin:8px 0">أدخل مساحة البناء لكل دور مرة واحدة؛ يستعملها النظام لتوزيع البنود الإجمالية (كالدهان والبلاط) على الأدوار تلقائياً.</div>' +
+          '<div class="grid g4" style="margin-top:4px">' +
+          (P.floors || []).map(function (f) {
+            return '<div><label class="fl">' + esc(f.name) + '</label><input class="inp num" data-fa="' + esc(f.id) + '" type="number" min="0" step="any" value="' + (fa[f.id] != null ? fa[f.id] : '') + '" placeholder="م²" dir="ltr"></div>';
+          }).join('') + '</div>' +
+          '<div class="small muted mt">الإجمالي الحالي: <b class="num">' + totalA.toLocaleString('en-US') + '</b> م²</div></div>';
+      })() : '') +
+
       '<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>المرحلة</th><th>مخطط</th><th>فعلي</th><th>الإنجاز</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       tasks.map(function (t, i) {
         return '<tr><td class="num small">' + (i + 1) + '</td>' +
@@ -539,6 +553,19 @@
       try {
         await Api.update('projects', P.id, { lat: lat, lng: lng });
         toast('✅ حُفظت إحداثيات الموقع — سيظهر المشروع على الخريطة'); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+
+    const faSave = el.querySelector('#fa-save');
+    if (faSave) faSave.addEventListener('click', async function () {
+      const areas = {};
+      el.querySelectorAll('[data-fa]').forEach(function (inp) {
+        const v = Number(inp.value);
+        if (v > 0) areas[inp.getAttribute('data-fa')] = v;
+      });
+      try {
+        await Api.update('projects', P.id, { floorAreas: areas });
+        toast('✅ حُفظت مساحات الأدوار — تُستخدم في توزيع الكميات «حسب المساحة»'); ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
 
