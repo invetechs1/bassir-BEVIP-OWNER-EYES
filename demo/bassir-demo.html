@@ -5572,6 +5572,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const st = visionState;
     const accent = st.disc === 'all' ? '#e0a458' : discOf(ctx, st.disc).color;
     const floors = P.floors.slice(); // B1 أسفل ... RF أعلى
+    const W = 620, H = 600, bx = 120, bw = 300;
     const fh = 56, baseY = H - 70;
     let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="direction:ltr">' +
       '<defs><filter id="eglow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>';
