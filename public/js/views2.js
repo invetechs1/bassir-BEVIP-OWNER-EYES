@@ -1270,6 +1270,9 @@
 
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مشروع وتعيين استشاري') + '</h3>' +
       '<label class="fl">' + I18n.t('اسم المشروع') + '</label><input class="inp" id="np-name" placeholder="' + I18n.t('برج / فيلا / مجمع...') + '">' +
+      '<label class="fl">🏗️ ' + I18n.t('نوع المشروع') + '</label><select class="inp" id="np-type">' +
+      ((VS.PROJECT_TYPES || []).map(function (ty) { return '<option value="' + ty.id + '">' + esc(I18n.t(ty.name)) + '</option>'; }).join('')) + '</select>' +
+      '<div id="np-struct" style="margin:6px 0 10px"></div>' +
       '<label class="fl">' + I18n.t('الموقع') + '</label><input class="inp" id="np-loc" placeholder="' + I18n.t('المدينة - الحي') + '">' +
       '<label class="fl">📍 ' + I18n.t('إحداثيات موقع المشروع (لعرضه على الخريطة) — إلزامي') + '</label>' +
       '<select class="inp" id="np-city"><option value="">— ' + I18n.t('اختر مدينة لتعبئة الإحداثيات تلقائياً') + ' —</option>' +
@@ -1299,6 +1302,58 @@
       el.querySelector('#np-lng').value = parts[1];
     });
 
+    // ===== هيكل المشروع حسب النوع (أدوار/كيلومترات/مقاطع/مخصّص) =====
+    function structParams() {
+      const type = el.querySelector('#np-type').value;
+      const model = VS.projectTypeOf(type).model;
+      if (model === 'building') {
+        return { basements: el.querySelector('#st-base') ? el.querySelector('#st-base').value : 0,
+          floors: el.querySelector('#st-floors') ? el.querySelector('#st-floors').value : 0,
+          mezzanine: el.querySelector('#st-mz') ? el.querySelector('#st-mz').checked : false,
+          roof: el.querySelector('#st-rf') ? el.querySelector('#st-rf').checked : false };
+      }
+      if (model === 'linear') {
+        return { length: el.querySelector('#st-len') ? el.querySelector('#st-len').value : 0,
+          segment: el.querySelector('#st-seg') ? el.querySelector('#st-seg').value : 1 };
+      }
+      if (model === 'zones') { return { count: el.querySelector('#st-count') ? el.querySelector('#st-count').value : 1 }; }
+      return { names: (el.querySelector('#st-names') ? el.querySelector('#st-names').value : '').split('\n') };
+    }
+    function renderStruct() {
+      const box = el.querySelector('#np-struct');
+      const ty = VS.projectTypeOf(el.querySelector('#np-type').value);
+      let html = '';
+      if (ty.model === 'building') {
+        html = '<div class="grid g4">' +
+          '<div><label class="fl">عدد الأقبية</label><input class="inp num" id="st-base" type="number" min="0" value="1"></div>' +
+          '<div><label class="fl">عدد الأدوار المتكررة</label><input class="inp num" id="st-floors" type="number" min="0" value="3"></div>' +
+          '<div><label class="fl">ميزانين</label><div><label class="small"><input type="checkbox" id="st-mz"> يوجد</label></div></div>' +
+          '<div><label class="fl">سطح</label><div><label class="small"><input type="checkbox" id="st-rf" checked> يوجد</label></div></div>' +
+          '</div>';
+      } else if (ty.model === 'linear') {
+        html = '<div class="grid g2">' +
+          '<div><label class="fl">الطول الكلي (كم)</label><input class="inp num" id="st-len" type="number" min="0" step="any" value="5" placeholder="مثال: 12"></div>' +
+          '<div><label class="fl">طول المقطع (كم)</label><input class="inp num" id="st-seg" type="number" min="0.1" step="any" value="1"></div>' +
+          '</div>';
+      } else if (ty.model === 'zones') {
+        html = '<div><label class="fl">عدد الوحدات (' + esc(ty.unit) + ')</label><input class="inp num" id="st-count" type="number" min="1" value="5" style="max-width:160px"></div>';
+      } else {
+        html = '<div><label class="fl">أسماء الوحدات (سطر لكل وحدة)</label><textarea class="inp" id="st-names" rows="4" placeholder="المرحلة الأولى&#10;المرحلة الثانية&#10;الموقع العام"></textarea></div>';
+      }
+      box.innerHTML = html + '<div class="small muted mt" id="st-preview"></div>';
+      box.querySelectorAll('input,textarea').forEach(function (i) { i.addEventListener('input', previewStruct); });
+      previewStruct();
+    }
+    function previewStruct() {
+      const type = el.querySelector('#np-type').value;
+      const res = VS.buildStructure(type, structParams());
+      const prev = el.querySelector('#st-preview');
+      if (prev) prev.innerHTML = '🧱 سيُنشأ <b class="num">' + res.floors.length + '</b> ' + esc(VS.projectTypeOf(type).unit) +
+        ': ' + res.floors.slice(0, 8).map(function (f) { return esc(f.name); }).join(' · ') + (res.floors.length > 8 ? ' …' : '');
+    }
+    el.querySelector('#np-type').addEventListener('change', renderStruct);
+    renderStruct();
+
     el.querySelector('#np-save').addEventListener('click', async function () {
       const name = el.querySelector('#np-name').value.trim();
       if (!name) { toast(I18n.t('أدخل اسم المشروع'), true); return; }
@@ -1309,9 +1364,14 @@
         return;
       }
       try {
+        const typeId = el.querySelector('#np-type').value;
+        const struct = VS.buildStructure(typeId, structParams());
+        if (!struct.floors.length) { toast(I18n.t('حدّد هيكل المشروع (الأدوار/المقاطع/الوحدات)'), true); return; }
         const res = await Api.addProject({
           name: name, location: el.querySelector('#np-loc').value,
           lat: lat, lng: lng,
+          type: VS.projectTypeOf(typeId).name,
+          structureType: struct.structureType, unitLabel: struct.unitLabel, floors: struct.floors,
           startPlanned: el.querySelector('#np-start').value, endPlanned: el.querySelector('#np-end').value,
           budgetPlanned: el.querySelector('#np-budget').value,
           consultantName: el.querySelector('#np-cons').value,

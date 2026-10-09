@@ -695,8 +695,9 @@
       items.forEach(function (it, i) {
         db.boqItems.push({
           id: nextId('BQ'), projectId: pid, contractorId: cid, discipline: disc,
-          floor: it.floor || 'GF', zone: i % 6,
-          code: (disc || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(3, '0'),
+          floor: it.floor || 'GF',
+          zone: (it.zone != null && it.zone !== '') ? Number(it.zone) : i % 6,
+          code: it.code || ((disc || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(3, '0')),
           description: it.description || 'بند', unit: it.unit || 'وحدة',
           qty: Number(it.qty) || 0, unitPrice: Number(it.unitPrice) || 0,
           progress: 0, status: 'لم يبدأ'
@@ -845,7 +846,11 @@
         startActual: null, endForecast: payload.endPlanned,
         budgetPlanned: Number(payload.budgetPlanned) || 0, costActual: 0, costPlannedToDate: 0,
         progressPlanned: 0, progressActual: 0,
-        floors: db.projects[0] ? db.projects[0].floors : [], disciplines: db.projects[0] ? db.projects[0].disciplines : []
+        type: payload.type || (db.projects[0] ? db.projects[0].type : ''),
+        structureType: payload.structureType || 'building',
+        unitLabel: payload.unitLabel || 'دور',
+        floors: (Array.isArray(payload.floors) && payload.floors.length) ? payload.floors : (db.projects[0] ? db.projects[0].floors : []),
+        disciplines: db.projects[0] ? db.projects[0].disciplines : []
       };
       db.projects.push(p);
       let account = null;

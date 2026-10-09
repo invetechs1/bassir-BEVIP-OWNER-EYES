@@ -18,6 +18,10 @@
     'الملخص': 'Summary',
     'الأيام الإضافية': 'Additional Days',
     'هذا الحقل مطلوب — لا يمكن حفظه فارغاً': 'This field is required — it cannot be saved empty',
+    'مسار المشروع': 'Project Route',
+    'اضغط أي مقطع لعرض بنود جدول الكميات المرتبطة به': 'Click any segment to view its linked BOQ items',
+    'كل المقاطع': 'All segments',
+    'البداية': 'Start', 'النهاية': 'End',
     'المخطط المرفوع · المناطق المنفّذة تضيء باعتماد الكميات': 'Uploaded drawing · executed zones light up as BOQ is approved',
     'لا يوجد مخطط مرفوع لهذا الدور — ارفعه من «النماذج والمخططات» ليظهر هنا ويضيء مع اعتماد جدول الكميات': 'No drawing uploaded for this floor — upload it from "BIM Models & Drawings" to show it here and light up as the BOQ is approved',
     'مواقع المشاريع على الخريطة': 'Projects on the Map',
@@ -1072,6 +1076,52 @@
     });
   }
 
+  // ============ أنواع المشاريع وتوليد الهيكل (أدوار/كيلومترات/مقاطع…) ============
+  const PROJECT_TYPES = [
+    { id: 'building', name: 'مبنى / إنشائي (أبراج، فلل، مجمعات)', unit: 'دور', model: 'building' },
+    { id: 'roads', name: 'طرق', unit: 'كم', model: 'linear' },
+    { id: 'infrastructure', name: 'بنية تحتية', unit: 'مقطع', model: 'linear' },
+    { id: 'water_sewer', name: 'شبكات مياه وصرف صحي', unit: 'كم', model: 'linear' },
+    { id: 'bridge', name: 'جسور وأنفاق', unit: 'بحر', model: 'zones' },
+    { id: 'dam', name: 'سدود', unit: 'قطاع', model: 'zones' },
+    { id: 'industrial', name: 'صناعي / محطات', unit: 'منطقة', model: 'zones' },
+    { id: 'landscaping', name: 'أعمال خارجية وتنسيق مواقع', unit: 'منطقة', model: 'zones' },
+    { id: 'general', name: 'أخرى / مخصّص', unit: 'وحدة', model: 'custom' }
+  ];
+  function projectTypeOf(id) { return PROJECT_TYPES.find(function (t) { return t.id === id; }) || PROJECT_TYPES[0]; }
+
+  // يولّد قائمة وحدات المشروع حسب النوع والمعطيات. يعيد { floors, unitLabel, structureType }
+  function buildStructure(typeId, params) {
+    params = params || {};
+    const t = projectTypeOf(typeId);
+    const units = [];
+    if (t.model === 'building') {
+      const base = Math.max(0, parseInt(params.basements, 10) || 0);
+      const flr = Math.max(0, parseInt(params.floors, 10) || 0);
+      for (let i = base; i >= 1; i--) units.push({ id: 'B' + i, name: base > 1 ? ('القبو ' + i) : 'القبو' });
+      units.push({ id: 'GF', name: 'الدور الأرضي' });
+      if (params.mezzanine) units.push({ id: 'MZ', name: 'الميزانين' });
+      for (let i = 1; i <= flr; i++) units.push({ id: 'F' + i, name: 'الدور ' + i });
+      if (params.roof) units.push({ id: 'RF', name: 'السطح' });
+    } else if (t.model === 'linear') {
+      const total = Number(params.length) || 0;
+      const seg = Number(params.segment) || 1;
+      const n = total > 0 ? Math.max(1, Math.ceil(total / seg)) : Math.max(1, parseInt(params.count, 10) || 1);
+      for (let i = 0; i < n; i++) {
+        const from = i * seg, to = total > 0 ? Math.min(total, (i + 1) * seg) : (i + 1) * seg;
+        units.push({ id: 'KM' + i, name: 'كم ' + (Math.round(from * 1000) / 1000) + ' — ' + (Math.round(to * 1000) / 1000) });
+      }
+    } else if (t.model === 'zones') {
+      const n = Math.max(1, parseInt(params.count, 10) || 1);
+      const word = (params.unitWord || t.unit);
+      for (let i = 1; i <= n; i++) units.push({ id: 'Z' + i, name: word + ' ' + i });
+    } else { // custom
+      (params.names || []).forEach(function (nm, i) { if (String(nm).trim()) units.push({ id: 'U' + (i + 1), name: String(nm).trim() }); });
+      if (!units.length) units.push({ id: 'U1', name: 'الموقع العام' });
+    }
+    return { floors: units, unitLabel: t.unit, structureType: t.id };
+  }
+
   // ============ لوحة القيادة ============
   function renderDashboard(el, ctx) {
     const P = ctx.S.projects[0];
@@ -1439,6 +1489,9 @@
   function renderVision(el, ctx) {
     const P = ctx.S.projects[0];
     const st = visionState;
+    // تأكّد أن الوحدة المختارة ضمن وحدات هذا المشروع (أدوار/مقاطع) وإلا الأولى
+    if (!(P.floors || []).some(function (f) { return f.id === st.floor; })) st.floor = (P.floors[0] || {}).id;
+    const isLinear = projectTypeOf(P.structureType).model === 'linear';
 
     const discChips = '<div class="disc-chips">' +
       '<div class="disc-chip ' + (st.disc === 'all' ? 'active' : '') + '" data-disc="all" style="--disc-color:#e0a458"><span class="dot"></span>' + I18n.t('جميع البنود') + '</div>' +
@@ -1447,20 +1500,26 @@
           '<span class="dot"></span>' + d.icon + ' ' + esc(d.name) + '</div>';
       }).join('') + '</div>';
 
-    let body = '';
-    if (st.tab === '2d') body = render2d(ctx);
-    else if (st.tab === 'elev') body = renderElev(ctx);
-    else body = renderBim(ctx);
+    let body = '', tabsHtml = '';
+    if (isLinear) {
+      body = renderLinear(ctx);
+      tabsHtml = '<div class="tabs"><div class="tab active">🛣️ ' + I18n.t('مسار المشروع') + '</div></div>';
+    } else {
+      if (st.tab === '2d') body = render2d(ctx);
+      else if (st.tab === 'elev') body = renderElev(ctx);
+      else body = renderBim(ctx);
+      tabsHtml = '<div class="tabs">' +
+        '<div class="tab ' + (st.tab === '2d' ? 'active' : '') + '" data-vtab="2d">🗺️ ' + I18n.t('المخططات ثنائية الأبعاد') + '</div>' +
+        '<div class="tab ' + (st.tab === 'elev' ? 'active' : '') + '" data-vtab="elev">🏙️ ' + I18n.t('واجهات المبنى') + '</div>' +
+        '<div class="tab ' + (st.tab === 'bim' ? 'active' : '') + '" data-vtab="bim">🏢 ' + I18n.t('نموذج BIM ثلاثي الأبعاد') + '</div>' +
+        '</div>';
+    }
 
     el.innerHTML =
-      '<div class="tabs">' +
-      '<div class="tab ' + (st.tab === '2d' ? 'active' : '') + '" data-vtab="2d">🗺️ ' + I18n.t('المخططات ثنائية الأبعاد') + '</div>' +
-      '<div class="tab ' + (st.tab === 'elev' ? 'active' : '') + '" data-vtab="elev">🏙️ ' + I18n.t('واجهات المبنى') + '</div>' +
-      '<div class="tab ' + (st.tab === 'bim' ? 'active' : '') + '" data-vtab="bim">🏢 ' + I18n.t('نموذج BIM ثلاثي الأبعاد') + '</div>' +
-      '</div>' + discChips + body +
+      tabsHtml + discChips + body +
       '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>' + I18n.t('داكن = أعمال غير منتهية') + '</span>' +
       '<span><span class="sw" style="background:linear-gradient(90deg,#8a6a35,#e0a458);box-shadow:0 0 10px rgba(224,164,88,.7)"></span>' + I18n.t('ساطع = بنود منتهية (مستخلصات معتمدة)') + '</span>' +
-      '<span>' + I18n.t('اضغط أي منطقة/دور لعرض بنود جدول الكميات المرتبطة بها') + '</span></div>';
+      '<span>' + (isLinear ? I18n.t('اضغط أي مقطع لعرض بنود جدول الكميات المرتبطة به') : I18n.t('اضغط أي منطقة/دور لعرض بنود جدول الكميات المرتبطة بها')) + '</span></div>';
 
     // ربط الأحداث
     el.querySelectorAll('[data-vtab]').forEach(function (t) {
@@ -1494,7 +1553,7 @@
     });
 
     // عرض المخطط الحقيقي المرفوع كخلفية لخريطة الإنجاز (ثنائية الأبعاد)
-    if (st.tab === '2d') {
+    if (!isLinear && st.tab === '2d') {
       const bgEl = el.querySelector('#map2d-bg');
       const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
       if (bgEl && bgDr && window.DrawingViewer && window.DrawingViewer.renderPlanInto) {
@@ -1663,13 +1722,74 @@
       '<div class="map2d-bg" id="map2d-bg"></div>' + svg + planHint + '</div>' + panel + '</div>';
   }
 
+  // ============ العرض الخطّي (طرق/بنية تحتية): شريط المسار مقسّم إلى مقاطع ============
+  function renderLinear(ctx) {
+    const P = ctx.S.projects[0];
+    const st = visionState;
+    const accent = st.disc === 'all' ? '#e0a458' : discOf(ctx, st.disc).color;
+    const segs = (P.floors || []);
+    const n = segs.length || 1;
+
+    const discStrip = '<div class="card mb" style="padding:12px 16px"><div class="flex" style="gap:16px">' +
+      '<b class="small">📊 ' + I18n.t('إنجاز') + ' ' + esc(st.floor ? floorName(ctx, st.floor) : P.name) + ' ' + I18n.t('حسب التخصص:') + '</b>' +
+      P.disciplines.map(function (d) {
+        const p = weightedProgress(itemsFor(ctx, st.floor, d.id, null));
+        if (p == null) return '';
+        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(d.name.replace('الأعمال ', '').replace('أعمال ', '')) +
+          ' <b class="num" style="color:' + d.color + '">' + p + '%</b></span>';
+      }).join('') + '</div></div>';
+
+    const W = 980, roadH = 52, roadY = 56, labelY = roadY + roadH + (n > 14 ? 26 : 20), H = labelY + (n > 14 ? 24 : 12);
+    const padX = 30;
+    const segW = (W - padX * 2) / n;
+    let segsSvg = '';
+    segs.forEach(function (s, i) {
+      const items = itemsFor(ctx, s.id, st.disc, null);
+      const p = weightedProgress(items);
+      const tt = p == null ? 0.05 : 0.08 + (p / 100) * 0.84;
+      const fill = mixColor(accent, tt);
+      const x = padX + i * segW;
+      const done = p != null && p >= 95;
+      const sel = st.floor === s.id;
+      const cx = x + segW / 2;
+      segsSvg += '<g class="zone-shape" data-floor="' + esc(s.id) + '">' +
+        '<rect x="' + x + '" y="' + roadY + '" width="' + (segW - 2) + '" height="' + roadH + '" rx="2" fill="' + fill + '" ' +
+        'stroke="' + (sel ? '#fff' : done ? accent : '#26314a') + '" stroke-width="' + (sel ? 3 : done ? 2 : 1) + '"' + (done ? ' filter="url(#lglow)"' : '') + '>' +
+        '<title>' + esc(s.name) + ' — ' + (p == null ? I18n.t('لا بنود') : I18n.t('الإنجاز') + ' ' + p + '%') + '</title></rect>' +
+        '<text x="' + cx + '" y="' + (roadY + roadH / 2 + 5) + '" text-anchor="middle" font-size="13" font-weight="800" fill="' + (tt > 0.5 ? '#10151f' : '#e9ecf3') + '" pointer-events="none">' + (p == null ? '—' : p + '%') + '</text>' +
+        '<text x="' + cx + '" y="' + labelY + '" text-anchor="middle" font-size="' + (n > 14 ? 9 : 11) + '" fill="#8b95a8" pointer-events="none"' + (n > 14 ? ' transform="rotate(32 ' + cx + ' ' + labelY + ')"' : '') + '>' + esc(s.name) + '</text>' +
+        '</g>';
+    });
+    const centerLine = '<line x1="' + padX + '" y1="' + (roadY + roadH / 2) + '" x2="' + (W - padX) + '" y2="' + (roadY + roadH / 2) + '" stroke="#e0a45866" stroke-width="2.5" stroke-dasharray="16 12" pointer-events="none"/>';
+    const svg = '<svg viewBox="0 0 ' + W + ' ' + H + '">' +
+      '<defs><filter id="lglow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+      '<text x="' + padX + '" y="' + (roadY - 12) + '" font-size="11" fill="#67718a">🚩 ' + I18n.t('البداية') + '</text>' +
+      '<text x="' + (W - padX) + '" y="' + (roadY - 12) + '" text-anchor="end" font-size="11" fill="#67718a">' + I18n.t('النهاية') + ' 🏁</text>' +
+      segsSvg + centerLine + '</svg>';
+
+    const panelItems = itemsFor(ctx, st.floor, st.disc, null);
+    const panel =
+      '<div class="card zone-panel"><h3>📋 ' + esc(st.floor ? floorName(ctx, st.floor) : I18n.t('كل المقاطع')) + ' <span class="hint num">' + panelItems.length + ' ' + I18n.t('بند') + '</span></h3>' +
+      (panelItems.length ? panelItems.map(function (b) {
+        const d = discOf(ctx, b.discipline);
+        const done = b.progress >= 100;
+        return '<div style="border:1px solid ' + (done ? d.color : 'var(--border)') + ';border-radius:10px;padding:10px 12px;margin-bottom:9px;background:var(--bg2)' + (done ? ';box-shadow:0 0 12px ' + d.color + '33' : '') + '">' +
+          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(b.status) + '</span></div>' +
+          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(d.name) + '</div>' +
+          '<div class="flex mt" style="margin-top:8px"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%;background:linear-gradient(90deg,' + d.color + '88,' + d.color + ')"></i></div><b class="num small">' + b.progress + '%</b></div>' +
+          '</div>';
+      }).join('') : '<div class="empty"><div class="e-ico">🗂️</div>' + I18n.t('لا توجد بنود مطابقة للتصفية الحالية') + '</div>') +
+      '</div>';
+
+    return discStrip + '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage">' + svg + '</div>' + panel + '</div>';
+  }
+
   // ============ واجهات المبنى (High-Rise): كل دور بنسبة إنجازه ============
   function renderElev(ctx) {
     const P = ctx.S.projects[0];
     const st = visionState;
     const accent = st.disc === 'all' ? '#e0a458' : discOf(ctx, st.disc).color;
     const floors = P.floors.slice(); // B1 أسفل ... RF أعلى
-
     const W = 620, H = 600, bx = 120, bw = 300;
     const fh = 56, baseY = H - 70;
     let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="direction:ltr">' +
@@ -2022,6 +2142,7 @@
     CITY_COORDS: CITY_COORDS, projectLatLng: projectLatLng, mapStatus: mapStatus,
     projectsMapHtml: projectsMapHtml, wireProjectsMap: wireProjectsMap,
     ZONE_NAMES: ZONES.map(function (z) { return z.name; }),
+    PROJECT_TYPES: PROJECT_TYPES, projectTypeOf: projectTypeOf, buildStructure: buildStructure,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras

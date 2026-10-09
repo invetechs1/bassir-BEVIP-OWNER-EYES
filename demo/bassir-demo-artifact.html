@@ -625,7 +625,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       startActual: '2025-03-15', endForecast: '2027-02-15',
       budgetPlanned: 52000000, costActual: 29800000, costPlannedToDate: 27200000,
       progressPlanned: 62, progressActual: 54.5,
-      type: 'برج تجاري / إداري',
+      type: 'برج تجاري / إداري', structureType: 'building', unitLabel: 'دور',
       dlpStart: '2027-02-15', dlpMonths: 12,
       thresholds: { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, healthAlertGrade: 'C' },
       floors: FLOORS, disciplines: DISCIPLINES
@@ -641,7 +641,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       startActual: '2025-09-10', endForecast: '2026-11-20',
       budgetPlanned: 8500000, costActual: 3350000, costPlannedToDate: 3450000,
       progressPlanned: 39, progressActual: 41,
-      type: 'فيلا سكنية',
+      type: 'فيلا سكنية', structureType: 'building', unitLabel: 'دور',
       dlpStart: '2026-12-15', dlpMonths: 12,
       thresholds: { slaReviewDays: 10, warrantyWarnDays: 60, contractorDelayPct: 5, healthAlertGrade: 'B' },
       floors: FLOORS, disciplines: DISCIPLINES
@@ -2002,8 +2002,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
       items.forEach(function (it, i) {
         db.boqItems.push({
           id: nextId('BQ'), projectId: pid, contractorId: cid, discipline: disc,
-          floor: it.floor || 'GF', zone: i % 6,
-          code: (disc || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(3, '0'),
+          floor: it.floor || 'GF',
+          zone: (it.zone != null && it.zone !== '') ? Number(it.zone) : i % 6,
+          code: it.code || ((disc || 'GN').substring(0, 2).toUpperCase() + '-' + String(i + 1).padStart(3, '0')),
           description: it.description || 'بند', unit: it.unit || 'وحدة',
           qty: Number(it.qty) || 0, unitPrice: Number(it.unitPrice) || 0,
           progress: 0, status: 'لم يبدأ'
@@ -2152,7 +2153,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
         startActual: null, endForecast: payload.endPlanned,
         budgetPlanned: Number(payload.budgetPlanned) || 0, costActual: 0, costPlannedToDate: 0,
         progressPlanned: 0, progressActual: 0,
-        floors: db.projects[0] ? db.projects[0].floors : [], disciplines: db.projects[0] ? db.projects[0].disciplines : []
+        type: payload.type || (db.projects[0] ? db.projects[0].type : ''),
+        structureType: payload.structureType || 'building',
+        unitLabel: payload.unitLabel || 'دور',
+        floors: (Array.isArray(payload.floors) && payload.floors.length) ? payload.floors : (db.projects[0] ? db.projects[0].floors : []),
+        disciplines: db.projects[0] ? db.projects[0].disciplines : []
       };
       db.projects.push(p);
       let account = null;
@@ -4568,6 +4573,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'الملخص': 'Summary',
     'الأيام الإضافية': 'Additional Days',
     'هذا الحقل مطلوب — لا يمكن حفظه فارغاً': 'This field is required — it cannot be saved empty',
+    'مسار المشروع': 'Project Route',
+    'اضغط أي مقطع لعرض بنود جدول الكميات المرتبطة به': 'Click any segment to view its linked BOQ items',
+    'كل المقاطع': 'All segments',
+    'البداية': 'Start', 'النهاية': 'End',
     'المخطط المرفوع · المناطق المنفّذة تضيء باعتماد الكميات': 'Uploaded drawing · executed zones light up as BOQ is approved',
     'لا يوجد مخطط مرفوع لهذا الدور — ارفعه من «النماذج والمخططات» ليظهر هنا ويضيء مع اعتماد جدول الكميات': 'No drawing uploaded for this floor — upload it from "BIM Models & Drawings" to show it here and light up as the BOQ is approved',
     'مواقع المشاريع على الخريطة': 'Projects on the Map',
@@ -5622,6 +5631,52 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
   }
 
+  // ============ أنواع المشاريع وتوليد الهيكل (أدوار/كيلومترات/مقاطع…) ============
+  const PROJECT_TYPES = [
+    { id: 'building', name: 'مبنى / إنشائي (أبراج، فلل، مجمعات)', unit: 'دور', model: 'building' },
+    { id: 'roads', name: 'طرق', unit: 'كم', model: 'linear' },
+    { id: 'infrastructure', name: 'بنية تحتية', unit: 'مقطع', model: 'linear' },
+    { id: 'water_sewer', name: 'شبكات مياه وصرف صحي', unit: 'كم', model: 'linear' },
+    { id: 'bridge', name: 'جسور وأنفاق', unit: 'بحر', model: 'zones' },
+    { id: 'dam', name: 'سدود', unit: 'قطاع', model: 'zones' },
+    { id: 'industrial', name: 'صناعي / محطات', unit: 'منطقة', model: 'zones' },
+    { id: 'landscaping', name: 'أعمال خارجية وتنسيق مواقع', unit: 'منطقة', model: 'zones' },
+    { id: 'general', name: 'أخرى / مخصّص', unit: 'وحدة', model: 'custom' }
+  ];
+  function projectTypeOf(id) { return PROJECT_TYPES.find(function (t) { return t.id === id; }) || PROJECT_TYPES[0]; }
+
+  // يولّد قائمة وحدات المشروع حسب النوع والمعطيات. يعيد { floors, unitLabel, structureType }
+  function buildStructure(typeId, params) {
+    params = params || {};
+    const t = projectTypeOf(typeId);
+    const units = [];
+    if (t.model === 'building') {
+      const base = Math.max(0, parseInt(params.basements, 10) || 0);
+      const flr = Math.max(0, parseInt(params.floors, 10) || 0);
+      for (let i = base; i >= 1; i--) units.push({ id: 'B' + i, name: base > 1 ? ('القبو ' + i) : 'القبو' });
+      units.push({ id: 'GF', name: 'الدور الأرضي' });
+      if (params.mezzanine) units.push({ id: 'MZ', name: 'الميزانين' });
+      for (let i = 1; i <= flr; i++) units.push({ id: 'F' + i, name: 'الدور ' + i });
+      if (params.roof) units.push({ id: 'RF', name: 'السطح' });
+    } else if (t.model === 'linear') {
+      const total = Number(params.length) || 0;
+      const seg = Number(params.segment) || 1;
+      const n = total > 0 ? Math.max(1, Math.ceil(total / seg)) : Math.max(1, parseInt(params.count, 10) || 1);
+      for (let i = 0; i < n; i++) {
+        const from = i * seg, to = total > 0 ? Math.min(total, (i + 1) * seg) : (i + 1) * seg;
+        units.push({ id: 'KM' + i, name: 'كم ' + (Math.round(from * 1000) / 1000) + ' — ' + (Math.round(to * 1000) / 1000) });
+      }
+    } else if (t.model === 'zones') {
+      const n = Math.max(1, parseInt(params.count, 10) || 1);
+      const word = (params.unitWord || t.unit);
+      for (let i = 1; i <= n; i++) units.push({ id: 'Z' + i, name: word + ' ' + i });
+    } else { // custom
+      (params.names || []).forEach(function (nm, i) { if (String(nm).trim()) units.push({ id: 'U' + (i + 1), name: String(nm).trim() }); });
+      if (!units.length) units.push({ id: 'U1', name: 'الموقع العام' });
+    }
+    return { floors: units, unitLabel: t.unit, structureType: t.id };
+  }
+
   // ============ لوحة القيادة ============
   function renderDashboard(el, ctx) {
     const P = ctx.S.projects[0];
@@ -5989,6 +6044,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderVision(el, ctx) {
     const P = ctx.S.projects[0];
     const st = visionState;
+    // تأكّد أن الوحدة المختارة ضمن وحدات هذا المشروع (أدوار/مقاطع) وإلا الأولى
+    if (!(P.floors || []).some(function (f) { return f.id === st.floor; })) st.floor = (P.floors[0] || {}).id;
+    const isLinear = projectTypeOf(P.structureType).model === 'linear';
 
     const discChips = '<div class="disc-chips">' +
       '<div class="disc-chip ' + (st.disc === 'all' ? 'active' : '') + '" data-disc="all" style="--disc-color:#e0a458"><span class="dot"></span>' + I18n.t('جميع البنود') + '</div>' +
@@ -5997,20 +6055,26 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '<span class="dot"></span>' + d.icon + ' ' + esc(d.name) + '</div>';
       }).join('') + '</div>';
 
-    let body = '';
-    if (st.tab === '2d') body = render2d(ctx);
-    else if (st.tab === 'elev') body = renderElev(ctx);
-    else body = renderBim(ctx);
+    let body = '', tabsHtml = '';
+    if (isLinear) {
+      body = renderLinear(ctx);
+      tabsHtml = '<div class="tabs"><div class="tab active">🛣️ ' + I18n.t('مسار المشروع') + '</div></div>';
+    } else {
+      if (st.tab === '2d') body = render2d(ctx);
+      else if (st.tab === 'elev') body = renderElev(ctx);
+      else body = renderBim(ctx);
+      tabsHtml = '<div class="tabs">' +
+        '<div class="tab ' + (st.tab === '2d' ? 'active' : '') + '" data-vtab="2d">🗺️ ' + I18n.t('المخططات ثنائية الأبعاد') + '</div>' +
+        '<div class="tab ' + (st.tab === 'elev' ? 'active' : '') + '" data-vtab="elev">🏙️ ' + I18n.t('واجهات المبنى') + '</div>' +
+        '<div class="tab ' + (st.tab === 'bim' ? 'active' : '') + '" data-vtab="bim">🏢 ' + I18n.t('نموذج BIM ثلاثي الأبعاد') + '</div>' +
+        '</div>';
+    }
 
     el.innerHTML =
-      '<div class="tabs">' +
-      '<div class="tab ' + (st.tab === '2d' ? 'active' : '') + '" data-vtab="2d">🗺️ ' + I18n.t('المخططات ثنائية الأبعاد') + '</div>' +
-      '<div class="tab ' + (st.tab === 'elev' ? 'active' : '') + '" data-vtab="elev">🏙️ ' + I18n.t('واجهات المبنى') + '</div>' +
-      '<div class="tab ' + (st.tab === 'bim' ? 'active' : '') + '" data-vtab="bim">🏢 ' + I18n.t('نموذج BIM ثلاثي الأبعاد') + '</div>' +
-      '</div>' + discChips + body +
+      tabsHtml + discChips + body +
       '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>' + I18n.t('داكن = أعمال غير منتهية') + '</span>' +
       '<span><span class="sw" style="background:linear-gradient(90deg,#8a6a35,#e0a458);box-shadow:0 0 10px rgba(224,164,88,.7)"></span>' + I18n.t('ساطع = بنود منتهية (مستخلصات معتمدة)') + '</span>' +
-      '<span>' + I18n.t('اضغط أي منطقة/دور لعرض بنود جدول الكميات المرتبطة بها') + '</span></div>';
+      '<span>' + (isLinear ? I18n.t('اضغط أي مقطع لعرض بنود جدول الكميات المرتبطة به') : I18n.t('اضغط أي منطقة/دور لعرض بنود جدول الكميات المرتبطة بها')) + '</span></div>';
 
     // ربط الأحداث
     el.querySelectorAll('[data-vtab]').forEach(function (t) {
@@ -6044,7 +6108,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
 
     // عرض المخطط الحقيقي المرفوع كخلفية لخريطة الإنجاز (ثنائية الأبعاد)
-    if (st.tab === '2d') {
+    if (!isLinear && st.tab === '2d') {
       const bgEl = el.querySelector('#map2d-bg');
       const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
       if (bgEl && bgDr && window.DrawingViewer && window.DrawingViewer.renderPlanInto) {
@@ -6213,13 +6277,74 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="map2d-bg" id="map2d-bg"></div>' + svg + planHint + '</div>' + panel + '</div>';
   }
 
+  // ============ العرض الخطّي (طرق/بنية تحتية): شريط المسار مقسّم إلى مقاطع ============
+  function renderLinear(ctx) {
+    const P = ctx.S.projects[0];
+    const st = visionState;
+    const accent = st.disc === 'all' ? '#e0a458' : discOf(ctx, st.disc).color;
+    const segs = (P.floors || []);
+    const n = segs.length || 1;
+
+    const discStrip = '<div class="card mb" style="padding:12px 16px"><div class="flex" style="gap:16px">' +
+      '<b class="small">📊 ' + I18n.t('إنجاز') + ' ' + esc(st.floor ? floorName(ctx, st.floor) : P.name) + ' ' + I18n.t('حسب التخصص:') + '</b>' +
+      P.disciplines.map(function (d) {
+        const p = weightedProgress(itemsFor(ctx, st.floor, d.id, null));
+        if (p == null) return '';
+        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(d.name.replace('الأعمال ', '').replace('أعمال ', '')) +
+          ' <b class="num" style="color:' + d.color + '">' + p + '%</b></span>';
+      }).join('') + '</div></div>';
+
+    const W = 980, roadH = 52, roadY = 56, labelY = roadY + roadH + (n > 14 ? 26 : 20), H = labelY + (n > 14 ? 24 : 12);
+    const padX = 30;
+    const segW = (W - padX * 2) / n;
+    let segsSvg = '';
+    segs.forEach(function (s, i) {
+      const items = itemsFor(ctx, s.id, st.disc, null);
+      const p = weightedProgress(items);
+      const tt = p == null ? 0.05 : 0.08 + (p / 100) * 0.84;
+      const fill = mixColor(accent, tt);
+      const x = padX + i * segW;
+      const done = p != null && p >= 95;
+      const sel = st.floor === s.id;
+      const cx = x + segW / 2;
+      segsSvg += '<g class="zone-shape" data-floor="' + esc(s.id) + '">' +
+        '<rect x="' + x + '" y="' + roadY + '" width="' + (segW - 2) + '" height="' + roadH + '" rx="2" fill="' + fill + '" ' +
+        'stroke="' + (sel ? '#fff' : done ? accent : '#26314a') + '" stroke-width="' + (sel ? 3 : done ? 2 : 1) + '"' + (done ? ' filter="url(#lglow)"' : '') + '>' +
+        '<title>' + esc(s.name) + ' — ' + (p == null ? I18n.t('لا بنود') : I18n.t('الإنجاز') + ' ' + p + '%') + '</title></rect>' +
+        '<text x="' + cx + '" y="' + (roadY + roadH / 2 + 5) + '" text-anchor="middle" font-size="13" font-weight="800" fill="' + (tt > 0.5 ? '#10151f' : '#e9ecf3') + '" pointer-events="none">' + (p == null ? '—' : p + '%') + '</text>' +
+        '<text x="' + cx + '" y="' + labelY + '" text-anchor="middle" font-size="' + (n > 14 ? 9 : 11) + '" fill="#8b95a8" pointer-events="none"' + (n > 14 ? ' transform="rotate(32 ' + cx + ' ' + labelY + ')"' : '') + '>' + esc(s.name) + '</text>' +
+        '</g>';
+    });
+    const centerLine = '<line x1="' + padX + '" y1="' + (roadY + roadH / 2) + '" x2="' + (W - padX) + '" y2="' + (roadY + roadH / 2) + '" stroke="#e0a45866" stroke-width="2.5" stroke-dasharray="16 12" pointer-events="none"/>';
+    const svg = '<svg viewBox="0 0 ' + W + ' ' + H + '">' +
+      '<defs><filter id="lglow" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>' +
+      '<text x="' + padX + '" y="' + (roadY - 12) + '" font-size="11" fill="#67718a">🚩 ' + I18n.t('البداية') + '</text>' +
+      '<text x="' + (W - padX) + '" y="' + (roadY - 12) + '" text-anchor="end" font-size="11" fill="#67718a">' + I18n.t('النهاية') + ' 🏁</text>' +
+      segsSvg + centerLine + '</svg>';
+
+    const panelItems = itemsFor(ctx, st.floor, st.disc, null);
+    const panel =
+      '<div class="card zone-panel"><h3>📋 ' + esc(st.floor ? floorName(ctx, st.floor) : I18n.t('كل المقاطع')) + ' <span class="hint num">' + panelItems.length + ' ' + I18n.t('بند') + '</span></h3>' +
+      (panelItems.length ? panelItems.map(function (b) {
+        const d = discOf(ctx, b.discipline);
+        const done = b.progress >= 100;
+        return '<div style="border:1px solid ' + (done ? d.color : 'var(--border)') + ';border-radius:10px;padding:10px 12px;margin-bottom:9px;background:var(--bg2)' + (done ? ';box-shadow:0 0 12px ' + d.color + '33' : '') + '">' +
+          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(b.status) + '</span></div>' +
+          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(d.name) + '</div>' +
+          '<div class="flex mt" style="margin-top:8px"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%;background:linear-gradient(90deg,' + d.color + '88,' + d.color + ')"></i></div><b class="num small">' + b.progress + '%</b></div>' +
+          '</div>';
+      }).join('') : '<div class="empty"><div class="e-ico">🗂️</div>' + I18n.t('لا توجد بنود مطابقة للتصفية الحالية') + '</div>') +
+      '</div>';
+
+    return discStrip + '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage">' + svg + '</div>' + panel + '</div>';
+  }
+
   // ============ واجهات المبنى (High-Rise): كل دور بنسبة إنجازه ============
   function renderElev(ctx) {
     const P = ctx.S.projects[0];
     const st = visionState;
     const accent = st.disc === 'all' ? '#e0a458' : discOf(ctx, st.disc).color;
     const floors = P.floors.slice(); // B1 أسفل ... RF أعلى
-
     const W = 620, H = 600, bx = 120, bw = 300;
     const fh = 56, baseY = H - 70;
     let svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="direction:ltr">' +
@@ -6572,6 +6697,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     CITY_COORDS: CITY_COORDS, projectLatLng: projectLatLng, mapStatus: mapStatus,
     projectsMapHtml: projectsMapHtml, wireProjectsMap: wireProjectsMap,
     ZONE_NAMES: ZONES.map(function (z) { return z.name; }),
+    PROJECT_TYPES: PROJECT_TYPES, projectTypeOf: projectTypeOf, buildStructure: buildStructure,
     renderDashboard: renderDashboard, renderVision: renderVision,
     renderContractors: renderContractors, renderAi: renderAi, renderReports: renderReports,
     renderOwnerEye: renderOwnerEye, renderCameras: renderCameras
@@ -7852,6 +7978,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مشروع وتعيين استشاري') + '</h3>' +
       '<label class="fl">' + I18n.t('اسم المشروع') + '</label><input class="inp" id="np-name" placeholder="' + I18n.t('برج / فيلا / مجمع...') + '">' +
+      '<label class="fl">🏗️ ' + I18n.t('نوع المشروع') + '</label><select class="inp" id="np-type">' +
+      ((VS.PROJECT_TYPES || []).map(function (ty) { return '<option value="' + ty.id + '">' + esc(I18n.t(ty.name)) + '</option>'; }).join('')) + '</select>' +
+      '<div id="np-struct" style="margin:6px 0 10px"></div>' +
       '<label class="fl">' + I18n.t('الموقع') + '</label><input class="inp" id="np-loc" placeholder="' + I18n.t('المدينة - الحي') + '">' +
       '<label class="fl">📍 ' + I18n.t('إحداثيات موقع المشروع (لعرضه على الخريطة) — إلزامي') + '</label>' +
       '<select class="inp" id="np-city"><option value="">— ' + I18n.t('اختر مدينة لتعبئة الإحداثيات تلقائياً') + ' —</option>' +
@@ -7881,6 +8010,58 @@ textarea.inp { resize: vertical; min-height: 80px; }
       el.querySelector('#np-lng').value = parts[1];
     });
 
+    // ===== هيكل المشروع حسب النوع (أدوار/كيلومترات/مقاطع/مخصّص) =====
+    function structParams() {
+      const type = el.querySelector('#np-type').value;
+      const model = VS.projectTypeOf(type).model;
+      if (model === 'building') {
+        return { basements: el.querySelector('#st-base') ? el.querySelector('#st-base').value : 0,
+          floors: el.querySelector('#st-floors') ? el.querySelector('#st-floors').value : 0,
+          mezzanine: el.querySelector('#st-mz') ? el.querySelector('#st-mz').checked : false,
+          roof: el.querySelector('#st-rf') ? el.querySelector('#st-rf').checked : false };
+      }
+      if (model === 'linear') {
+        return { length: el.querySelector('#st-len') ? el.querySelector('#st-len').value : 0,
+          segment: el.querySelector('#st-seg') ? el.querySelector('#st-seg').value : 1 };
+      }
+      if (model === 'zones') { return { count: el.querySelector('#st-count') ? el.querySelector('#st-count').value : 1 }; }
+      return { names: (el.querySelector('#st-names') ? el.querySelector('#st-names').value : '').split('\n') };
+    }
+    function renderStruct() {
+      const box = el.querySelector('#np-struct');
+      const ty = VS.projectTypeOf(el.querySelector('#np-type').value);
+      let html = '';
+      if (ty.model === 'building') {
+        html = '<div class="grid g4">' +
+          '<div><label class="fl">عدد الأقبية</label><input class="inp num" id="st-base" type="number" min="0" value="1"></div>' +
+          '<div><label class="fl">عدد الأدوار المتكررة</label><input class="inp num" id="st-floors" type="number" min="0" value="3"></div>' +
+          '<div><label class="fl">ميزانين</label><div><label class="small"><input type="checkbox" id="st-mz"> يوجد</label></div></div>' +
+          '<div><label class="fl">سطح</label><div><label class="small"><input type="checkbox" id="st-rf" checked> يوجد</label></div></div>' +
+          '</div>';
+      } else if (ty.model === 'linear') {
+        html = '<div class="grid g2">' +
+          '<div><label class="fl">الطول الكلي (كم)</label><input class="inp num" id="st-len" type="number" min="0" step="any" value="5" placeholder="مثال: 12"></div>' +
+          '<div><label class="fl">طول المقطع (كم)</label><input class="inp num" id="st-seg" type="number" min="0.1" step="any" value="1"></div>' +
+          '</div>';
+      } else if (ty.model === 'zones') {
+        html = '<div><label class="fl">عدد الوحدات (' + esc(ty.unit) + ')</label><input class="inp num" id="st-count" type="number" min="1" value="5" style="max-width:160px"></div>';
+      } else {
+        html = '<div><label class="fl">أسماء الوحدات (سطر لكل وحدة)</label><textarea class="inp" id="st-names" rows="4" placeholder="المرحلة الأولى&#10;المرحلة الثانية&#10;الموقع العام"></textarea></div>';
+      }
+      box.innerHTML = html + '<div class="small muted mt" id="st-preview"></div>';
+      box.querySelectorAll('input,textarea').forEach(function (i) { i.addEventListener('input', previewStruct); });
+      previewStruct();
+    }
+    function previewStruct() {
+      const type = el.querySelector('#np-type').value;
+      const res = VS.buildStructure(type, structParams());
+      const prev = el.querySelector('#st-preview');
+      if (prev) prev.innerHTML = '🧱 سيُنشأ <b class="num">' + res.floors.length + '</b> ' + esc(VS.projectTypeOf(type).unit) +
+        ': ' + res.floors.slice(0, 8).map(function (f) { return esc(f.name); }).join(' · ') + (res.floors.length > 8 ? ' …' : '');
+    }
+    el.querySelector('#np-type').addEventListener('change', renderStruct);
+    renderStruct();
+
     el.querySelector('#np-save').addEventListener('click', async function () {
       const name = el.querySelector('#np-name').value.trim();
       if (!name) { toast(I18n.t('أدخل اسم المشروع'), true); return; }
@@ -7891,9 +8072,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
         return;
       }
       try {
+        const typeId = el.querySelector('#np-type').value;
+        const struct = VS.buildStructure(typeId, structParams());
+        if (!struct.floors.length) { toast(I18n.t('حدّد هيكل المشروع (الأدوار/المقاطع/الوحدات)'), true); return; }
         const res = await Api.addProject({
           name: name, location: el.querySelector('#np-loc').value,
           lat: lat, lng: lng,
+          type: VS.projectTypeOf(typeId).name,
+          structureType: struct.structureType, unitLabel: struct.unitLabel, floors: struct.floors,
           startPlanned: el.querySelector('#np-start').value, endPlanned: el.querySelector('#np-end').value,
           budgetPlanned: el.querySelector('#np-budget').value,
           consultantName: el.querySelector('#np-cons').value,
@@ -11530,6 +11716,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
           '</div></div>';
       })() : '') +
 
+      (canEdit ? (function () {
+        const fa = P.floorAreas || {};
+        const totalA = (P.floors || []).reduce(function (a, f) { return a + (Number(fa[f.id]) || 0); }, 0);
+        return '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
+          '<h3 style="margin:0">📐 مساحات الأدوار (م²) <span class="hint">تُستخدم لتوزيع كميات جدول الكميات على الأدوار «حسب المساحة»</span></h3>' +
+          '<button class="btn sm" id="fa-save">💾 حفظ المساحات</button></div>' +
+          '<div class="small muted" style="margin:8px 0">أدخل مساحة البناء لكل دور مرة واحدة؛ يستعملها النظام لتوزيع البنود الإجمالية (كالدهان والبلاط) على الأدوار تلقائياً.</div>' +
+          '<div class="grid g4" style="margin-top:4px">' +
+          (P.floors || []).map(function (f) {
+            return '<div><label class="fl">' + esc(f.name) + '</label><input class="inp num" data-fa="' + esc(f.id) + '" type="number" min="0" step="any" value="' + (fa[f.id] != null ? fa[f.id] : '') + '" placeholder="م²" dir="ltr"></div>';
+          }).join('') + '</div>' +
+          '<div class="small muted mt">الإجمالي الحالي: <b class="num">' + totalA.toLocaleString('en-US') + '</b> م²</div></div>';
+      })() : '') +
+
       '<div class="card"><div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>' + I18n.t('المرحلة') + '</th><th>' + I18n.t('مخطط') + '</th><th>' + I18n.t('فعلي') + '</th><th>' + I18n.t('الإنجاز') + '</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       tasks.map(function (t, i) {
         return '<tr><td class="num small">' + (i + 1) + '</td>' +
@@ -11576,6 +11776,19 @@ textarea.inp { resize: vertical; min-height: 80px; }
       try {
         await Api.update('projects', P.id, { lat: lat, lng: lng });
         toast('✅ حُفظت إحداثيات الموقع — سيظهر المشروع على الخريطة'); ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+
+    const faSave = el.querySelector('#fa-save');
+    if (faSave) faSave.addEventListener('click', async function () {
+      const areas = {};
+      el.querySelectorAll('[data-fa]').forEach(function (inp) {
+        const v = Number(inp.value);
+        if (v > 0) areas[inp.getAttribute('data-fa')] = v;
+      });
+      try {
+        await Api.update('projects', P.id, { floorAreas: areas });
+        toast('✅ حُفظت مساحات الأدوار — تُستخدم في توزيع الكميات «حسب المساحة»'); ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
 
@@ -11757,6 +11970,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
   const esc = VS.esc, money = VS.money, toast = VS.toast, floorName = VS.floorName, discOf = VS.discOf;
   const t = I18n.t;
 
+  // مسودة بنود جدول الكميات المُدخلة يدوياً (قبل الإرسال للاعتماد) — تبقى أثناء الإضافة
+  let boqDraft = [];
+
   I18n.registerDict({
     'جدول الكميات': 'Bill of Quantities',
     'الجدول الزمني': 'Schedule',
@@ -11824,6 +12040,86 @@ textarea.inp { resize: vertical; min-height: 80px; }
   }
 
   // ============ 1) جدول كميات المقاول ============
+  // يوزّع كمية إجمالية على الأدوار: method='equal' بالتساوي، 'area' حسب مساحة الدور
+  // (areasMap = { floorId: م² }). يحافظ على مطابقة المجموع للإجمالي بعد التقريب.
+  function distributeAcrossFloors(total, floors, method, areasMap) {
+    total = Number(total) || 0;
+    const fl = (floors || []).filter(Boolean);
+    if (!fl.length || !total) return [];
+    areasMap = areasMap || {};
+    let weights;
+    if (method === 'area' && fl.some(function (f) { return (Number(areasMap[f.id]) || 0) > 0; })) {
+      weights = fl.map(function (f) { return Math.max(0, Number(areasMap[f.id]) || 0); });
+    } else {
+      weights = fl.map(function () { return 1; }); // بالتساوي
+    }
+    const sumW = weights.reduce(function (a, b) { return a + b; }, 0) || 1;
+    const out = fl.map(function (f, i) { return { floor: f.id, qty: Math.round(total * weights[i] / sumW * 100) / 100 }; });
+    // تصحيح فرق التقريب على الدور صاحب أكبر كمية ليطابق المجموع الإجمالي تماماً
+    let acc = 0; out.forEach(function (r) { acc += r.qty; });
+    const diff = Math.round((total - acc) * 100) / 100;
+    if (diff !== 0) { let mi = 0; out.forEach(function (r, i) { if (r.qty > out[mi].qty) mi = i; }); out[mi].qty = Math.round((out[mi].qty + diff) * 100) / 100; }
+    return out.filter(function (r) { return r.qty > 0; });
+  }
+
+  // نافذة التوزيع اليدوي: كمية لكل دور (mode='qty', total محدّد) أو نسبة % لكل دور
+  // (mode='percent'، المجموع 100). مع مؤشر «المتبقّي» الحيّ. onApply(shares) حيث
+  // shares = [{ floor, val }] (val كمية أو نسبة حسب الوضع).
+  function openDistributeModal(ctx, opts, onApply) {
+    opts = opts || {};
+    const modal = VS.modal;
+    const floors = (ctx.S.projects[0] || {}).floors || [];
+    const mode = opts.mode === 'qty' ? 'qty' : 'percent';
+    const total = Number(opts.total) || 0;
+    const target = mode === 'percent' ? 100 : total;
+    const areasMap = (ctx.S.projects[0] || {}).floorAreas || {};
+    const m = modal(
+      '<h3>🏢 ' + esc(opts.title || 'توزيع يدوي على الأدوار') + '</h3>' +
+      (mode === 'qty'
+        ? '<div class="m-sub">الإجمالي المطلوب توزيعه: <b class="num">' + total + '</b> ' + esc(opts.unit || '') + '</div>'
+        : '<div class="m-sub">أدخل نسبة كل دور — يجب أن يكون المجموع 100% (تُطبَّق على كل بنود الملف)</div>') +
+      '<div class="tbl-wrap" style="max-height:48vh;overflow:auto"><table class="tbl"><thead><tr><th>الدور</th><th>' + (mode === 'percent' ? 'النسبة %' : 'الكمية') + '</th></tr></thead><tbody>' +
+      floors.map(function (f) { return '<tr><td class="small">' + esc(f.name) + '</td><td><input class="inp num dm-in" data-f="' + esc(f.id) + '" type="number" min="0" step="any" style="max-width:130px" dir="ltr"></td></tr>'; }).join('') +
+      '</tbody></table></div>' +
+      '<div class="flex mt" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b class="small" id="dm-sum"></b>' +
+      '<div class="flex" style="gap:6px"><button class="btn ghost sm" id="dm-equal">بالتساوي</button>' +
+      (floors.some(function (f) { return (Number(areasMap[f.id]) || 0) > 0; }) ? '<button class="btn ghost sm" id="dm-area">حسب المساحة</button>' : '') +
+      '<button class="btn sm" id="dm-apply">تطبيق</button><button class="btn mutedb sm" id="dm-cancel">إلغاء</button></div></div>'
+    );
+    function recalc() {
+      let sum = 0; m.querySelectorAll('.dm-in').forEach(function (i) { sum += Number(i.value) || 0; });
+      sum = Math.round(sum * 100) / 100;
+      const rem = Math.round((target - sum) * 100) / 100;
+      const bal = Math.abs(rem) < 0.01;
+      m.querySelector('#dm-sum').innerHTML = 'المُدخل: <b class="num">' + sum + (mode === 'percent' ? '%' : '') + '</b> · المتبقّي: ' +
+        '<b class="num" style="color:' + (bal ? 'var(--ok)' : 'var(--warn)') + '">' + rem + (mode === 'percent' ? '%' : '') + '</b>';
+      return { sum: sum, rem: rem, bal: bal };
+    }
+    function setVals(getter) { m.querySelectorAll('.dm-in').forEach(function (i, idx) { i.value = getter(i.getAttribute('data-f'), idx); }); recalc(); }
+    m.querySelectorAll('.dm-in').forEach(function (i) { i.addEventListener('input', recalc); });
+    m.querySelector('#dm-equal').addEventListener('click', function () {
+      const per = Math.round((target / (floors.length || 1)) * 100) / 100;
+      setVals(function () { return per; });
+    });
+    const areaBtn = m.querySelector('#dm-area');
+    if (areaBtn) areaBtn.addEventListener('click', function () {
+      const parts = distributeAcrossFloors(target, floors, 'area', areasMap);
+      const map = {}; parts.forEach(function (p) { map[p.floor] = p.qty; });
+      setVals(function (fid) { return map[fid] || 0; });
+    });
+    m.querySelector('#dm-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#dm-apply').addEventListener('click', function () {
+      const r = recalc();
+      if (!r.bal) { toast(mode === 'percent' ? 'يجب أن يكون مجموع النسب 100%' : 'يجب أن يساوي مجموع الكميات الإجمالي (' + total + ')', true); return; }
+      const shares = [];
+      m.querySelectorAll('.dm-in').forEach(function (i) { const v = Number(i.value) || 0; if (v > 0) shares.push({ floor: i.getAttribute('data-f'), val: v }); });
+      if (!shares.length) { toast('أدخل التوزيع أولاً', true); return; }
+      m.remove();
+      onApply(shares);
+    });
+    recalc();
+  }
+
   function renderContractorBoq(el, ctx) {
     const items = (ctx.S.boqItems || []).slice();
     const th = VS.thresholds(ctx.S.projects[0]);
@@ -11854,7 +12150,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
       return '<tr>' +
         '<td class="num small">' + esc(b.code) + '</td>' +
-        '<td>' + d.icon + ' ' + esc(b.description) + '<div class="small muted">' + esc(floorName(ctx, b.floor)) + '</div></td>' +
+        '<td>' + d.icon + ' ' + esc(b.description) + '<div class="small muted">' + esc(b.floor === 'ALL' ? 'كامل المشروع' : floorName(ctx, b.floor)) + '</div></td>' +
         '<td class="num small">' + b.unitPrice.toLocaleString('en-US') + '<div class="muted">' + esc(b.unit) + '</div></td>' +
         '<td class="num small">' + b.qty + '</td>' +
         '<td class="num small" style="color:var(--status-ok)">' + fmt(doneQty) + '<div class="muted">' + approved + '%</div></td>' +
@@ -11875,8 +12171,29 @@ textarea.inp { resize: vertical; min-height: 80px; }
       (hasBaseline ? '<div class="small" style="margin:8px 0"><span class="pill p-ok">🔒 جدول الكميات معتمد ومقفل</span> أي تعديل يتطلب موافقة الاستشاري وممثل المالك معاً.</div>' : '<div class="small muted" style="margin:8px 0">ارفع جدول كمياتك ليُراجعه الاستشاري ويعتمده، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.</div>') +
       (pendingSub
         ? '<div class="pill p-warn">⏳ لديك جدول كميات قيد المراجعة (' + esc(pendingSub.docCode || pendingSub.ref || '') + ') — بانتظار قرار الاستشاري</div>'
-        : '<div class="flex" style="flex-wrap:wrap;gap:8px"><input class="inp" id="cboq-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" style="max-width:260px"><button class="btn sm" id="cboq-read">📖 قراءة الملف</button><button class="btn ghost sm" id="cboq-template">' + t('📥 تنزيل نموذج فارغ') + '</button></div>' +
-          '<div id="cboq-prev" class="small muted mt">' + t('جدولك الحالي غير مطابق؟ نزّل النموذج الفارغ، انسخ بنودك فيه، ثم ارفعه — يضمن ذلك قراءته بشكل صحيح.') + '</div>') +
+        : '<div class="small muted" style="margin:2px 0 6px">يمكنك إضافة البنود يدوياً بنداً بنداً، أو رفع ملف — رفع الملف اختياري.</div>' +
+          '<div class="flex" style="align-items:flex-end;gap:6px;flex-wrap:wrap">' +
+          '<div><label class="fl">وصف البند</label><input class="inp" id="mb-desc" placeholder="خرسانة مسلحة للأعمدة..." style="min-width:220px"></div>' +
+          '<div><label class="fl">الوحدة</label><input class="inp" id="mb-unit" placeholder="م³ / م² / عدد" style="max-width:90px"></div>' +
+          '<div><label class="fl">الكمية</label><input class="inp num" id="mb-qty" type="number" min="0" step="any" style="max-width:90px"></div>' +
+          '<div><label class="fl">سعر الوحدة</label><input class="inp num" id="mb-price" type="number" min="0" step="any" style="max-width:110px"></div>' +
+          '<div><label class="fl">الدور</label><select class="inp" id="mb-floor">' +
+          ((ctx.S.projects[0] || {}).floors || []).map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select></div>' +
+          '<div><label class="fl">المنطقة</label><select class="inp" id="mb-zone">' +
+          ((VS.ZONE_NAMES || []).map(function (zn, zi) { return '<option value="' + zi + '">' + esc(t(zn)) + '</option>'; }).join('')) + '</select></div>' +
+          '<div><label class="fl">التوزيع</label><select class="inp" id="mb-dist">' +
+          '<option value="single">دور واحد (المحدد)</option>' +
+          '<option value="equal">وزّع بالتساوي على الأدوار</option>' +
+          '<option value="area">وزّع حسب مساحة الأدوار</option>' +
+          '<option value="manual">وزّع يدوياً (كمية لكل دور)</option>' +
+          '<option value="whole">كامل المشروع (دون دور)</option>' +
+          '</select></div>' +
+          '<button class="btn sm" id="mb-add">➕ أضف بند</button>' +
+          '</div>' +
+          '<div id="cboq-draft"></div>' +
+          '<div class="flex" style="margin:10px 0;gap:8px;align-items:center;flex-wrap:wrap"><span class="small muted">— أو —</span>' +
+          '<input class="inp" id="cboq-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" style="max-width:240px"><button class="btn ghost sm" id="cboq-read">📖 رفع ملف (اختياري)</button><button class="btn ghost sm" id="cboq-template">' + t('📥 تنزيل نموذج فارغ') + '</button></div>' +
+          '<div id="cboq-prev" class="small muted">' + t('جدولك الحالي غير مطابق؟ نزّل النموذج الفارغ، انسخ بنودك فيه، ثم ارفعه — يضمن ذلك قراءته بشكل صحيح.') + '</div>') +
       (subs.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>المرجع</th><th>النوع</th><th>البنود</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
         subs.map(function (s) { return '<tr><td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td>' + (s.kind === 'revision' ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + ((s.parsedItems || []).length || '—') + '</td><td class="small muted num">' + esc(s.date || '') + '</td><td>' + VS.pill(s.status) + '</td></tr>'; }).join('') +
         '</tbody></table></div>' : '') +
@@ -11925,6 +12242,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       prev.innerHTML = '⏳ جارٍ قراءة الملف…';
       try {
         const floors = (ctx.S.projects[0] || {}).floors || [];
+        const areasMap = (ctx.S.projects[0] || {}).floorAreas || {};
         const parsed = await parseBoqFile(f, floors);
         if (!parsed.length) { prev.innerHTML = '⚠️ لم تُستخرج بنود. استخدم CSV/Excel بعناوين: الوصف/الوحدة/الكمية/السعر.'; return; }
         // فحص سلامة: إن كانت كل الكميات والأسعار صفراً فهذا يعني غالباً أن أعمدة الملف لم تُطابَق
@@ -11934,25 +12252,154 @@ textarea.inp { resize: vertical; min-height: 80px; }
           prev.innerHTML = '⚠️ ' + t('تعذّر التعرف على أعمدة الكمية أو السعر في هذا الملف (كل القيم ظهرت صفراً) — على الأغلب تنسيق الملف مختلف عمّا يتوقعه النظام. نزّل النموذج الفارغ أعلاه وانسخ بياناتك فيه بدل رفع ملفك كما هو.');
           return;
         }
-        const totalVal = parsed.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
-        prev.innerHTML =
-          '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ استُخرج ' + parsed.length + ' بند (قيمة ' + money(Math.round(totalVal)) + ')</b>' +
-          '<button class="btn sm" id="cboq-send">📤 ' + (hasBaseline ? 'إرسال طلب التعديل للاعتماد' : 'إرسال للاستشاري للاعتماد') + '</button></div>' +
-          '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr><th>الوصف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th></tr></thead><tbody>' +
-          parsed.slice(0, 200).map(function (p) { return '<tr><td class="small">' + esc(p.description) + '</td><td class="small">' + esc(p.unit) + '</td><td class="num small">' + p.qty + '</td><td class="num small">' + p.unitPrice.toLocaleString('en-US') + '</td></tr>'; }).join('') +
-          '</tbody></table></div>';
-        const sendBtn = el.querySelector('#cboq-send');
-        sendBtn.addEventListener('click', async function () {
-          sendBtn.disabled = true;
-          try {
-            const fileObj = await Api.upload(f, { category: 'جداول الكميات BOQ' });
-            await Api.create('boqSubmittals', { title: (hasBaseline ? 'تعديل جدول الكميات — ' : 'جدول الكميات — ') + f.name, file: fileObj, parsedItems: parsed, kind: hasBaseline ? 'revision' : 'baseline' });
-            toast(hasBaseline ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل جدول الكميات للاستشاري للاعتماد');
-            ctx.refresh();
-          } catch (e) { toast(e.message, true); sendBtn.disabled = false; }
-        });
+        let working = parsed.slice();
+        const hasAreas = floors.some(function (fl) { return (Number(areasMap[fl.id]) || 0) > 0; });
+
+        function expand(method) {
+          if (method === 'keep') return parsed.slice();
+          if (method === 'whole') return parsed.map(function (p) { return Object.assign({}, p, { floor: 'ALL' }); });
+          const out = [];
+          parsed.forEach(function (p) {
+            const dist = distributeAcrossFloors(p.qty, floors, method, areasMap);
+            if (!dist.length) { out.push(p); return; }
+            dist.forEach(function (d) { out.push(Object.assign({}, p, { floor: d.floor, qty: d.qty })); });
+          });
+          return out;
+        }
+        function fname(fid) { return fid === 'ALL' ? 'كامل المشروع' : floorName(ctx, fid); }
+
+        function renderPrev() {
+          const totalVal = working.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
+          prev.innerHTML =
+            '<div class="card" style="padding:10px 12px;margin:8px 0;background:var(--bg2)">' +
+            '<b class="small">🏢 توزيع كميات الملف على الأدوار:</b> ' +
+            '<select class="inp" id="cboq-dist" style="max-width:220px;display:inline-block">' +
+            '<option value="keep">كما في الملف (دون توزيع)</option>' +
+            '<option value="equal">بالتساوي على كل الأدوار</option>' +
+            '<option value="area"' + (hasAreas ? '' : ' disabled') + '>حسب مساحة كل دور' + (hasAreas ? '' : ' (أدخل المساحات في إعدادات المشروع)') + '</option>' +
+            '<option value="manual">يدوياً (نسبة لكل دور تُطبَّق على الكل)</option>' +
+            '<option value="whole">اترك كل بند كاملاً للمشروع</option>' +
+            '</select> <button class="btn ghost sm" id="cboq-apply-dist">تطبيق التوزيع</button>' +
+            '<div class="small muted mt">مثال: بند «دهان داخلي 10,000 م²» يُقسَّم على الأدوار حسب الطريقة المختارة.</div></div>' +
+            '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ ' + working.length + ' بند (قيمة ' + money(Math.round(totalVal)) + ')</b>' +
+            '<button class="btn sm" id="cboq-send">📤 ' + (hasBaseline ? 'إرسال طلب التعديل للاعتماد' : 'إرسال للاستشاري للاعتماد') + '</button></div>' +
+            '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr><th>الوصف</th><th>الدور</th><th>الوحدة</th><th>الكمية</th><th>السعر</th></tr></thead><tbody>' +
+            working.slice(0, 300).map(function (p) { return '<tr><td class="small">' + esc(p.description) + '</td><td class="small">' + esc(fname(p.floor)) + '</td><td class="small">' + esc(p.unit) + '</td><td class="num small">' + p.qty + '</td><td class="num small">' + p.unitPrice.toLocaleString('en-US') + '</td></tr>'; }).join('') +
+            '</tbody></table></div>';
+          el.querySelector('#cboq-apply-dist').addEventListener('click', function () {
+            const method = el.querySelector('#cboq-dist').value;
+            if (method === 'manual') {
+              openDistributeModal(ctx, { mode: 'percent', title: 'نسبة توزيع كل بند على الأدوار' }, function (shares) {
+                const out = [];
+                parsed.forEach(function (p) {
+                  shares.forEach(function (s) {
+                    out.push(Object.assign({}, p, { floor: s.floor, qty: Math.round(p.qty * s.val / 100 * 100) / 100 }));
+                  });
+                });
+                working = out;
+                renderPrev();
+                toast('✅ وُزّعت الكميات بالنِّسب — راجع الجدول ثم أرسل للاعتماد');
+              });
+              return;
+            }
+            working = expand(method);
+            renderPrev();
+            toast('✅ وُزّعت الكميات — راجع الجدول ثم أرسل للاعتماد');
+          });
+          el.querySelector('#cboq-send').addEventListener('click', async function () {
+            const sendBtn = el.querySelector('#cboq-send');
+            sendBtn.disabled = true;
+            try {
+              const fileObj = await Api.upload(f, { category: 'جداول الكميات BOQ' });
+              await Api.create('boqSubmittals', { title: (hasBaseline ? 'تعديل جدول الكميات — ' : 'جدول الكميات — ') + f.name, file: fileObj, parsedItems: working, kind: hasBaseline ? 'revision' : 'baseline' });
+              toast(hasBaseline ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل جدول الكميات للاستشاري للاعتماد');
+              ctx.refresh();
+            } catch (e) { toast(e.message, true); sendBtn.disabled = false; }
+          });
+        }
+        renderPrev();
       } catch (e) { prev.innerHTML = '❌ تعذّرت قراءة الملف: ' + esc(e.message); }
     });
+
+    // ===== الإدخال اليدوي للبنود (رفع الملف اختياري) =====
+    const draftBox = el.querySelector('#cboq-draft');
+    function renderDraft() {
+      if (!draftBox) return;
+      if (!boqDraft.length) { draftBox.innerHTML = '<div class="small muted mt">لم تُضف بنوداً بعد — أضف بنداً أو ارفع ملفاً.</div>'; return; }
+      const total = boqDraft.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
+      draftBox.innerHTML =
+        '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr>' +
+        '<th>الوصف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الدور</th><th>المنطقة</th><th></th></tr></thead><tbody>' +
+        boqDraft.map(function (it, i) {
+          return '<tr><td class="small">' + esc(it.description) + '</td><td class="small">' + esc(it.unit) + '</td>' +
+            '<td class="num small">' + it.qty + '</td><td class="num small">' + it.unitPrice.toLocaleString('en-US') + '</td>' +
+            '<td class="small">' + esc(it.floor === 'ALL' ? 'كامل المشروع' : floorName(ctx, it.floor)) + '</td>' +
+            '<td class="small">' + esc(t((VS.ZONE_NAMES || [])[Number(it.zone)] || '')) + '</td>' +
+            '<td><button class="btn danger sm" data-mbdel="' + i + '">✕</button></td></tr>';
+        }).join('') + '</tbody></table></div>' +
+        '<div class="flex mt" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b class="small">' + boqDraft.length + ' بند · القيمة ' + money(Math.round(total)) + '</b>' +
+        '<button class="btn sm" id="mb-send">📤 ' + (hasBaseline ? 'إرسال طلب التعديل للاعتماد' : 'إرسال للاستشاري للاعتماد') + '</button></div>';
+      draftBox.querySelectorAll('[data-mbdel]').forEach(function (b) {
+        b.addEventListener('click', function () { boqDraft.splice(Number(b.getAttribute('data-mbdel')), 1); renderDraft(); });
+      });
+      const mbSend = draftBox.querySelector('#mb-send');
+      if (mbSend) mbSend.addEventListener('click', async function () {
+        if (!boqDraft.length) return;
+        mbSend.disabled = true;
+        try {
+          await Api.create('boqSubmittals', {
+            title: (hasBaseline ? 'تعديل جدول الكميات (إدخال يدوي) — ' : 'جدول الكميات (إدخال يدوي) — ') + boqDraft.length + ' بند',
+            parsedItems: boqDraft.slice(), kind: hasBaseline ? 'revision' : 'baseline'
+          });
+          boqDraft = [];
+          toast(hasBaseline ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل جدول الكميات للاستشاري للاعتماد');
+          ctx.refresh();
+        } catch (e) { toast(e.message, true); mbSend.disabled = false; }
+      });
+    }
+    renderDraft();
+
+    const mbAdd = el.querySelector('#mb-add');
+    if (mbAdd) mbAdd.addEventListener('click', function () {
+      const desc = (el.querySelector('#mb-desc').value || '').trim();
+      const qty = Number(el.querySelector('#mb-qty').value);
+      const price = Number(el.querySelector('#mb-price').value);
+      if (!desc) { toast('أدخل وصف البند', true); return; }
+      if (!(qty > 0)) { toast('أدخل كمية صحيحة', true); return; }
+      const unit = (el.querySelector('#mb-unit').value || 'وحدة').trim();
+      const zone = Number(el.querySelector('#mb-zone').value) || 0;
+      const dist = el.querySelector('#mb-dist').value;
+      const floors = (ctx.S.projects[0] || {}).floors || [];
+      const areasMap = (ctx.S.projects[0] || {}).floorAreas || {};
+      if (dist === 'equal' || dist === 'area') {
+        const parts = distributeAcrossFloors(qty, floors, dist, areasMap);
+        if (!parts.length) { toast('تعذّر التوزيع — تحقق من الأدوار', true); return; }
+        parts.forEach(function (d) { boqDraft.push({ description: desc, unit: unit, qty: d.qty, unitPrice: price > 0 ? price : 0, floor: d.floor, zone: zone }); });
+        toast('✅ وُزّع «' + desc + '» على ' + parts.length + ' دور');
+        clearInputs();
+      } else if (dist === 'manual') {
+        openDistributeModal(ctx, { mode: 'qty', total: qty, unit: unit, title: 'توزيع «' + desc + '» على الأدوار' }, function (shares) {
+          shares.forEach(function (s) { boqDraft.push({ description: desc, unit: unit, qty: s.val, unitPrice: price > 0 ? price : 0, floor: s.floor, zone: zone }); });
+          toast('✅ وُزّع «' + desc + '» يدوياً على ' + shares.length + ' دور');
+          clearInputs(); renderDraft();
+        });
+        return;
+      } else if (dist === 'whole') {
+        boqDraft.push({ description: desc, unit: unit, qty: qty, unitPrice: price > 0 ? price : 0, floor: 'ALL', zone: zone });
+        clearInputs();
+      } else {
+        boqDraft.push({ description: desc, unit: unit, qty: qty, unitPrice: price > 0 ? price : 0, floor: el.querySelector('#mb-floor').value, zone: zone });
+        clearInputs();
+      }
+      renderDraft();
+    });
+    function clearInputs() {
+      el.querySelector('#mb-desc').value = '';
+      el.querySelector('#mb-qty').value = '';
+      el.querySelector('#mb-price').value = '';
+      el.querySelector('#mb-unit').value = '';
+      el.querySelector('#mb-desc').focus();
+    }
   }
 
   // ============ 2) قرّاء ملفات الجدول الزمني ============
