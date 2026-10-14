@@ -31,6 +31,6 @@
     "pdfkit": "^0.19.1"
   },
   "devDependencies": {
-    "playwright": "^1.63.0"
+    "playwright": "^1.64.0"
   }
 }
