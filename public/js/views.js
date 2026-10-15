@@ -5,6 +5,13 @@
   const esc = Charts.esc;
 
   I18n.registerDict({
+    'مخططك المرفوع · يزداد سطوعاً مع تقدّم التنفيذ': 'Your uploaded drawing · brightens as work progresses',
+    'إظهار مناطق الإنجاز': 'Show progress zones',
+    'إخفاء مناطق الإنجاز': 'Hide progress zones',
+    'المخططات والنماذج المرفوعة': 'Uploaded drawings & models',
+    'اضغط «عرض» لفتح ملف الـ PDF/النموذج كاملاً': 'Click "View" to open the full PDF/model',
+    'لا مخططات مرفوعة بعد — ارفعها من «النماذج والمخططات → رفع مخطط/نموذج»': 'No drawings uploaded yet — upload them from "BIM & Drawings → Upload drawing/model"',
+    'عرض النموذج': 'View model', 'سحابي': 'Cloud', 'بلا ملف': 'No file',
     'مسار المشروع': 'Project Route',
     'اضغط أي مقطع لعرض بنود جدول الكميات المرتبطة به': 'Click any segment to view its linked BOQ items',
     'كل المقاطع': 'All segments',
@@ -1324,7 +1331,7 @@
   }
 
   // ============ رؤية المشروع (2D + BIM) ============
-  const visionState = { tab: '2d', floor: 'GF', disc: 'all', zone: null, bimFloor: null };
+  const visionState = { tab: '2d', floor: 'GF', disc: 'all', zone: null, bimFloor: null, showZones: false };
 
   function itemsFor(ctx, floorId, disc, zone) {
     return ctx.S.boqItems.filter(function (b) {
@@ -1410,6 +1417,10 @@
         renderVision(el, ctx);
       });
     });
+
+    // تبديل إظهار/إخفاء طبقة مناطق الإنجاز فوق المخطط الحقيقي
+    const tz = el.querySelector('#pm-togglezones');
+    if (tz) tz.addEventListener('click', function () { st.showZones = !st.showZones; renderVision(el, ctx); });
 
     // عرض المخطط الحقيقي المرفوع كخلفية لخريطة الإنجاز (ثنائية الأبعاد)
     if (!isLinear && st.tab === '2d') {
@@ -1601,9 +1612,24 @@
       ? '<div class="map2d-caption">📐 ' + esc(bgDr.ref ? bgDr.ref + ' · ' : '') + esc(bgDr.title || '') + ' — ' + I18n.t('المخطط المرفوع · المناطق المنفّذة تضيء باعتماد الكميات') + '</div>'
       : '<div class="map2d-cta">🗺️ ' + I18n.t('لا يوجد مخطط مرفوع لهذا الدور — ارفعه من «النماذج والمخططات» ليظهر هنا ويضيء مع اعتماد جدول الكميات') + '</div>';
 
+    // عند وجود مخطط حقيقي مرفوع: نعرضه كاملاً وواضحاً، ويزداد سطوعه مع تقدّم التنفيذ
+    // (داكن→ساطع) بلا خطوط أو مناطق اصطناعية تغطّيه. مع إمكانية إظهار طبقة المناطق اختيارياً.
+    if (hasBg) {
+      const fp = weightedProgress(itemsFor(ctx, st.floor, st.disc, null));
+      const bright = (fp == null ? 0.62 : (0.5 + 0.5 * (fp / 100))).toFixed(2);
+      const overlay = st.showZones ? '<div class="map2d-overlay">' + svg + '</div>' : '';
+      const toggle = '<button class="btn ghost sm" id="pm-togglezones" style="margin-right:8px">' +
+        (st.showZones ? I18n.t('إخفاء مناطق الإنجاز') : I18n.t('إظهار مناطق الإنجاز')) + '</button>';
+      const cap = '<div class="map2d-caption">📐 ' + esc(bgDr.ref ? bgDr.ref + ' · ' : '') + esc(bgDr.title || '') +
+        ' — ' + I18n.t('مخططك المرفوع · يزداد سطوعاً مع تقدّم التنفيذ') + ' <b class="num">' + (fp == null ? 0 : fp) + '%</b>' + toggle + '</div>';
+      return floorTabs + discStrip +
+        '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage has-bg" style="--plan-bright:' + bright + '">' +
+        '<div class="map2d-bg" id="map2d-bg"></div>' + overlay + cap + '</div>' + panel + '</div>';
+    }
+
     return floorTabs + discStrip +
-      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage' + (hasBg ? ' has-bg' : '') + '">' +
-      '<div class="map2d-bg" id="map2d-bg"></div>' + svg + planHint + '</div>' + panel + '</div>';
+      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage">' +
+      svg + planHint + '</div>' + panel + '</div>';
   }
 
   // ============ العرض الخطّي (طرق/بنية تحتية): شريط المسار مقسّم إلى مقاطع ============
