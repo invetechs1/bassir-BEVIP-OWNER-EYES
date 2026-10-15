@@ -1478,9 +1478,13 @@
         '</div>';
     }).join('');
     let modelRows = models.map(function (mm) {
+      const url = mm.url || (mm.file && mm.file.url) || '';
+      // قابل للعرض = ملف محلي (مرفوع أو ضمن vendor) بامتداد IFC — لا الروابط السحابية الخارجية
+      const loadable = url && mm.source !== 'cloud' && !/^https?:\/\//i.test(url) && /\.ifc($|\?)/i.test(url);
       return '<div class="flex" style="justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--bg2)">' +
         '<span class="small">🧊 <b>' + esc(mm.name || '') + '</b> <span class="muted">· ' + esc(mm.rev || '') + '</span></span>' +
-        ((mm.url || mm.file) ? '<button class="btn ghost sm" data-modelview="' + esc(mm.id) + '">👁 ' + I18n.t('عرض النموذج') + '</button>' : '<span class="pill p-muted" style="font-size:10px">' + I18n.t('بلا ملف') + '</span>') +
+        (loadable ? '<button class="btn ghost sm" data-modelview="' + esc(mm.id) + '">👁 ' + I18n.t('عرض النموذج') + '</button>'
+          : '<span class="pill p-muted" style="font-size:10px">' + (mm.source === 'cloud' ? I18n.t('سحابي') : I18n.t('بلا ملف')) + '</span>') +
         '</div>';
     }).join('');
     const empty = (!drs.length && !models.length)
