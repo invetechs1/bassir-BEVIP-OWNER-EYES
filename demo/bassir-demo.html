@@ -287,7 +287,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 .plan-stage .map2d-bg { position: absolute; inset: 10px; border-radius: 8px; overflow: hidden; z-index: 0; display: flex; align-items: center; justify-content: center; }
 /* عند وجود مخطط حقيقي: يُعرض كاملاً وواضحاً (المحتوى الأساسي)، وسطوعه يتبع نسبة الإنجاز */
 .plan-stage.has-bg .map2d-bg { position: relative; inset: auto; width: 100%; max-height: 74vh; overflow: auto; background: #0a0d13; display: block; }
-.plan-stage.has-bg .map2d-bg canvas, .plan-stage.has-bg .map2d-bg img { width: 100%; height: auto; display: block; filter: brightness(var(--plan-bright, .7)) contrast(1.06); transition: filter .4s; }
+.plan-stage.has-bg .map2d-bg canvas, .plan-stage.has-bg .map2d-bg img { width: 100%; height: auto; display: block; }
 .plan-stage.has-bg .map2d-overlay { position: absolute; inset: 10px; z-index: 2; }
 .plan-stage.has-bg .map2d-overlay svg { width: 100%; height: 100%; opacity: .5; }
 .map2d-caption { position: relative; z-index: 3; margin-top: 8px; font-size: 12px; color: var(--muted); text-align: center; }
@@ -3153,7 +3153,67 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return false;
   }
 
-  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn, renderPlanInto: renderPlanInto, fileOf: fileOf };
+  // يحوّل المخطط (PDF صفحة أولى أو صورة) إلى dataURL + أبعاد — للعرض المتدرّج
+  async function planToDataURL(item, targetW) {
+    const f = fileOf(item);
+    if (!f.url) return null;
+    if (f.isImage) {
+      return await new Promise(function (res) {
+        const img = new Image();
+        img.onload = function () { res({ url: f.url, w: img.naturalWidth, h: img.naturalHeight }); };
+        img.onerror = function () { res(null); };
+        img.src = f.url;
+      });
+    }
+    if (f.isPdf) {
+      const lib = await loadPdfjs();
+      let src;
+      if (/^data:/.test(f.url)) {
+        const b64 = f.url.split(',')[1] || ''; const bin = atob(b64); const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); src = { data: arr };
+      } else { src = { url: new URL(f.url, location.href).href }; }
+      const pdf = await lib.getDocument(src).promise;
+      const pg = await pdf.getPage(1);
+      const vp0 = pg.getViewport({ scale: 1 });
+      const vp = pg.getViewport({ scale: Math.max(0.5, (targetW || 1000) / vp0.width) });
+      const canvas = document.createElement('canvas'); canvas.width = vp.width; canvas.height = vp.height;
+      await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      return { url: canvas.toDataURL('image/png'), w: vp.width, h: vp.height };
+    }
+    return null;
+  }
+
+  /**
+   * عرض متدرّج للمخطط: الخطوط باهتة، وتظهر «بولد» في المناطق المنفّذة بمقدار نسبة
+   * إنجازها (طبقة ساطعة مقصوصة على كل منطقة بشفافية = نسبتها فوق الطبقة الباهتة).
+   * zones: [{ left, top, width, height (كسور 0..1), progress (0..100) }]
+   */
+  async function renderPlanProgress(container, item, zones) {
+    if (!container) return false;
+    const data = await planToDataURL(item, Math.max(900, container.clientWidth || 900)).catch(function () { return null; });
+    if (!data) return false;
+    container.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;width:100%;line-height:0';
+    const base = document.createElement('img');
+    base.src = data.url;
+    base.style.cssText = 'width:100%;height:auto;display:block;opacity:.16;filter:grayscale(.4) contrast(.9)';
+    wrap.appendChild(base);
+    (zones || []).forEach(function (z) {
+      const p = Math.max(0, Math.min(1, (z.progress || 0) / 100));
+      if (p <= 0.001) return;
+      const top = (z.top * 100), right = Math.max(0, 100 - (z.left + z.width) * 100), bottom = Math.max(0, 100 - (z.top + z.height) * 100), left = (z.left * 100);
+      const layer = document.createElement('img');
+      layer.src = data.url;
+      layer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:auto;display:block;opacity:' + p.toFixed(2) +
+        ';clip-path:inset(' + top.toFixed(1) + '% ' + right.toFixed(1) + '% ' + bottom.toFixed(1) + '% ' + left.toFixed(1) + '%);filter:contrast(1.15) brightness(1.15)';
+      wrap.appendChild(layer);
+    });
+    container.appendChild(wrap);
+    return true;
+  }
+
+  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn, renderPlanInto: renderPlanInto, renderPlanProgress: renderPlanProgress, fileOf: fileOf };
 })();
 
 
@@ -3943,6 +4003,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   const esc = Charts.esc;
 
   I18n.registerDict({
+    'الخطوط باهتة وتظهر بولد في الأجزاء المنفّذة مع اعتماد الكميات': 'Lines are faint and turn bold in executed areas as the BOQ is approved',
     'مخططك المرفوع · يزداد سطوعاً مع تقدّم التنفيذ': 'Your uploaded drawing · brightens as work progresses',
     'إظهار مناطق الإنجاز': 'Show progress zones',
     'إخفاء مناطق الإنجاز': 'Hide progress zones',
@@ -5360,12 +5421,22 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const tz = el.querySelector('#pm-togglezones');
     if (tz) tz.addEventListener('click', function () { st.showZones = !st.showZones; renderVision(el, ctx); });
 
-    // عرض المخطط الحقيقي المرفوع كخلفية لخريطة الإنجاز (ثنائية الأبعاد)
+    // عرض المخطط الحقيقي المرفوع: الخطوط باهتة، وتظهر «بولد» في المناطق المنفّذة بمقدار نسبة إنجازها
     if (!isLinear && st.tab === '2d') {
       const bgEl = el.querySelector('#map2d-bg');
       const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
-      if (bgEl && bgDr && window.DrawingViewer && window.DrawingViewer.renderPlanInto) {
-        window.DrawingViewer.renderPlanInto(bgEl, bgDr).catch(function () { /* تجاهل */ });
+      if (bgEl && bgDr && window.DrawingViewer) {
+        const zonesWP = ZONES.map(function (z, i) {
+          return { left: z.x / 810, top: z.y / 525, width: z.w / 810, height: z.h / 525,
+            progress: weightedProgress(itemsFor(ctx, st.floor, st.disc, i)) || 0 };
+        });
+        if (window.DrawingViewer.renderPlanProgress) {
+          window.DrawingViewer.renderPlanProgress(bgEl, bgDr, zonesWP).then(function (ok) {
+            if (!ok && window.DrawingViewer.renderPlanInto) window.DrawingViewer.renderPlanInto(bgEl, bgDr);
+          }).catch(function () { if (window.DrawingViewer.renderPlanInto) window.DrawingViewer.renderPlanInto(bgEl, bgDr); });
+        } else if (window.DrawingViewer.renderPlanInto) {
+          window.DrawingViewer.renderPlanInto(bgEl, bgDr).catch(function () {});
+        }
       }
     }
   }
@@ -5384,6 +5455,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function floorPlanDrawing(ctx, floor, disc) {
     const all = (ctx.S.planDrawings || []).filter(function (dr) {
       return dr.floor === floor && (dr.zone == null || dr.zone === '' || dr.zone === 'all');
+    }).slice().sort(function (a, b) {
+      // الأحدث أولاً (آخر مخطط رفعه المستخدم يظهر) — بالتاريخ ثم بالمعرّف
+      return String(b.date || '').localeCompare(String(a.date || '')) || String(b.id || '').localeCompare(String(a.id || ''));
     });
     if (!all.length) return null;
     return (disc !== 'all' && all.find(function (d) { return d.discipline === disc; })) ||
@@ -5554,14 +5628,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
     // (داكن→ساطع) بلا خطوط أو مناطق اصطناعية تغطّيه. مع إمكانية إظهار طبقة المناطق اختيارياً.
     if (hasBg) {
       const fp = weightedProgress(itemsFor(ctx, st.floor, st.disc, null));
-      const bright = (fp == null ? 0.62 : (0.5 + 0.5 * (fp / 100))).toFixed(2);
       const overlay = st.showZones ? '<div class="map2d-overlay">' + svg + '</div>' : '';
       const toggle = '<button class="btn ghost sm" id="pm-togglezones" style="margin-right:8px">' +
         (st.showZones ? I18n.t('إخفاء مناطق الإنجاز') : I18n.t('إظهار مناطق الإنجاز')) + '</button>';
       const cap = '<div class="map2d-caption">📐 ' + esc(bgDr.ref ? bgDr.ref + ' · ' : '') + esc(bgDr.title || '') +
-        ' — ' + I18n.t('مخططك المرفوع · يزداد سطوعاً مع تقدّم التنفيذ') + ' <b class="num">' + (fp == null ? 0 : fp) + '%</b>' + toggle + '</div>';
+        ' — ' + I18n.t('الخطوط باهتة وتظهر بولد في الأجزاء المنفّذة مع اعتماد الكميات') + ' <b class="num">' + (fp == null ? 0 : fp) + '%</b>' + toggle + '</div>';
       return floorTabs + discStrip +
-        '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage has-bg" style="--plan-bright:' + bright + '">' +
+        '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage has-bg">' +
         '<div class="map2d-bg" id="map2d-bg"></div>' + overlay + cap + '</div>' + panel + '</div>';
     }
 

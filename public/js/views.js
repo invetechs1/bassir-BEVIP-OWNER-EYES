@@ -5,6 +5,7 @@
   const esc = Charts.esc;
 
   I18n.registerDict({
+    'الخطوط باهتة وتظهر بولد في الأجزاء المنفّذة مع اعتماد الكميات': 'Lines are faint and turn bold in executed areas as the BOQ is approved',
     'مخططك المرفوع · يزداد سطوعاً مع تقدّم التنفيذ': 'Your uploaded drawing · brightens as work progresses',
     'إظهار مناطق الإنجاز': 'Show progress zones',
     'إخفاء مناطق الإنجاز': 'Hide progress zones',
@@ -1422,12 +1423,22 @@
     const tz = el.querySelector('#pm-togglezones');
     if (tz) tz.addEventListener('click', function () { st.showZones = !st.showZones; renderVision(el, ctx); });
 
-    // عرض المخطط الحقيقي المرفوع كخلفية لخريطة الإنجاز (ثنائية الأبعاد)
+    // عرض المخطط الحقيقي المرفوع: الخطوط باهتة، وتظهر «بولد» في المناطق المنفّذة بمقدار نسبة إنجازها
     if (!isLinear && st.tab === '2d') {
       const bgEl = el.querySelector('#map2d-bg');
       const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
-      if (bgEl && bgDr && window.DrawingViewer && window.DrawingViewer.renderPlanInto) {
-        window.DrawingViewer.renderPlanInto(bgEl, bgDr).catch(function () { /* تجاهل */ });
+      if (bgEl && bgDr && window.DrawingViewer) {
+        const zonesWP = ZONES.map(function (z, i) {
+          return { left: z.x / 810, top: z.y / 525, width: z.w / 810, height: z.h / 525,
+            progress: weightedProgress(itemsFor(ctx, st.floor, st.disc, i)) || 0 };
+        });
+        if (window.DrawingViewer.renderPlanProgress) {
+          window.DrawingViewer.renderPlanProgress(bgEl, bgDr, zonesWP).then(function (ok) {
+            if (!ok && window.DrawingViewer.renderPlanInto) window.DrawingViewer.renderPlanInto(bgEl, bgDr);
+          }).catch(function () { if (window.DrawingViewer.renderPlanInto) window.DrawingViewer.renderPlanInto(bgEl, bgDr); });
+        } else if (window.DrawingViewer.renderPlanInto) {
+          window.DrawingViewer.renderPlanInto(bgEl, bgDr).catch(function () {});
+        }
       }
     }
   }
@@ -1446,6 +1457,9 @@
   function floorPlanDrawing(ctx, floor, disc) {
     const all = (ctx.S.planDrawings || []).filter(function (dr) {
       return dr.floor === floor && (dr.zone == null || dr.zone === '' || dr.zone === 'all');
+    }).slice().sort(function (a, b) {
+      // الأحدث أولاً (آخر مخطط رفعه المستخدم يظهر) — بالتاريخ ثم بالمعرّف
+      return String(b.date || '').localeCompare(String(a.date || '')) || String(b.id || '').localeCompare(String(a.id || ''));
     });
     if (!all.length) return null;
     return (disc !== 'all' && all.find(function (d) { return d.discipline === disc; })) ||
@@ -1616,14 +1630,13 @@
     // (داكن→ساطع) بلا خطوط أو مناطق اصطناعية تغطّيه. مع إمكانية إظهار طبقة المناطق اختيارياً.
     if (hasBg) {
       const fp = weightedProgress(itemsFor(ctx, st.floor, st.disc, null));
-      const bright = (fp == null ? 0.62 : (0.5 + 0.5 * (fp / 100))).toFixed(2);
       const overlay = st.showZones ? '<div class="map2d-overlay">' + svg + '</div>' : '';
       const toggle = '<button class="btn ghost sm" id="pm-togglezones" style="margin-right:8px">' +
         (st.showZones ? I18n.t('إخفاء مناطق الإنجاز') : I18n.t('إظهار مناطق الإنجاز')) + '</button>';
       const cap = '<div class="map2d-caption">📐 ' + esc(bgDr.ref ? bgDr.ref + ' · ' : '') + esc(bgDr.title || '') +
-        ' — ' + I18n.t('مخططك المرفوع · يزداد سطوعاً مع تقدّم التنفيذ') + ' <b class="num">' + (fp == null ? 0 : fp) + '%</b>' + toggle + '</div>';
+        ' — ' + I18n.t('الخطوط باهتة وتظهر بولد في الأجزاء المنفّذة مع اعتماد الكميات') + ' <b class="num">' + (fp == null ? 0 : fp) + '%</b>' + toggle + '</div>';
       return floorTabs + discStrip +
-        '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage has-bg" style="--plan-bright:' + bright + '">' +
+        '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage has-bg">' +
         '<div class="map2d-bg" id="map2d-bg"></div>' + overlay + cap + '</div>' + panel + '</div>';
     }
 
