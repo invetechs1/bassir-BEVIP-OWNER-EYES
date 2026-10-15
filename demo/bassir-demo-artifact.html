@@ -5295,6 +5295,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     el.innerHTML =
       tabsHtml + discChips + body +
+      drawingsPanel(ctx, st.floor, !isLinear && st.tab === 'bim') +
       '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>' + I18n.t('داكن = أعمال غير منتهية') + '</span>' +
       '<span><span class="sw" style="background:linear-gradient(90deg,#8a6a35,#e0a458);box-shadow:0 0 10px rgba(224,164,88,.7)"></span>' + I18n.t('ساطع = بنود منتهية (مستخلصات معتمدة)') + '</span>' +
       '<span>' + (isLinear ? I18n.t('اضغط أي مقطع لعرض بنود جدول الكميات المرتبطة به') : I18n.t('اضغط أي منطقة/دور لعرض بنود جدول الكميات المرتبطة بها')) + '</span></div>';
@@ -5320,6 +5321,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
         const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
         if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: canEdit, canReview: false });
+      });
+    });
+    // فتح نموذج BIM ثلاثي الأبعاد مرفوع من لوحة المخططات
+    el.querySelectorAll('[data-modelview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const mm = (ctx.S.bimModels || []).find(function (x) { return x.id === b.getAttribute('data-modelview'); });
+        if (!mm) return;
+        const url = mm.url || (mm.file && mm.file.url) || '';
+        if (window.BimViewer && url) window.BimViewer.open({ title: mm.name || 'نموذج BIM', url: url });
+        else toast('تعذّر فتح النموذج — تحقق من الملف', true);
       });
     });
     // من الواجهة: الضغط على أي دور يفتحه تلقائياً في عرض المخططات مع تفصيل تخصصاته
@@ -5376,6 +5387,37 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
     if (!m) return hex;
     return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + a + ')';
+  }
+
+  // لوحة المخططات والنماذج المرفوعة لهذا الدور — تظهر في كل تبويبات خريطة الإنجاز
+  // لضمان أن المالك يرى ويفتح ملفات PDF المرفوعة في أي عرض (2D/واجهة/BIM/مسار).
+  function drawingsPanel(ctx, floorId, includeModels) {
+    const drs = (ctx.S.planDrawings || []).filter(function (dr) {
+      return dr.floor === floorId || dr.floor == null || dr.floor === 'ALL' || dr.floor === 'ELEV';
+    });
+    const models = includeModels ? (ctx.S.bimModels || []) : [];
+    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    let rows = drs.map(function (dr) {
+      const d = discOf(ctx, dr.discipline);
+      const ok = hasPlanFile(dr);
+      const scope = dr.floor === 'ALL' ? I18n.t('كامل المشروع') : dr.floor === 'ELEV' ? I18n.t('الواجهات') : floorName(ctx, dr.floor);
+      return '<div class="flex" style="justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--bg2)">' +
+        '<span class="small">📄 <b>' + esc(dr.ref || '') + '</b> ' + esc(dr.title || '') +
+        ' <span class="muted">· ' + d.icon + ' ' + esc(d.name) + ' · ' + esc(scope) + '</span></span>' +
+        (ok ? window.DrawingViewer.btn(dr) : '<span class="pill p-muted" style="font-size:10px">' + I18n.t('بلا ملف') + '</span>') +
+        '</div>';
+    }).join('');
+    let modelRows = models.map(function (mm) {
+      return '<div class="flex" style="justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--bg2)">' +
+        '<span class="small">🧊 <b>' + esc(mm.name || '') + '</b> <span class="muted">· ' + esc(mm.rev || '') + '</span></span>' +
+        ((mm.url || mm.file) ? '<button class="btn ghost sm" data-modelview="' + esc(mm.id) + '">👁 ' + I18n.t('عرض النموذج') + '</button>' : '<span class="pill p-muted" style="font-size:10px">' + I18n.t('بلا ملف') + '</span>') +
+        '</div>';
+    }).join('');
+    const empty = (!drs.length && !models.length)
+      ? '<div class="empty" style="padding:16px"><div class="e-ico">📐</div>' + I18n.t('لا مخططات مرفوعة بعد — ارفعها من «النماذج والمخططات → رفع مخطط/نموذج»') + '</div>' : '';
+    return '<div class="card mb"><h3>📐 ' + I18n.t('المخططات والنماذج المرفوعة') +
+      ' <span class="hint">' + I18n.t('اضغط «عرض» لفتح ملف الـ PDF/النموذج كاملاً') + '</span></h3>' +
+      empty + rows + modelRows + '</div>';
   }
 
   function render2d(ctx) {
@@ -5459,16 +5501,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       }).join('') + '</div></div>';
 
     // المخططات المرفوعة المرتبطة بهذا الدور
-    const floorDrawings = (ctx.S.planDrawings || []).filter(function (dr) {
-      return dr.floor === st.floor && (st.disc === 'all' || dr.discipline === st.disc);
-    });
-    const drawingsHtml = floorDrawings.length ?
-      '<div style="border-top:1px dashed var(--border);margin-top:12px;padding-top:10px">' +
-      '<b class="small">📐 ' + I18n.t('المخططات المرتبطة بهذا الدور:') + '</b>' +
-      floorDrawings.map(function (dr) {
-        return '<div class="small muted flex" style="margin-top:6px;gap:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
-          ' <span class="pill p-ok" style="font-size:10px">' + I18n.t('مربوط بجدول الكميات ✓') + '</span> ' + window.DrawingViewer.btn(dr) + '</div>';
-      }).join('') + '</div>' : '';
+    // المخططات المرفوعة تظهر الآن في لوحة «المخططات والنماذج المرفوعة» أسفل الخريطة (كل التبويبات)
+    const drawingsHtml = '';
 
     // لوحة البنود الجانبية
     const panelItems = itemsFor(ctx, st.floor, st.disc, st.zone);
