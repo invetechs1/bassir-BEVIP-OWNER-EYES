@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  const VS = window.ViewsShared, VR = window.ViewsRoles, VM = window.ViewsModules, VH = window.ViewsHandover, VX = window.ViewsExtra;
+  const VS = window.ViewsShared, VR = window.ViewsRoles, VM = window.ViewsModules, VH = window.ViewsHandover, VX = window.ViewsExtra, VP = window.ViewsPlatform || {};
   const esc = VS.esc;
   const t = I18n.t;
 
@@ -159,7 +159,13 @@
     { id: 'schedule-c', title: 'الجدول الزمني', icon: '📅', sec: 'أعمالي', roles: ['contractor'], render: VX.renderSchedule },
     { id: 'submittals-c', title: 'تقديماتي', icon: '📋', sec: 'أعمالي', roles: ['contractor'], render: VM.renderSubmissions },
     { id: 'handover-c', title: 'ملاحظاتي وضماناتي', icon: '🏁', sec: 'أعمالي', roles: ['contractor'], render: VH.renderHandover },
-    { id: 'documents-c', title: 'مستنداتي', icon: '📚', sec: 'أعمالي', roles: ['contractor'], render: VR.renderArchive }
+    { id: 'documents-c', title: 'مستنداتي', icon: '📚', sec: 'أعمالي', roles: ['contractor'], render: VR.renderArchive },
+
+    // === بصير بزنس (مالك المنصّة) ===
+    { id: 'biz-overview', title: 'لوحة المنصّة', icon: '📊', sec: 'بصير بزنس', roles: ['platform_admin', 'admin'], render: VP.renderPlatformOverview },
+    { id: 'biz-tenants', title: 'المشتركون (المستأجرون)', icon: '🏢', sec: 'بصير بزنس', roles: ['platform_admin', 'admin'], render: VP.renderTenants },
+    { id: 'biz-invoices', title: 'الفواتير والتحصيل', icon: '🧾', sec: 'بصير بزنس', roles: ['platform_admin', 'admin'], render: VP.renderInvoices },
+    { id: 'biz-plans', title: 'الباقات والتسعير', icon: '💳', sec: 'بصير بزنس', roles: ['platform_admin', 'admin'], render: VP.renderPlans }
   ];
 
   /* إعادة التوجيه من المعرّفات القديمة إلى الجديدة (روابط محفوظة + إشارات داخلية · §13-9).
@@ -194,7 +200,7 @@
 
   const ROLE_NAMES = {
     admin: 'مدير النظام', owner: 'المالك', owner_rep: 'ممثل المالك',
-    consultant: 'استشاري المشروع', contractor: 'مقاول'
+    consultant: 'استشاري المشروع', contractor: 'مقاول', platform_admin: 'مالك المنصّة (بصير بزنس)'
   };
 
   function badgePending(S) {

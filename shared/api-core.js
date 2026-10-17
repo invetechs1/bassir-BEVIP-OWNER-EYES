@@ -289,6 +289,14 @@
       // مؤشر صحة كل مشروع في نطاق المستخدم (يُحسب بعد تقييد النطاق)
       s.projectHealth = {};
       (s.projects || []).forEach(function (p) { s.projectHealth[p.id] = computeProjectHealth(p.id); });
+
+      // بيانات طبقة المنصّة (بصير بزنس) لمالك المنصّة والأدمن
+      if (role === 'platform_admin' || role === 'admin') {
+        s.plans = db.plans || [];
+        s.tenants = db.tenants || [];
+        s.tenantInvoices = db.tenantInvoices || [];
+        s.platformStats = platformStats();
+      }
       return s;
     }
 
@@ -908,6 +916,9 @@
     function todayStr() { return new Date().toISOString().slice(0, 10); }
     function nowStr() { return new Date().toISOString().slice(0, 16).replace('T', ' '); }
 
+    // سعر المشروع الافتراضي (ر.س/شهر) — مُعرَّف قبل return لتفادي TDZ
+    const DEFAULT_PRICE = 2000;
+
     return {
       db: db,
       audit: audit,
@@ -930,8 +941,193 @@
       contractorSummary: contractorSummary,
       floorDisciplineProgress: floorDisciplineProgress,
       labelOf: labelOf,
-      APPROVAL_COLLECTIONS: APPROVAL_COLLECTIONS
+      APPROVAL_COLLECTIONS: APPROVAL_COLLECTIONS,
+      // ===== طبقة المنصّة (بصير بزنس) =====
+      platformState: platformState,
+      platformStats: platformStats,
+      publicPlans: publicPlans,
+      registerTenant: registerTenant,
+      subscribeTenant: subscribeTenant,
+      createTenant: createTenant,
+      payTenantInvoice: payTenantInvoice,
+      setTenantStatus: setTenantStatus,
+      runBilling: runBilling
     };
+
+    // ============ محرّك المنصّة والفوترة ============
+    function todayISO() { return new Date().toISOString().slice(0, 10); }
+    function monthKey(d) { return (d || todayISO()).slice(0, 7); }
+    function addMonthsISO(iso, m) { const d = iso ? new Date(iso) : new Date(); d.setMonth(d.getMonth() + m); return d.toISOString().slice(0, 10); }
+    function addDaysISO(iso, n) { const d = iso ? new Date(iso) : new Date(); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+    function requirePlatform(user) { if (!user || ['platform_admin', 'admin'].indexOf(user.role) === -1) throw err('صلاحية مالك المنصّة فقط', 403); }
+    function tenantById(id) { return (db.tenants || []).find(function (t) { return t.id === id; }); }
+    function tenantAmount(t) { return Math.round((Number(t.projectCount) || 1) * (Number(t.pricePerProject) || DEFAULT_PRICE)); }
+    function nextTenantId() { return 'T' + ((db.tenants || []).reduce(function (m, t) { return Math.max(m, parseInt(String(t.id).replace(/\D/g, ''), 10) || 0); }, 0) + 1); }
+    function nextInvoiceNo() { db.meta.invSeq = (db.meta.invSeq || 1000) + 1; return db.meta.invSeq; }
+    function maskCard(card) { const n = String((card && card.number) || '').replace(/\D/g, ''); return n ? n.slice(-4) : null; }
+    // محاكاة بوابة الدفع — يُستبدَل بمزوّد حقيقي (Moyasar/Tap/Stripe) في الإنتاج
+    function chargeCard(card, amount) {
+      const n = String((card && card.number) || '').replace(/\D/g, '');
+      if (n.length < 12) return { ok: false, error: 'رقم البطاقة غير صحيح' };
+      return { ok: true, last4: n.slice(-4), ref: 'PAY-' + Date.now() };
+    }
+
+    function issueInvoice(t, period, status) {
+      const no = nextInvoiceNo();
+      const inv = {
+        id: 'TI' + no, number: 'INV-' + no, tenantId: t.id, period: period || monthKey(),
+        projectCount: t.projectCount, pricePerProject: t.pricePerProject || DEFAULT_PRICE, amount: tenantAmount(t),
+        currency: 'SAR', status: status || 'unpaid', issuedAt: todayISO(), dueAt: addDaysISO(todayISO(), 7),
+        paidAt: null, method: null, cardLast4: null
+      };
+      db.tenantInvoices = db.tenantInvoices || [];
+      db.tenantInvoices.unshift(inv);
+      return inv;
+    }
+
+    function platformStats() {
+      const ts = db.tenants || [];
+      const invs = db.tenantInvoices || [];
+      const active = ts.filter(function (t) { return t.status === 'active'; });
+      const mrr = active.reduce(function (a, t) { return a + tenantAmount(t); }, 0);
+      const paid = invs.filter(function (i) { return i.status === 'paid'; });
+      const totalRevenue = paid.reduce(function (a, i) { return a + (i.amount || 0); }, 0);
+      const thisMonth = monthKey();
+      const newThisMonth = ts.filter(function (t) { return monthKey(t.createdAt) === thisMonth; }).length;
+      const revThisMonth = paid.filter(function (i) { return (i.paidAt || '').slice(0, 7) === thisMonth; }).reduce(function (a, i) { return a + (i.amount || 0); }, 0);
+      return {
+        tenants: ts.length,
+        active: active.length,
+        trial: ts.filter(function (t) { return t.status === 'trial'; }).length,
+        suspended: ts.filter(function (t) { return t.status === 'suspended'; }).length,
+        pending: ts.filter(function (t) { return t.status === 'pending'; }).length,
+        projects: ts.reduce(function (a, t) { return a + (t.projectCount || 0); }, 0),
+        activeProjects: active.reduce(function (a, t) { return a + (t.projectCount || 0); }, 0),
+        users: ts.reduce(function (a, t) { return a + (t.usersCount || 0); }, 0),
+        mrr: mrr, arr: mrr * 12, totalRevenue: totalRevenue, revThisMonth: revThisMonth, newThisMonth: newThisMonth,
+        pricePerProject: DEFAULT_PRICE,
+        unpaid: invs.filter(function (i) { return i.status === 'unpaid'; }).length,
+        overdue: invs.filter(function (i) { return i.status === 'overdue'; }).length,
+        outstanding: invs.filter(function (i) { return i.status !== 'paid'; }).reduce(function (a, i) { return a + (i.amount || 0); }, 0)
+      };
+    }
+
+    function publicPlans() { return { plans: db.plans || [], pricePerProject: DEFAULT_PRICE }; }
+
+    function platformState(user) {
+      requirePlatform(user);
+      return { plans: db.plans || [], tenants: db.tenants || [], tenantInvoices: db.tenantInvoices || [], stats: platformStats() };
+    }
+
+    // تسجيل ذاتي من صفحة الهبوط (عام، بلا مصادقة) — ينشئ مستأجراً بانتظار الدفع
+    function registerTenant(payload) {
+      payload = payload || {};
+      if (!payload.companyName) throw err('أدخل اسم الشركة', 400);
+      if (!payload.email) throw err('أدخل البريد الإلكتروني', 400);
+      const t = {
+        id: nextTenantId(), companyName: payload.companyName, contactName: payload.contactName || '',
+        email: payload.email, phone: payload.phone || '', planId: payload.planId || 'standard',
+        pricePerProject: DEFAULT_PRICE, projectCount: Math.max(1, Number(payload.projectCount) || 1),
+        status: 'pending', createdAt: todayISO(), activatedAt: null, trialEndsAt: null,
+        nextInvoiceDate: null, lastPaymentAt: null, usersCount: 1, cardLast4: null
+      };
+      db.tenants = db.tenants || [];
+      db.tenants.push(t);
+      audit({ name: t.companyName, role: 'system' }, 'register', 'تسجيل مستأجر جديد: ' + t.companyName);
+      persist();
+      return { tenant: t };
+    }
+
+    // اشتراك ودفع (عام) — يفعّل المستأجر ويصدر فاتورة مدفوعة
+    function subscribeTenant(payload) {
+      payload = payload || {};
+      let t = payload.tenantId ? tenantById(payload.tenantId) : null;
+      if (!t && payload.email) t = (db.tenants || []).find(function (x) { return x.email === payload.email && x.status === 'pending'; });
+      if (!t) { const r = registerTenant(payload); t = r.tenant; }
+      if (payload.projectCount) t.projectCount = Math.max(1, Number(payload.projectCount) || 1);
+      const amount = tenantAmount(t);
+      const charge = chargeCard(payload.card, amount);
+      if (!charge.ok) throw err(charge.error || 'فشل الدفع', 402);
+      t.status = 'active';
+      t.activatedAt = t.activatedAt || todayISO();
+      t.lastPaymentAt = todayISO();
+      t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
+      t.cardLast4 = charge.last4;
+      const inv = issueInvoice(t, monthKey(), 'unpaid');
+      inv.status = 'paid'; inv.paidAt = todayISO(); inv.method = 'card'; inv.cardLast4 = charge.last4;
+      audit({ name: t.companyName, role: 'system' }, 'pay', 'اشتراك وتفعيل: ' + t.companyName + ' (' + amount + ' ر.س)');
+      persist();
+      return { tenant: t, invoice: inv, amount: amount };
+    }
+
+    // إنشاء مستأجر من لوحة المالك
+    function createTenant(user, payload) {
+      requirePlatform(user);
+      const r = registerTenant(payload);
+      const t = r.tenant;
+      if (payload.status === 'active') {
+        t.status = 'active'; t.activatedAt = todayISO(); t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
+      } else if (payload.status === 'trial') {
+        t.status = 'trial'; t.trialEndsAt = addDaysISO(todayISO(), 14);
+      }
+      persist();
+      return { tenant: t };
+    }
+
+    function payTenantInvoice(user, invoiceId, card) {
+      requirePlatform(user);
+      const inv = (db.tenantInvoices || []).find(function (i) { return i.id === invoiceId; });
+      if (!inv) throw err('فاتورة غير موجودة', 404);
+      if (inv.status === 'paid') return { invoice: inv };
+      const charge = chargeCard(card || { number: '4111111111111111' }, inv.amount);
+      if (!charge.ok) throw err(charge.error, 402);
+      inv.status = 'paid'; inv.paidAt = todayISO(); inv.method = 'card'; inv.cardLast4 = charge.last4;
+      const t = tenantById(inv.tenantId);
+      if (t) {
+        t.lastPaymentAt = todayISO();
+        t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
+        if (t.status === 'suspended') { t.status = 'active'; t.activatedAt = t.activatedAt || todayISO(); }
+      }
+      audit(user, 'pay', 'تحصيل فاتورة ' + inv.number + ' (' + inv.amount + ' ر.س)');
+      persist();
+      return { invoice: inv, tenant: t };
+    }
+
+    function setTenantStatus(user, tenantId, status, reason) {
+      requirePlatform(user);
+      const t = tenantById(tenantId);
+      if (!t) throw err('مستأجر غير موجود', 404);
+      t.status = status;
+      if (status === 'active') { t.activatedAt = t.activatedAt || todayISO(); t.nextInvoiceDate = t.nextInvoiceDate || addMonthsISO(todayISO(), 1); }
+      t.statusReason = reason || '';
+      audit(user, 'update', 'تغيير حالة المستأجر ' + t.companyName + ' إلى ' + status);
+      persist();
+      return { tenant: t };
+    }
+
+    // التشغيل الآلي للفوترة: يصدر فواتير الاستحقاق، ويوقف المتأخرين تلقائياً
+    function runBilling(user) {
+      requirePlatform(user);
+      const today = todayISO();
+      let issued = 0, suspended = 0;
+      (db.tenants || []).forEach(function (t) {
+        if (t.status === 'active' && t.nextInvoiceDate && t.nextInvoiceDate <= today) {
+          issueInvoice(t, monthKey(t.nextInvoiceDate), 'unpaid');
+          t.nextInvoiceDate = addMonthsISO(t.nextInvoiceDate, 1);
+          issued++;
+        }
+      });
+      (db.tenantInvoices || []).forEach(function (inv) {
+        if (inv.status === 'unpaid' && inv.dueAt && inv.dueAt < today) {
+          inv.status = 'overdue';
+          const t = tenantById(inv.tenantId);
+          if (t && t.status === 'active') { t.status = 'suspended'; t.statusReason = 'عدم سداد الفاتورة ' + inv.number; suspended++; }
+        }
+      });
+      audit(user, 'billing', 'تشغيل الفوترة: أُصدرت ' + issued + ' فاتورة، أُوقف ' + suspended + ' مستأجر');
+      persist();
+      return { issued: issued, suspended: suspended, stats: platformStats() };
+    }
   }
 
   return { createCore: createCore };

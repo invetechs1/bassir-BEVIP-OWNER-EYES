@@ -360,8 +360,20 @@ const server = http.createServer(async function (req, res) {
       return json(res, 200, { token: signToken(user), user: user });
     }
 
+    // ===== مسارات المنصّة العامة (بلا مصادقة — صفحة الهبوط والتسجيل والدفع) =====
+    if (u === '/api/platform/plans') return json(res, 200, core.publicPlans());
+    if (u === '/api/platform/register' && req.method === 'POST') { const body = await readBody(req); return json(res, 201, core.registerTenant(body)); }
+    if (u === '/api/platform/subscribe' && req.method === 'POST') { const body = await readBody(req); return json(res, 201, core.subscribeTenant(body)); }
+
     const user = authUser(req);
     if (!user) return json(res, 401, { error: 'يلزم تسجيل الدخول' });
+
+    // ===== مسارات المنصّة (مالك المنصّة) =====
+    if (u === '/api/platform/state') return json(res, 200, core.platformState(user));
+    if (u === '/api/actions/platform-create-tenant' && req.method === 'POST') { const body = await readBody(req); return json(res, 201, core.createTenant(user, body)); }
+    if (u === '/api/actions/platform-pay-invoice' && req.method === 'POST') { const body = await readBody(req); return json(res, 200, core.payTenantInvoice(user, body.invoiceId, body.card)); }
+    if (u === '/api/actions/platform-set-status' && req.method === 'POST') { const body = await readBody(req); return json(res, 200, core.setTenantStatus(user, body.tenantId, body.status, body.reason)); }
+    if (u === '/api/actions/platform-run-billing' && req.method === 'POST') { return json(res, 200, core.runBilling(user)); }
 
     if (u === '/api/logout' && req.method === 'POST') {
       // التوكنات موقعة بلا حالة على الخادم — الخروج بحذف التوكن لدى العميل

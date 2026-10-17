@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بصير — عيون المالك | راقب مشاريعك دون أن تغادر مكتبك</title>
+  <meta name="description" content="بصير منصّة سعودية لمراقبة المشاريع الإنشائية بصرياً: خريطة إنجاز على مخططاتك الحقيقية، تقارير ومؤشر صحة، واعتمادات موثّقة. اشترك أونلاين وفعّل حسابك فوراً.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁</text></svg>">
+  <style>
+    :root{
+      --bg:#0b0e14; --bg2:#0f131c; --panel:#121724; --border:#1f2635;
+      --text:#e7ecf4; --muted:#8b95a8; --brand:#e0a458; --brand2:#8a6a35;
+      --ok:#3fb27f; --warn:#e0a458; --danger:#e05858; --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      background:var(--bg); color:var(--text);
+      font-family:"Segoe UI",Tahoma,"Noto Kufi Arabic","Cairo",Arial,sans-serif;
+      line-height:1.75; -webkit-font-smoothing:antialiased;
+    }
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:1120px;margin:0 auto;padding:0 20px}
+    .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+    /* ===== nav ===== */
+    nav{position:sticky;top:0;z-index:40;background:rgba(11,14,20,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    nav .wrap{display:flex;align-items:center;justify-content:space-between;height:66px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
+    .logo .eye{font-size:26px}
+    .logo small{display:block;font-size:10px;letter-spacing:2px;color:var(--muted);font-weight:600}
+    .nav-links{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);
+      padding:10px 18px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+    .btn:hover{border-color:var(--brand)}
+    .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:var(--brand);color:#1a1206}
+    .btn.primary:hover{filter:brightness(1.07)}
+    .btn.lg{padding:14px 28px;font-size:16px}
+    .btn.ghost{background:transparent}
+    /* ===== hero ===== */
+    .hero{position:relative;overflow:hidden;padding:76px 0 60px;
+      background:radial-gradient(900px 420px at 80% -10%,rgba(224,164,88,.16),transparent 60%),var(--bg)}
+    .hero h1{font-size:clamp(30px,5vw,52px);line-height:1.2;margin:0 0 18px;font-weight:800}
+    .hero h1 .g{background:linear-gradient(135deg,var(--brand),#f2c98a);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero p.lead{font-size:clamp(16px,2.3vw,20px);color:var(--muted);max-width:640px;margin:0 0 28px}
+    .hero-cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:30px}
+    .chip{background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:8px 15px;font-size:13px;color:var(--muted)}
+    .chip b{color:var(--text)}
+    /* ===== sections ===== */
+    section{padding:64px 0}
+    .sec-head{text-align:center;max-width:680px;margin:0 auto 42px}
+    .sec-head h2{font-size:clamp(24px,3.6vw,34px);margin:0 0 12px}
+    .sec-head p{color:var(--muted);margin:0;font-size:16px}
+    .kicker{color:var(--brand);font-weight:800;letter-spacing:1.5px;font-size:12.5px;text-transform:uppercase;margin-bottom:10px;display:block}
+    .grid{display:grid;gap:18px}
+    .g2{grid-template-columns:repeat(2,1fr)}
+    .g3{grid-template-columns:repeat(3,1fr)}
+    .g4{grid-template-columns:repeat(4,1fr)}
+    @media(max-width:860px){.g2,.g3,.g4{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+    .card .ico{font-size:30px;margin-bottom:12px;display:block}
+    .card h3{margin:0 0 10px;font-size:19px}
+    .card ul{margin:0;padding-inline-start:20px}
+    .card ul li{margin:7px 0;color:var(--muted);font-size:14.5px}
+    .card ul li b{color:var(--text);font-weight:700}
+    .role-tag{display:inline-block;font-size:12px;font-weight:800;color:var(--brand);background:rgba(224,164,88,.12);
+      border:1px solid rgba(224,164,88,.3);border-radius:999px;padding:4px 12px;margin-bottom:14px}
+    .alt{background:var(--bg2);border-block:1px solid var(--border)}
+    /* steps */
+    .steps{counter-reset:s}
+    .step{display:flex;gap:18px;align-items:flex-start;padding:18px 0;border-bottom:1px dashed var(--border)}
+    .step:last-child{border-bottom:0}
+    .step .n{flex:0 0 46px;height:46px;width:46px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:18px;
+      background:rgba(224,164,88,.12);border:1px solid rgba(224,164,88,.35);color:var(--brand)}
+    .step h4{margin:2px 0 4px;font-size:17px}
+    .step p{margin:0;color:var(--muted)}
+    /* pricing */
+    .price-box{max-width:560px;margin:0 auto;text-align:center;position:relative;overflow:hidden}
+    .price-box::before{content:"";position:absolute;inset:0;background:radial-gradient(400px 200px at 50% 0,rgba(224,164,88,.14),transparent 70%);pointer-events:none;z-index:0}
+    .price-box>*{position:relative;z-index:1}
+    .price-main{font-size:clamp(40px,8vw,64px);font-weight:800;line-height:1;margin:6px 0}
+    .price-main .cur{font-size:.42em;color:var(--brand);font-weight:700}
+    .price-sub{color:var(--muted);margin:0 0 20px}
+    .calc{display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;margin:22px 0 6px}
+    .calc .stepper{display:flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .calc .stepper button{width:44px;height:46px;background:var(--bg2);border:0;color:var(--text);font-size:22px;cursor:pointer}
+    .calc .stepper button:hover{background:var(--panel);color:var(--brand)}
+    .calc .stepper input{width:64px;height:46px;border:0;background:var(--bg);color:var(--text);text-align:center;font-size:20px;font-weight:800;font-family:inherit}
+    .calc-total{font-size:22px;font-weight:800}
+    .calc-total b{color:var(--brand)}
+    /* form / payment */
+    .pay-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:22px;align-items:start}
+    @media(max-width:860px){.pay-grid{grid-template-columns:1fr}}
+    label.fl{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+    .inp{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:11px;
+      padding:12px 14px;font-size:15px;font-family:inherit;outline:none;transition:.15s}
+    .inp:focus{border-color:var(--brand)}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .card-face{background:linear-gradient(135deg,#1a2130,#0d1119);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:6px;position:relative;overflow:hidden}
+    .card-face::after{content:"VISA";position:absolute;top:16px;left:18px;font-weight:800;font-style:italic;color:var(--brand);letter-spacing:1px;pointer-events:none}
+    .card-face .cn{font-size:19px;letter-spacing:2px;margin:30px 0 8px;font-family:"Segoe UI",monospace}
+    .card-face .cm{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+    .note{font-size:12.5px;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:14px}
+    .ok-msg{background:rgba(63,178,127,.1);border:1px solid rgba(63,178,127,.4);color:#8fe3bd;border-radius:12px;padding:14px 16px;margin-top:14px;font-size:14px}
+    .err-msg{background:rgba(224,88,88,.1);border:1px solid rgba(224,88,88,.4);color:#f0a3a3;border-radius:12px;padding:12px 14px;margin-top:14px;font-size:14px;display:none}
+    /* faq */
+    details{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:4px 18px;margin-bottom:10px}
+    details summary{cursor:pointer;font-weight:700;padding:12px 0;list-style:none}
+    details summary::-webkit-details-marker{display:none}
+    details summary::before{content:"＋";color:var(--brand);font-weight:800;margin-inline-end:10px}
+    details[open] summary::before{content:"－"}
+    details p{margin:0 0 14px;color:var(--muted)}
+    footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px;text-align:center}
+    .trust{display:flex;gap:26px;justify-content:center;flex-wrap:wrap;margin-top:8px;color:var(--muted);font-size:13px}
+    /* modal */
+    .modal-back{position:fixed;inset:0;background:rgba(5,7,11,.72);backdrop-filter:blur(4px);z-index:90;display:grid;place-items:center;padding:20px}
+    .modal{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:18px;max-width:440px;width:100%;padding:30px;text-align:center}
+    .modal .big{font-size:52px;margin-bottom:6px}
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="wrap">
+      <a class="logo" href="#top"><span class="eye">👁</span><span>بصير<small>OWNER EYES</small></span></a>
+      <div class="nav-links">
+        <a class="btn ghost" href="#why">القيمة</a>
+        <a class="btn ghost" href="#pricing">الأسعار</a>
+        <a class="btn ghost" href="/">دخول المشتركين</a>
+        <a class="btn primary" href="#subscribe">اشترك الآن</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero" id="top">
+    <div class="wrap">
+      <span class="kicker">منصّة سعودية لمراقبة المشاريع الإنشائية</span>
+      <h1>راقب مشاريعك <span class="g">بعينيك أنت</span><br>دون أن تغادر مكتبك.</h1>
+      <p class="lead">بصير يحوّل مخططاتك ونماذجك إلى خريطة إنجاز حيّة تضيء مع كل كمية تُنفَّذ، مع تقارير دورية ومؤشر صحة مالي وزمني، واعتمادات موثّقة بالاسم والوقت — لصاحب المشروع وممثّله والاستشاري والمقاول في مكان واحد.</p>
+      <div class="hero-cta">
+        <a class="btn primary lg" href="#subscribe">ابدأ اشتراكك — تفعيل فوري</a>
+        <a class="btn ghost lg" href="#why">لماذا بصير؟</a>
+      </div>
+      <div class="chips">
+        <span class="chip">💰 <b>2,000 ر.س</b> لكل مشروع / شهرياً</span>
+        <span class="chip">⚡ تفعيل تلقائي بعد الدفع</span>
+        <span class="chip">🗺️ خريطة إنجاز على مخططاتك الحقيقية</span>
+        <span class="chip">🏗️ BIM / IFC وجداول كميات</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- WHY / VALUE PER ROLE -->
+  <section id="why">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">القيمة المضافة</span>
+        <h2>ماذا يكسب كل طرف من بصير؟</h2>
+        <p>النظام مصمَّم ليخدم دورة المشروع كاملة — لكل دور فائدة ملموسة تجعله يطلب الاشتراك.</p>
+      </div>
+      <div class="grid g2">
+        <div class="card">
+          <span class="ico">👁</span><span class="role-tag">المالك</span>
+          <h3>تطمئن على أموالك ومشروعك من جوّالك</h3>
+          <ul>
+            <li>ترى <b>نسبة الإنجاز الحقيقية</b> على مخطط مشروعك دون زيارة الموقع.</li>
+            <li><b>مؤشر صحة</b> يكشف التأخّر الزمني أو تجاوز الميزانية مبكراً.</li>
+            <li>خريطة السعودية تُظهر كل مشاريعك بنقاط ملوّنة — <b>اضغط فتَصِل للمشروع</b>.</li>
+            <li>كل اعتماد صرف أو قرار <b>موثّق بالاسم والوقت</b> — لا نزاع لاحق.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="ico">🧭</span><span class="role-tag">ممثّل المالك</span>
+          <h3>تدير محفظة مشاريع كاملة بثقة</h3>
+          <ul>
+            <li>محفظة واحدة لكل المشاريع مع <b>حالة ومؤشر صحة</b> لكل مشروع.</li>
+            <li>تضيف المشروع بموقعه الجغرافي فيظهر مباشرةً على الخريطة.</li>
+            <li>تراجع وتعتمد المستخلصات والطلبات <b>نيابةً عن المالك</b>.</li>
+            <li>تقارير جاهزة ترفعها للمالك في ثوانٍ.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="ico">🏛️</span><span class="role-tag">الاستشاري</span>
+          <h3>مكتب فني منظّم بلا أوراق متناثرة</h3>
+          <ul>
+            <li>مراجعة واعتماد <b>المستخلصات وطلبات الاستلام</b> في مكان واحد.</li>
+            <li>سجلّ كامل للمكتب الفني: <b>RFI / WIR / المخالفات</b>.</li>
+            <li>ربط <b>جداول الكميات بالمخططات والنماذج ثلاثية الأبعاد</b>.</li>
+            <li>تقليل المراسلات والورق وتسريع دورة الاعتماد.</li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="ico">👷</span><span class="role-tag">المقاول</span>
+          <h3>توثّق عملك وتُحصّل أسرع</h3>
+          <ul>
+            <li>رفع <b>جداول الكميات والبرنامج الزمني والمستخلصات</b> بسهولة.</li>
+            <li>متابعة <b>المنجز والمتبقّي والتأخير</b> لكل بند ولكل دور.</li>
+            <li>توثيق الأعمال بالصور وطلبات الاستلام لحظياً.</li>
+            <li><b>تحصيل أسرع</b> بعد اعتماد الاستشاري — مسار واضح موثّق.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section class="alt">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">كيف يعمل</span>
+        <h2>من الاشتراك إلى أول تقرير — في دقائق</h2>
+      </div>
+      <div class="steps" style="max-width:760px;margin:0 auto">
+        <div class="step"><div class="n">1</div><div><h4>اشترك وادفع أونلاين</h4><p>اختر عدد مشاريعك وادفع ببطاقتك — يُفعَّل حسابك تلقائياً فور نجاح الدفع.</p></div></div>
+        <div class="step"><div class="n">2</div><div><h4>أنشئ مشروعك واختر نوعه</h4><p>مبنى بأدوار وأقبية، طرق، بنية تحتية… النظام يبني هيكل المشروع المناسب تلقائياً.</p></div></div>
+        <div class="step"><div class="n">3</div><div><h4>ارفع المخططات والنماذج والكميات</h4><p>PDF ومخططات ونماذج IFC/BIM وجداول كميات موزّعة على الأدوار.</p></div></div>
+        <div class="step"><div class="n">4</div><div><h4>راقب الإنجاز واعتمد القرارات</h4><p>خريطة إنجاز تضيء مع التنفيذ، مؤشر صحة، وتقارير واعتمادات موثّقة.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">تسعير بسيط وعادل</span>
+        <h2>تدفع بقدر ما تملك من مشاريع</h2>
+        <p>لا باقات معقّدة ولا رسوم خفية — سعر ثابت لكل مشروع نشِط شهرياً.</p>
+      </div>
+      <div class="card price-box">
+        <div class="price-sub">الباقة القياسية</div>
+        <div class="price-main"><span class="num">2,000</span> <span class="cur">ر.س</span></div>
+        <div class="price-sub">لكل مشروع / شهرياً — تشمل كل الأدوار والمزايا</div>
+        <div class="calc">
+          <span>عدد المشاريع</span>
+          <div class="stepper">
+            <button type="button" id="p-minus" aria-label="إنقاص">−</button>
+            <input id="p-count" class="num" value="1" inputmode="numeric" aria-label="عدد المشاريع">
+            <button type="button" id="p-plus" aria-label="زيادة">＋</button>
+          </div>
+          <span class="calc-total">= <b id="p-total" class="num">2,000</b> ر.س / شهر</span>
+        </div>
+        <p class="price-sub" style="margin:8px 0 18px">مشروعان = 4,000 · ثلاثة = 6,000 · وهكذا</p>
+        <a class="btn primary lg" href="#subscribe" id="price-cta">اشترك بـ <span id="p-total2" class="num">2,000</span> ر.س / شهر</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SUBSCRIBE / PAY -->
+  <section class="alt" id="subscribe">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">الاشتراك والدفع</span>
+        <h2>سجّل، ادفع، وابدأ فوراً</h2>
+        <p>يُنشأ حسابك ويُفعَّل تلقائياً بمجرّد نجاح الدفع.</p>
+      </div>
+      <div class="card">
+        <form class="pay-grid" id="sub-form" autocomplete="off">
+          <div>
+            <h3 style="margin:0 0 4px">بيانات المنشأة</h3>
+            <label class="fl">اسم الشركة / المنشأة *</label>
+            <input class="inp" id="f-company" placeholder="مثال: شركة الإعمار القابضة" required>
+            <div class="row2">
+              <div><label class="fl">اسم المسؤول</label><input class="inp" id="f-contact" placeholder="الاسم الكامل"></div>
+              <div><label class="fl">الجوال</label><input class="inp num" id="f-phone" dir="ltr" placeholder="05xxxxxxxx"></div>
+            </div>
+            <label class="fl">البريد الإلكتروني *</label>
+            <input class="inp" id="f-email" type="email" dir="ltr" placeholder="you@company.com" required>
+            <label class="fl">عدد المشاريع</label>
+            <div class="row2" style="grid-template-columns:auto 1fr;align-items:center">
+              <div class="stepper" style="display:flex;border:1px solid var(--border);border-radius:11px;overflow:hidden;width:max-content">
+                <button type="button" id="f-minus" style="width:42px;height:46px;background:var(--bg2);border:0;color:var(--text);font-size:20px;cursor:pointer">−</button>
+                <input id="f-proj" class="num" value="1" inputmode="numeric" style="width:58px;height:46px;border:0;background:var(--bg);color:var(--text);text-align:center;font-size:18px;font-weight:800;font-family:inherit">
+                <button type="button" id="f-plus" style="width:42px;height:46px;background:var(--bg2);border:0;color:var(--text);font-size:20px;cursor:pointer">＋</button>
+              </div>
+              <div class="calc-total" style="font-size:18px">= <b id="f-total" class="num">2,000</b> ر.س / شهر</div>
+            </div>
+          </div>
+          <div>
+            <h3 style="margin:0 0 4px">الدفع الآمن</h3>
+            <div class="card-face">
+              <div class="cn num" id="cf-num">•••• •••• •••• ••••</div>
+              <div class="cm"><span id="cf-name">الاسم على البطاقة</span><span id="cf-exp" class="num">MM/YY</span></div>
+            </div>
+            <label class="fl">رقم البطاقة</label>
+            <input class="inp num" id="c-num" dir="ltr" inputmode="numeric" maxlength="19" placeholder="4111 1111 1111 1111">
+            <label class="fl">الاسم على البطاقة</label>
+            <input class="inp" id="c-name" dir="ltr" placeholder="FULL NAME">
+            <div class="row2">
+              <div><label class="fl">تاريخ الانتهاء</label><input class="inp num" id="c-exp" dir="ltr" maxlength="5" placeholder="MM/YY"></div>
+              <div><label class="fl">CVC</label><input class="inp num" id="c-cvc" dir="ltr" inputmode="numeric" maxlength="4" placeholder="123"></div>
+            </div>
+            <button class="btn primary lg" type="submit" id="pay-btn" style="width:100%;justify-content:center;margin-top:18px">
+              🔒 ادفع <span id="pay-amount" class="num">2,000</span> ر.س وفعّل الحساب
+            </button>
+            <div class="err-msg" id="err"></div>
+            <div class="note">💡 بيئة تجريبية: الدفع مُحاكى — استخدم بطاقة تجريبية مثل <b dir="ltr">4111 1111 1111 1111</b>. في الإنتاج تُربط بوابة دفع سعودية حقيقية (Moyasar / Tap) ولا تُخزَّن بيانات البطاقة لدينا.</div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="wrap" style="max-width:800px">
+      <div class="sec-head"><span class="kicker">أسئلة شائعة</span><h2>قبل أن تشترك</h2></div>
+      <details open><summary>كيف يُحسب الاشتراك؟</summary><p>2,000 ر.س لكل مشروع نشِط شهرياً. إن كان لديك 3 مشاريع فالاشتراك 6,000 ر.س شهرياً. تُصدَر فاتورة تلقائياً كل شهر.</p></details>
+      <details><summary>ماذا يحدث إذا تأخّر السداد؟</summary><p>يُرسل النظام الفاتورة تلقائياً، وعند تأخّر السداد عن موعد الاستحقاق يُوقَف الحساب آلياً ويُعاد تفعيله فور الدفع — دون فقد أي بيانات.</p></details>
+      <details><summary>هل أحتاج تركيب برامج؟</summary><p>لا. بصير يعمل من المتصفّح على الجوّال والحاسب مباشرةً. تسجّل، تدفع، وتبدأ.</p></details>
+      <details><summary>هل يدعم النماذج ثلاثية الأبعاد وجداول الكميات؟</summary><p>نعم — يقرأ نماذج IFC/BIM ويعرضها ثلاثية الأبعاد، ويتيح إدخال جداول الكميات وتوزيعها على الأدوار يدوياً أو تلقائياً.</p></details>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div class="logo" style="justify-content:center">👁 <span>بصير — عيون المالك</span></div>
+      <div class="trust">
+        <span>🔒 بياناتك معزولة لكل مشروع</span>
+        <span>🇸🇦 صُمّم للسوق السعودي</span>
+        <span>⚡ تفعيل فوري</span>
+      </div>
+      <p style="margin-top:14px">© <span class="num">2026</span> بصير بزنس — جميع الحقوق محفوظة.</p>
+    </div>
+  </footer>
+
+  <!-- نواة المنطق (للعمل على الخادم الحقيقي أو كعرض ثابت) -->
+  <script src="/shared/seed-data.js"></script>
+  <script src="/shared/api-core.js"></script>
+  <script>
+  (function () {
+    'use strict';
+    var PRICE = 2000;
+
+    // ====== طبقة اتصال: الخادم الحقيقي إن وُجد، وإلا نواة داخل المتصفح ======
+    var _core = null;
+    function localCore() {
+      if (_core) return _core;
+      var db = null;
+      try { var s = localStorage.getItem('bassir-demo-db'); if (s) db = JSON.parse(s); } catch (e) {}
+      var fresh = window.BassirSeed.buildSeed();
+      if (!db || !db.meta || db.meta.version !== fresh.meta.version) db = fresh;
+      _core = window.BassirCore.createCore(db, function () {
+        try { localStorage.setItem('bassir-demo-db', JSON.stringify(db)); } catch (e) {}
+      });
+      return _core;
+    }
+    async function apiCall(path, body) {
+      try {
+        var res = await fetch(path, {
+          method: body ? 'POST' : 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          body: body ? JSON.stringify(body) : undefined
+        });
+        if (res.ok) return await res.json();
+        // الخادم موجود لكنه رفض الطلب — مرّر الخطأ للمستخدم
+        var d = await res.json().catch(function () { return {}; });
+        var e = new Error(d.error || ('خطأ ' + res.status)); e.status = res.status; throw e;
+      } catch (netErr) {
+        if (netErr && netErr.status) throw netErr;   // خطأ حقيقي من الخادم
+        // تعذّر الوصول للخادم (عرض ثابت) — شغّل النواة محلياً
+        var c = localCore();
+        if (path === '/api/platform/subscribe') return c.subscribeTenant(body);
+        if (path === '/api/platform/register') return c.registerTenant(body);
+        throw netErr;
+      }
+    }
+
+    function fmt(n) { return Number(n || 0).toLocaleString('en-US'); }
+    function clampCount(v) { v = parseInt(v, 10); if (!v || v < 1) v = 1; if (v > 200) v = 200; return v; }
+
+    // ====== حاسبة الأسعار (قسم الأسعار) ======
+    var pCount = document.getElementById('p-count');
+    function syncPrice() {
+      var n = clampCount(pCount.value); pCount.value = n;
+      var total = fmt(n * PRICE);
+      document.getElementById('p-total').textContent = total;
+      document.getElementById('p-total2').textContent = total;
+    }
+    document.getElementById('p-plus').onclick = function () { pCount.value = clampCount(pCount.value) + 1; syncPrice(); };
+    document.getElementById('p-minus').onclick = function () { pCount.value = clampCount(pCount.value) - 1; syncPrice(); };
+    pCount.oninput = syncPrice;
+    document.getElementById('price-cta').onclick = function () {
+      document.getElementById('f-proj').value = clampCount(pCount.value); syncForm();
+    };
+
+    // ====== نموذج الاشتراك ======
+    var fProj = document.getElementById('f-proj');
+    function syncForm() {
+      var n = clampCount(fProj.value); fProj.value = n;
+      var total = fmt(n * PRICE);
+      document.getElementById('f-total').textContent = total;
+      document.getElementById('pay-amount').textContent = total;
+    }
+    document.getElementById('f-plus').onclick = function () { fProj.value = clampCount(fProj.value) + 1; syncForm(); };
+    document.getElementById('f-minus').onclick = function () { fProj.value = clampCount(fProj.value) - 1; syncForm(); };
+    fProj.oninput = syncForm;
+
+    // ====== معاينة البطاقة الحيّة ======
+    var cNum = document.getElementById('c-num'), cName = document.getElementById('c-name'), cExp = document.getElementById('c-exp');
+    cNum.oninput = function () {
+      var d = cNum.value.replace(/\D/g, '').slice(0, 16);
+      cNum.value = d.replace(/(.{4})/g, '$1 ').trim();
+      document.getElementById('cf-num').textContent = (cNum.value || '•••• •••• •••• ••••').padEnd(19, '•');
+    };
+    cName.oninput = function () { document.getElementById('cf-name').textContent = cName.value.toUpperCase() || 'الاسم على البطاقة'; };
+    cExp.oninput = function () {
+      var d = cExp.value.replace(/\D/g, '').slice(0, 4);
+      if (d.length >= 3) d = d.slice(0, 2) + '/' + d.slice(2);
+      cExp.value = d;
+      document.getElementById('cf-exp').textContent = d || 'MM/YY';
+    };
+
+    function showErr(msg) { var e = document.getElementById('err'); e.textContent = '⚠️ ' + msg; e.style.display = 'block'; }
+    function hideErr() { document.getElementById('err').style.display = 'none'; }
+
+    function successModal(res) {
+      var t = res.tenant || {}, amount = res.amount || (clampCount(fProj.value) * PRICE);
+      var back = document.createElement('div');
+      back.className = 'modal-back';
+      back.innerHTML =
+        '<div class="modal">' +
+        '<div class="big">🎉</div>' +
+        '<h2 style="margin:0 0 6px">تم تفعيل حسابك!</h2>' +
+        '<p style="color:var(--muted);margin:0 0 6px">أهلاً بك في بصير، <b>' + (t.companyName || '') + '</b>.</p>' +
+        '<p style="margin:0 0 4px">اشتراكك: <b class="num">' + fmt(amount) + ' ر.س</b> / شهر لـ <b class="num">' + (t.projectCount || 1) + '</b> مشروع.</p>' +
+        '<p style="color:var(--muted);font-size:13px">صدرت فاتورة مدفوعة' + (t.cardLast4 ? ' على بطاقة تنتهي بـ <b class="num">' + t.cardLast4 + '</b>' : '') + '.</p>' +
+        '<a class="btn primary lg" href="/" style="width:100%;justify-content:center;margin-top:12px">ادخل إلى لوحتك الآن</a>' +
+        '<button class="btn ghost" id="m-close" style="margin-top:10px">إغلاق</button>' +
+        '</div>';
+      document.body.appendChild(back);
+      back.querySelector('#m-close').onclick = function () { back.remove(); };
+      back.onclick = function (ev) { if (ev.target === back) back.remove(); };
+    }
+
+    document.getElementById('sub-form').onsubmit = async function (ev) {
+      ev.preventDefault();
+      hideErr();
+      var company = document.getElementById('f-company').value.trim();
+      var email = document.getElementById('f-email').value.trim();
+      if (!company) { showErr('أدخل اسم الشركة.'); return; }
+      if (!email) { showErr('أدخل البريد الإلكتروني.'); return; }
+      var cardNum = cNum.value.replace(/\D/g, '');
+      if (cardNum.length < 12) { showErr('أدخل رقم بطاقة صحيح (جرّب 4111 1111 1111 1111).'); return; }
+      var btn = document.getElementById('pay-btn');
+      btn.disabled = true; var old = btn.innerHTML; btn.innerHTML = '⏳ جارٍ الدفع والتفعيل…';
+      try {
+        var payload = {
+          companyName: company,
+          contactName: document.getElementById('f-contact').value.trim(),
+          email: email,
+          phone: document.getElementById('f-phone').value.trim(),
+          projectCount: clampCount(fProj.value),
+          planId: 'standard',
+          card: { number: cardNum, name: cName.value.trim(), exp: cExp.value, cvc: document.getElementById('c-cvc').value.trim() }
+        };
+        var res = await apiCall('/api/platform/subscribe', payload);
+        successModal(res);
+      } catch (e) {
+        showErr(e.message || 'تعذّر إتمام العملية.');
+      } finally {
+        btn.disabled = false; btn.innerHTML = old;
+      }
+    };
+
+    syncPrice(); syncForm();
+  })();
+  </script>
+</body>
+</html>
