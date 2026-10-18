@@ -5,6 +5,14 @@
   const esc = Charts.esc;
 
   I18n.registerDict({
+    'الخطوط باهتة وتظهر بولد في الأجزاء المنفّذة مع اعتماد الكميات': 'Lines are faint and turn bold in executed areas as the BOQ is approved',
+    'مخططك المرفوع · يزداد سطوعاً مع تقدّم التنفيذ': 'Your uploaded drawing · brightens as work progresses',
+    'إظهار مناطق الإنجاز': 'Show progress zones',
+    'إخفاء مناطق الإنجاز': 'Hide progress zones',
+    'المخططات والنماذج المرفوعة': 'Uploaded drawings & models',
+    'اضغط «عرض» لفتح ملف الـ PDF/النموذج كاملاً': 'Click "View" to open the full PDF/model',
+    'لا مخططات مرفوعة بعد — ارفعها من «النماذج والمخططات → رفع مخطط/نموذج»': 'No drawings uploaded yet — upload them from "BIM & Drawings → Upload drawing/model"',
+    'عرض النموذج': 'View model', 'سحابي': 'Cloud', 'بلا ملف': 'No file',
     'تعديل البيانات': 'Edit Details',
     'سيُحذف هذا العنصر نهائياً': 'This item will be permanently deleted',
     '. هل أنت متأكد؟': '. Are you sure?',
@@ -1476,7 +1484,7 @@
   }
 
   // ============ رؤية المشروع (2D + BIM) ============
-  const visionState = { tab: '2d', floor: 'GF', disc: 'all', zone: null, bimFloor: null };
+  const visionState = { tab: '2d', floor: 'GF', disc: 'all', zone: null, bimFloor: null, showZones: false };
 
   function itemsFor(ctx, floorId, disc, zone) {
     return ctx.S.boqItems.filter(function (b) {
@@ -1517,6 +1525,7 @@
 
     el.innerHTML =
       tabsHtml + discChips + body +
+      drawingsPanel(ctx, st.floor, !isLinear && st.tab === 'bim') +
       '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>' + I18n.t('داكن = أعمال غير منتهية') + '</span>' +
       '<span><span class="sw" style="background:linear-gradient(90deg,#8a6a35,#e0a458);box-shadow:0 0 10px rgba(224,164,88,.7)"></span>' + I18n.t('ساطع = بنود منتهية (مستخلصات معتمدة)') + '</span>' +
       '<span>' + (isLinear ? I18n.t('اضغط أي مقطع لعرض بنود جدول الكميات المرتبطة به') : I18n.t('اضغط أي منطقة/دور لعرض بنود جدول الكميات المرتبطة بها')) + '</span></div>';
@@ -1544,6 +1553,16 @@
         if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: canEdit, canReview: false, showMap: true, canMap: canEdit });
       });
     });
+    // فتح نموذج BIM ثلاثي الأبعاد مرفوع من لوحة المخططات
+    el.querySelectorAll('[data-modelview]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const mm = (ctx.S.bimModels || []).find(function (x) { return x.id === b.getAttribute('data-modelview'); });
+        if (!mm) return;
+        const url = mm.url || (mm.file && mm.file.url) || '';
+        if (window.BimViewer && url) window.BimViewer.open({ title: mm.name || 'نموذج BIM', url: url });
+        else toast('تعذّر فتح النموذج — تحقق من الملف', true);
+      });
+    });
     // من الواجهة: الضغط على أي دور يفتحه تلقائياً في عرض المخططات مع تفصيل تخصصاته
     el.querySelectorAll('[data-elevfloor]').forEach(function (z) {
       z.addEventListener('click', function () {
@@ -1552,12 +1571,26 @@
       });
     });
 
-    // عرض المخطط الحقيقي المرفوع كخلفية لخريطة الإنجاز (ثنائية الأبعاد)
+    // تبديل إظهار/إخفاء طبقة مناطق الإنجاز فوق المخطط الحقيقي
+    const tz = el.querySelector('#pm-togglezones');
+    if (tz) tz.addEventListener('click', function () { st.showZones = !st.showZones; renderVision(el, ctx); });
+
+    // عرض المخطط الحقيقي المرفوع: الخطوط باهتة، وتظهر «بولد» في المناطق المنفّذة بمقدار نسبة إنجازها
     if (!isLinear && st.tab === '2d') {
       const bgEl = el.querySelector('#map2d-bg');
       const bgDr = floorPlanDrawing(ctx, st.floor, st.disc);
-      if (bgEl && bgDr && window.DrawingViewer && window.DrawingViewer.renderPlanInto) {
-        window.DrawingViewer.renderPlanInto(bgEl, bgDr).catch(function () { /* تجاهل */ });
+      if (bgEl && bgDr && window.DrawingViewer) {
+        const zonesWP = ZONES.map(function (z, i) {
+          return { left: z.x / 810, top: z.y / 525, width: z.w / 810, height: z.h / 525,
+            progress: weightedProgress(itemsFor(ctx, st.floor, st.disc, i)) || 0 };
+        });
+        if (window.DrawingViewer.renderPlanProgress) {
+          window.DrawingViewer.renderPlanProgress(bgEl, bgDr, zonesWP).then(function (ok) {
+            if (!ok && window.DrawingViewer.renderPlanInto) window.DrawingViewer.renderPlanInto(bgEl, bgDr);
+          }).catch(function () { if (window.DrawingViewer.renderPlanInto) window.DrawingViewer.renderPlanInto(bgEl, bgDr); });
+        } else if (window.DrawingViewer.renderPlanInto) {
+          window.DrawingViewer.renderPlanInto(bgEl, bgDr).catch(function () {});
+        }
       }
     }
   }
@@ -1576,6 +1609,9 @@
   function floorPlanDrawing(ctx, floor, disc) {
     const all = (ctx.S.planDrawings || []).filter(function (dr) {
       return dr.floor === floor && (dr.zone == null || dr.zone === '' || dr.zone === 'all');
+    }).slice().sort(function (a, b) {
+      // الأحدث أولاً (آخر مخطط رفعه المستخدم يظهر) — بالتاريخ ثم بالمعرّف
+      return String(b.date || '').localeCompare(String(a.date || '')) || String(b.id || '').localeCompare(String(a.id || ''));
     });
     if (!all.length) return null;
     return (disc !== 'all' && all.find(function (d) { return d.discipline === disc; })) ||
@@ -1598,6 +1634,41 @@
     const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
     if (!m) return hex;
     return 'rgba(' + parseInt(m[1], 16) + ',' + parseInt(m[2], 16) + ',' + parseInt(m[3], 16) + ',' + a + ')';
+  }
+
+  // لوحة المخططات والنماذج المرفوعة لهذا الدور — تظهر في كل تبويبات خريطة الإنجاز
+  // لضمان أن المالك يرى ويفتح ملفات PDF المرفوعة في أي عرض (2D/واجهة/BIM/مسار).
+  function drawingsPanel(ctx, floorId, includeModels) {
+    const drs = (ctx.S.planDrawings || []).filter(function (dr) {
+      return dr.floor === floorId || dr.floor == null || dr.floor === 'ALL' || dr.floor === 'ELEV';
+    });
+    const models = includeModels ? (ctx.S.bimModels || []) : [];
+    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    let rows = drs.map(function (dr) {
+      const d = discOf(ctx, dr.discipline);
+      const ok = hasPlanFile(dr);
+      const scope = dr.floor === 'ALL' ? I18n.t('كامل المشروع') : dr.floor === 'ELEV' ? I18n.t('الواجهات') : floorName(ctx, dr.floor);
+      return '<div class="flex" style="justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--bg2)">' +
+        '<span class="small">📄 <b>' + esc(dr.ref || '') + '</b> ' + esc(dr.title || '') +
+        ' <span class="muted">· ' + d.icon + ' ' + esc(d.name) + ' · ' + esc(scope) + '</span></span>' +
+        (ok ? window.DrawingViewer.btn(dr) : '<span class="pill p-muted" style="font-size:10px">' + I18n.t('بلا ملف') + '</span>') +
+        '</div>';
+    }).join('');
+    let modelRows = models.map(function (mm) {
+      const url = mm.url || (mm.file && mm.file.url) || '';
+      // قابل للعرض = ملف محلي (مرفوع أو ضمن vendor) بامتداد IFC — لا الروابط السحابية الخارجية
+      const loadable = url && mm.source !== 'cloud' && !/^https?:\/\//i.test(url) && /\.ifc($|\?)/i.test(url);
+      return '<div class="flex" style="justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--bg2)">' +
+        '<span class="small">🧊 <b>' + esc(mm.name || '') + '</b> <span class="muted">· ' + esc(mm.rev || '') + '</span></span>' +
+        (loadable ? '<button class="btn ghost sm" data-modelview="' + esc(mm.id) + '">👁 ' + I18n.t('عرض النموذج') + '</button>'
+          : '<span class="pill p-muted" style="font-size:10px">' + (mm.source === 'cloud' ? I18n.t('سحابي') : I18n.t('بلا ملف')) + '</span>') +
+        '</div>';
+    }).join('');
+    const empty = (!drs.length && !models.length)
+      ? '<div class="empty" style="padding:16px"><div class="e-ico">📐</div>' + I18n.t('لا مخططات مرفوعة بعد — ارفعها من «النماذج والمخططات → رفع مخطط/نموذج»') + '</div>' : '';
+    return '<div class="card mb"><h3>📐 ' + I18n.t('المخططات والنماذج المرفوعة') +
+      ' <span class="hint">' + I18n.t('اضغط «عرض» لفتح ملف الـ PDF/النموذج كاملاً') + '</span></h3>' +
+      empty + rows + modelRows + '</div>';
   }
 
   function render2d(ctx) {
@@ -1681,18 +1752,8 @@
       }).join('') + '</div></div>';
 
     // المخططات المرفوعة المرتبطة بهذا الدور
-    const floorDrawings = (ctx.S.planDrawings || []).filter(function (dr) {
-      return dr.floor === st.floor && (st.disc === 'all' || dr.discipline === st.disc);
-    });
-    const drawingsHtml = floorDrawings.length ?
-      '<div style="border-top:1px dashed var(--border);margin-top:12px;padding-top:10px">' +
-      '<b class="small">📐 ' + I18n.t('المخططات المرتبطة بهذا الدور:') + '</b>' +
-      floorDrawings.map(function (dr) {
-        const nLinked = (ctx.S.drawingMappings || []).filter(function (m) { return m.drawingId === dr.id; }).length;
-        return '<div class="small muted flex" style="margin-top:6px;gap:6px">📎 <b class="num">' + esc(dr.ref) + '</b> ' + esc(dr.title) +
-          (nLinked ? ' <span class="pill p-ok" style="font-size:10px">' + nLinked + ' ' + I18n.t('منطقة مربوطة') + '</span>' : ' <span class="pill p-muted" style="font-size:10px">' + I18n.t('غير مربوط') + '</span>') +
-          ' ' + window.DrawingViewer.btn(dr) + '</div>';
-      }).join('') + '</div>' : '';
+    // المخططات المرفوعة تظهر الآن في لوحة «المخططات والنماذج المرفوعة» أسفل الخريطة (كل التبويبات)
+    const drawingsHtml = '';
 
     // لوحة البنود الجانبية
     const panelItems = itemsFor(ctx, st.floor, st.disc, st.zone);
@@ -1717,9 +1778,23 @@
       ? '<div class="map2d-caption">📐 ' + esc(bgDr.ref ? bgDr.ref + ' · ' : '') + esc(bgDr.title || '') + ' — ' + I18n.t('المخطط المرفوع · المناطق المنفّذة تضيء باعتماد الكميات') + '</div>'
       : '<div class="map2d-cta">🗺️ ' + I18n.t('لا يوجد مخطط مرفوع لهذا الدور — ارفعه من «النماذج والمخططات» ليظهر هنا ويضيء مع اعتماد جدول الكميات') + '</div>';
 
+    // عند وجود مخطط حقيقي مرفوع: نعرضه كاملاً وواضحاً، ويزداد سطوعه مع تقدّم التنفيذ
+    // (داكن→ساطع) بلا خطوط أو مناطق اصطناعية تغطّيه. مع إمكانية إظهار طبقة المناطق اختيارياً.
+    if (hasBg) {
+      const fp = weightedProgress(itemsFor(ctx, st.floor, st.disc, null));
+      const overlay = st.showZones ? '<div class="map2d-overlay">' + svg + '</div>' : '';
+      const toggle = '<button class="btn ghost sm" id="pm-togglezones" style="margin-right:8px">' +
+        (st.showZones ? I18n.t('إخفاء مناطق الإنجاز') : I18n.t('إظهار مناطق الإنجاز')) + '</button>';
+      const cap = '<div class="map2d-caption">📐 ' + esc(bgDr.ref ? bgDr.ref + ' · ' : '') + esc(bgDr.title || '') +
+        ' — ' + I18n.t('الخطوط باهتة وتظهر بولد في الأجزاء المنفّذة مع اعتماد الكميات') + ' <b class="num">' + (fp == null ? 0 : fp) + '%</b>' + toggle + '</div>';
+      return floorTabs + discStrip +
+        '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage has-bg">' +
+        '<div class="map2d-bg" id="map2d-bg"></div>' + overlay + cap + '</div>' + panel + '</div>';
+    }
+
     return floorTabs + discStrip +
-      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage' + (hasBg ? ' has-bg' : '') + '">' +
-      '<div class="map2d-bg" id="map2d-bg"></div>' + svg + planHint + '</div>' + panel + '</div>';
+      '<div class="grid" style="grid-template-columns:1.6fr 1fr"><div class="plan-stage">' +
+      svg + planHint + '</div>' + panel + '</div>';
   }
 
   // ============ العرض الخطّي (طرق/بنية تحتية): شريط المسار مقسّم إلى مقاطع ============

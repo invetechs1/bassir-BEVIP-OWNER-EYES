@@ -771,7 +771,69 @@
 
     db.notifications = [];
     db.comments = [];
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 21, docSeq: docSeq };
+
+    // ============ طبقة المنصّة (بصير بزنس): الباقات والمستأجرون والفواتير ============
+    db.plans = [
+      { id: 'standard', name: 'الباقة القياسية', nameEn: 'Standard', pricePerProject: 2000, currency: 'SAR',
+        features: ['عين المالك وخريطة الإنجاز', 'جداول الكميات والمستخلصات', 'الجدول الزمني والتقارير', 'المستندات ونماذج BIM/IFC', 'مراقبة الموقع والرصد البصري', 'عدد مستخدمين غير محدود'] },
+      { id: 'pro', name: 'الباقة الاحترافية', nameEn: 'Pro', pricePerProject: 3000, currency: 'SAR',
+        features: ['كل مزايا القياسية', 'بث كاميرات مباشر + تحليل صور بالذكاء الاصطناعي', 'تكامل بريد/واتساب تلقائي', 'تقارير ومخرجات ذات علامة المالك', 'أولوية الدعم'] }
+    ];
+
+    // مستأجرون نموذجيون (لعرض لوحة تحكّم المنصّة) — تسعير لكل مشروع/شهر
+    const PRICE = 2000;
+    const tnames = [
+      ['شركة الراجحي للتطوير العقاري', 'م. عبدالله الراجحي', 'owner@rajhi-dev.sa', '0551100001', 'active', 3, '2026-06-03'],
+      ['مجموعة بن لادن للمقاولات', 'م. سعود القحطاني', 'pm@binladin.sa', '0551100002', 'active', 4, '2026-05-12'],
+      ['دار الأركان', 'أ. ريم الدوسري', 'it@alarkan.sa', '0551100003', 'active', 2, '2026-07-20'],
+      ['شركة النخبة للإنشاءات', 'م. ماجد العتيبي', 'info@elite-const.sa', '0551100004', 'active', 1, '2026-08-01'],
+      ['مكتب العمران الاستشاري', 'م. خالد العمران', 'hello@omran.sa', '0551100005', 'trial', 1, '2026-10-05'],
+      ['شركة إعمار الشرق', 'أ. نوف السالم', 'billing@emaar-east.sa', '0551100006', 'suspended', 2, '2026-04-18'],
+      ['مؤسسة البنيان الحديث', 'م. فيصل الحربي', 'f@bunyan.sa', '0551100007', 'pending', 1, '2026-10-14'],
+      ['شركة المشاريع المتكاملة', 'أ. سارة المطيري', 'ops@ipc.sa', '0551100008', 'active', 2, '2026-09-02']
+    ];
+    db.tenants = tnames.map(function (t, i) {
+      const created = t[6];
+      const active = t[4] === 'active';
+      return {
+        id: 'T' + (i + 1), companyName: t[0], contactName: t[1], email: t[2], phone: t[3],
+        planId: 'standard', pricePerProject: PRICE, projectCount: t[5], status: t[4],
+        createdAt: created, activatedAt: (active || t[4] === 'suspended') ? created : null,
+        trialEndsAt: t[4] === 'trial' ? '2026-10-19' : null,
+        nextInvoiceDate: active ? '2026-11-01' : null,
+        lastPaymentAt: active ? '2026-10-01' : (t[4] === 'suspended' ? '2026-08-01' : null),
+        usersCount: active ? (5 + i * 2) : (t[4] === 'suspended' ? 6 : 1),
+        cardLast4: active ? String(4000 + i * 111).slice(-4) : null
+      };
+    });
+
+    // فواتير: المدفوعة للمستأجرين الفعّالين، وغير مدفوعة/متأخرة لبعضهم
+    let invSeq = 1000;
+    db.tenantInvoices = [];
+    const months = ['2026-08', '2026-09', '2026-10'];
+    db.tenants.forEach(function (t) {
+      if (t.status === 'active') {
+        months.forEach(function (mo, mi) {
+          invSeq++;
+          db.tenantInvoices.push({
+            id: 'TI' + invSeq, number: 'INV-' + invSeq, tenantId: t.id, period: mo,
+            projectCount: t.projectCount, pricePerProject: t.pricePerProject, amount: t.projectCount * t.pricePerProject,
+            currency: 'SAR', status: 'paid', issuedAt: mo + '-01', dueAt: mo + '-08',
+            paidAt: mo + '-0' + (2 + mi % 5), method: 'card', cardLast4: t.cardLast4
+          });
+        });
+      } else if (t.status === 'suspended') {
+        invSeq++;
+        db.tenantInvoices.push({ id: 'TI' + invSeq, number: 'INV-' + invSeq, tenantId: t.id, period: '2026-09',
+          projectCount: t.projectCount, pricePerProject: t.pricePerProject, amount: t.projectCount * t.pricePerProject,
+          currency: 'SAR', status: 'overdue', issuedAt: '2026-09-01', dueAt: '2026-09-08', paidAt: null, method: null });
+      }
+    });
+
+    // مستخدم مالك المنصّة (بصير بزنس) + حساب أدمن للمنصّة
+    db.users.push({ id: 'U9', username: 'biz', password: 'biz123', name: 'بصير بزنس — مالك المنصّة', role: 'platform_admin', email: 'business@bassir.app', phone: '0550000000', notifyEmail: true, notifyWhatsapp: false });
+
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 22, docSeq: docSeq, invSeq: invSeq };
 
     return db;
   }

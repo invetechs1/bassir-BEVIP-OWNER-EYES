@@ -27,6 +27,7 @@ const SCRIPTS = [
   'public/js/views3.js',
   'public/js/views4.js',
   'public/js/views5.js',
+  'public/js/views-platform.js',
   'public/js/app.js'
 ];
 

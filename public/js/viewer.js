@@ -847,5 +847,65 @@
     return false;
   }
 
-  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn, renderPlanInto: renderPlanInto, fileOf: fileOf };
+  // يحوّل المخطط (PDF صفحة أولى أو صورة) إلى dataURL + أبعاد — للعرض المتدرّج
+  async function planToDataURL(item, targetW) {
+    const f = fileOf(item);
+    if (!f.url) return null;
+    if (f.isImage) {
+      return await new Promise(function (res) {
+        const img = new Image();
+        img.onload = function () { res({ url: f.url, w: img.naturalWidth, h: img.naturalHeight }); };
+        img.onerror = function () { res(null); };
+        img.src = f.url;
+      });
+    }
+    if (f.isPdf) {
+      const lib = await loadPdfjs();
+      let src;
+      if (/^data:/.test(f.url)) {
+        const b64 = f.url.split(',')[1] || ''; const bin = atob(b64); const arr = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i); src = { data: arr };
+      } else { src = { url: new URL(f.url, location.href).href }; }
+      const pdf = await lib.getDocument(src).promise;
+      const pg = await pdf.getPage(1);
+      const vp0 = pg.getViewport({ scale: 1 });
+      const vp = pg.getViewport({ scale: Math.max(0.5, (targetW || 1000) / vp0.width) });
+      const canvas = document.createElement('canvas'); canvas.width = vp.width; canvas.height = vp.height;
+      await pg.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      return { url: canvas.toDataURL('image/png'), w: vp.width, h: vp.height };
+    }
+    return null;
+  }
+
+  /**
+   * عرض متدرّج للمخطط: الخطوط باهتة، وتظهر «بولد» في المناطق المنفّذة بمقدار نسبة
+   * إنجازها (طبقة ساطعة مقصوصة على كل منطقة بشفافية = نسبتها فوق الطبقة الباهتة).
+   * zones: [{ left, top, width, height (كسور 0..1), progress (0..100) }]
+   */
+  async function renderPlanProgress(container, item, zones) {
+    if (!container) return false;
+    const data = await planToDataURL(item, Math.max(900, container.clientWidth || 900)).catch(function () { return null; });
+    if (!data) return false;
+    container.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;width:100%;line-height:0';
+    const base = document.createElement('img');
+    base.src = data.url;
+    base.style.cssText = 'width:100%;height:auto;display:block;opacity:.16;filter:grayscale(.4) contrast(.9)';
+    wrap.appendChild(base);
+    (zones || []).forEach(function (z) {
+      const p = Math.max(0, Math.min(1, (z.progress || 0) / 100));
+      if (p <= 0.001) return;
+      const top = (z.top * 100), right = Math.max(0, 100 - (z.left + z.width) * 100), bottom = Math.max(0, 100 - (z.top + z.height) * 100), left = (z.left * 100);
+      const layer = document.createElement('img');
+      layer.src = data.url;
+      layer.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:auto;display:block;opacity:' + p.toFixed(2) +
+        ';clip-path:inset(' + top.toFixed(1) + '% ' + right.toFixed(1) + '% ' + bottom.toFixed(1) + '% ' + left.toFixed(1) + '%);filter:contrast(1.15) brightness(1.15)';
+      wrap.appendChild(layer);
+    });
+    container.appendChild(wrap);
+    return true;
+  }
+
+  window.DrawingViewer = { open: openDrawingViewer, btn: viewerBtn, renderPlanInto: renderPlanInto, renderPlanProgress: renderPlanProgress, fileOf: fileOf };
 })();

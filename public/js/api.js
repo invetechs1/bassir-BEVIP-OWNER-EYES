@@ -44,7 +44,17 @@
       sessionStorage.setItem('bassir-demo-user', JSON.stringify(user));
       return { token: 'demo', user: user };
     }
+    // ===== مسارات المنصّة العامة (بلا مصادقة — صفحة الهبوط) =====
+    if (path === '/api/platform/plans') return c.publicPlans();
+    if (path === '/api/platform/register') return c.registerTenant(body);
+    if (path === '/api/platform/subscribe') return c.subscribeTenant(body);
     if (!demoUser) { const e = new Error('يلزم تسجيل الدخول'); e.status = 401; throw e; }
+    // ===== مسارات المنصّة (مالك المنصّة) =====
+    if (path === '/api/platform/state') return c.platformState(demoUser);
+    if (path === '/api/actions/platform-create-tenant') return c.createTenant(demoUser, body);
+    if (path === '/api/actions/platform-pay-invoice') return c.payTenantInvoice(demoUser, body.invoiceId, body.card);
+    if (path === '/api/actions/platform-set-status') return c.setTenantStatus(demoUser, body.tenantId, body.status, body.reason);
+    if (path === '/api/actions/platform-run-billing') return c.runBilling(demoUser);
     if (path === '/api/logout') { demoUser = null; sessionStorage.removeItem('bassir-demo-user'); return { ok: true }; }
     if (path === '/api/me') return { user: demoUser };
     if (path === '/api/state') return c.getState(demoUser);
@@ -119,6 +129,15 @@
     deleteContractor(id) { return call('/api/actions/delete-contractor', 'POST', { id: id }); },
     addProject(p) { return call('/api/actions/add-project', 'POST', p); },
     sendReport(p) { return call('/api/actions/send-report', 'POST', p); },
+    // ===== طبقة المنصّة (بصير بزنس) =====
+    platformPlans() { return call('/api/platform/plans'); },
+    platformRegister(p) { return call('/api/platform/register', 'POST', p); },
+    platformSubscribe(p) { return call('/api/platform/subscribe', 'POST', p); },
+    platformState() { return call('/api/platform/state'); },
+    createTenant(p) { return call('/api/actions/platform-create-tenant', 'POST', p); },
+    payTenantInvoice(invoiceId, card) { return call('/api/actions/platform-pay-invoice', 'POST', { invoiceId: invoiceId, card: card }); },
+    setTenantStatus(tenantId, status, reason) { return call('/api/actions/platform-set-status', 'POST', { tenantId: tenantId, status: status, reason: reason }); },
+    runBilling() { return call('/api/actions/platform-run-billing', 'POST', {}); },
     /** رفع ملف فعلي — opts: { category, versionOf } — في الديمو محاكاة بالاسم */
     async upload(file, opts) {
       opts = opts || {};
