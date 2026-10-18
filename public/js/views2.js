@@ -200,6 +200,7 @@
     'أبرز الإنجازات (سطر لكل بند)': 'Key Achievements (one line per item)',
     'المعوقات (سطر لكل بند)': 'Obstacles (one line per item)',
     'الصور': 'Photos',
+    'المرفق': 'Attachment',
     'المرفقات': 'Attachments',
     'حفظ التقرير الأسبوعي': 'Save Weekly Report',
     '🗄️ أرشيف التقارير الأسبوعية': '🗄️ Weekly Reports Archive',
@@ -289,6 +290,31 @@
     'دخول': 'Login',
     'إضافة': 'Create',
     'تعديل': 'Update',
+    'إجراءات': 'Actions',
+    'تعديل بيانات المقاول': "Edit Contractor's Details",
+    'حفظ التعديلات': 'Save Changes',
+    'تم حفظ التعديلات': 'Changes saved',
+    'تم حذف المقاول': 'Contractor deleted',
+    'سيُحذف المقاول نهائياً مع بنود جدول كمياته وحساب دخوله — هل أنت متأكد؟':
+      "This will permanently delete the contractor along with their BOQ items and login account — are you sure?",
+    'كل المشاريع': 'All Projects',
+    'المشروع (يرى بياناته فقط)': 'Project (sees only its data)',
+    'لا يوجد مقاولون في هذا المشروع — أضف مقاولاً أولاً من صفحة المقاولين': 'No contractors in this project yet — add one first from the Contractors page',
+    'اختر المقاول المطلوب ربط الحساب به': 'Select the contractor to link this account to',
+    'تعديل بيانات المستخدم': "Edit User's Details",
+    'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)': 'New password (leave empty to keep the current one)',
+    'الجدول الزمني المعتمد': 'Approved Schedule',
+    'لا يوجد جدول زمني معتمد لهذا المشروع بعد.': 'No approved schedule for this project yet.',
+    'ليتّضح أثر الأيام الإضافية على الجدول الرسمي': 'To see how the extra days affect the official schedule',
+    'تاريخ الانتهاء المخطط: ': 'Planned finish date: ',
+    'المتوقع حالياً: ': 'Currently forecast: ',
+    'مسودة': 'Draft',
+    'نشر المشروع': 'Publish Project',
+    'حفظ كمسودة (لا يظهر لأحد سوى مَن تُسنِده لاحقاً، حتى تُنشره)': "Save as draft (visible only to whoever you later assign, until you publish it)",
+    'نُشر المشروع — أصبح مرئياً لكل مَن له صلاحية الاطلاع عليه': 'Project published — now visible to everyone with access to it',
+    'مدير المشروع': 'Project Manager',
+    'المشروع (إلزامي — يرى بياناته فقط)': 'Project (required — sees only its data)',
+    'حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع': "Select the project manager's project — it cannot be left unassigned",
     'قرار اعتماد': 'Approval decision',
     'إرسال تقرير': 'Send report',
     'رفع ملف': 'Upload file',
@@ -326,6 +352,7 @@
     'المخطط': 'Drawing',
     'الربط': 'Linking',
     'مربوط بجدول الكميات ✓': 'Linked to BOQ ✓',
+    'منطقة مربوطة': 'linked area(s)',
     'اختر ملف النموذج أولاً': 'Select the model file first',
     '✅ رُفع النموذج "': '✅ Model "',
     '" وربط بجدول الكميات — أصبح مرئياً للمالك في صفحة رؤية المشروع': '" uploaded and linked to the BOQ — now visible to the owner on the Project Vision page',
@@ -534,16 +561,93 @@
     '1) ثبّت ': '1) Install ',
     ' على السيرفر (ملف تنفيذي واحد).<br>2) أضف كل كاميرا في mediamtx.yml بمسار يطابق حقل "مسار البث":': ' on the server (a single executable file).<br>2) Add each camera in mediamtx.yml with a path matching the "stream path" field:',
     '3) ضع MEDIA_SERVER_URL=http://السيرفر:8888 في .env — فيظهر البث الحي مباشرة داخل بطاقات صفحة الكاميرات للمالك.':
-      "3) Set MEDIA_SERVER_URL=http://server:8888 in .env — the live stream then appears directly in the camera cards on the owner's page."
+      "3) Set MEDIA_SERVER_URL=http://server:8888 in .env — the live stream then appears directly in the camera cards on the owner's page.",
+
+    // ============ إضافات: BOQ رفع، مبدّل المشاريع، مستخدمون، BIM، أرشيف مركزي ============
+    'رفع جدول كميات': 'Upload BOQ',
+    'جداول مرفوعة: ': 'Uploaded BOQs: ',
+    'اختر ملف جدول الكميات أولاً': 'Select the BOQ file first',
+    '✅ رُفع جدول الكميات وكُوّد وربط بالمشروع — حدّث نسب البنود لتُربط بالإنجاز': '✅ BOQ uploaded, coded, and linked to the project — update item percentages to link them to progress',
+    'اضغط "فتح" للتنقل بين المشاريع — أو استخدم مبدّل المشروع أعلى الشاشة': 'Click "Open" to switch between projects — or use the project switcher at the top of the screen',
+    'المشروع الحالي': 'Current Project',
+    'فتح المشروع ←': 'Open Project ←',
+    '✅ أُنشئ المشروع — استخدم زر "فتح المشروع" أو المبدّل أعلى الشاشة للانتقال إليه': '✅ Project created — use the "Open Project" button or the switcher at the top of the screen to go to it',
+    'قنوات الإشعار': 'Notification Channels',
+    'داخل النظام فقط': 'In-system only',
+    'البريد الإلكتروني (للإشعارات)': 'Email (for notifications)',
+    'الجوال (واتساب)': 'Mobile (WhatsApp)',
+    'بريد': 'Email',
+    'النموذج الحالي: ': 'Current model: ',
+    ' · مرتبط بـ ': ' · linked to ',
+    ' بند — الإدارة الكاملة في صفحة "إدارة BIM"': ' items — full management on the "BIM Management" page',
+    'نسخ على نفس المستند': 'revisions of the same document',
+    'الرد وإعادة التقديم': 'Reply & Resubmit',
+    'موجه إلى': 'Directed to',
+    'تفاصيل العرض / الطلب': 'Offer / Request Details',
+    'اشرح العرض البديل أو الطلب مع أثره الفني والمالي...': 'Explain the alternative offer or request and its technical and financial impact...',
+    'طلبات العروض RFP': 'RFPs',
+    'النتيجة': 'Result',
+    'كل الحالات': 'All Statuses',
+    'قيد الإجراء': 'In Progress',
+    'معتمد / مغلق': 'Approved / Closed',
+    'مرفوض / راسب': 'Rejected / Failed',
+    'RESEND_API_KEY أو SENDGRID_API_KEY + EMAIL_FROM': 'RESEND_API_KEY or SENDGRID_API_KEY + EMAIL_FROM',
+
+    // ============ الأرشيف المركزي: أسماء أنواع المستندات ============
+    'مخطط تنفيذي': 'Shop Drawing',
+    'اعتماد مواد': 'Material Approval',
+    'جدول زمني': 'Schedule',
+    'طلب استلام': 'Inspection Request',
+    'أمر تغيير': 'Change Order',
+    'مستخلص': 'Payment Certificate',
+    'أسلوب تنفيذ/ITP': 'Method Statement/ITP',
+    'مطالبة/EOT': 'Claim/EOT',
+    'هندسة قيمية': 'Value Engineering',
+    'استفسار RFI': 'RFI Inquiry',
+    'عدم مطابقة': 'Non-Conformance',
+    'تعليمات موقعية': 'Site Instruction',
+    'ملاحظة تسليم': 'Handover Snag',
+    'سلامة': 'Safety',
+    'اختبار مواد': 'Material Test',
+    'محضر اجتماع': 'Meeting Minutes',
+    'خطاب': 'Letter',
+    'تقرير يومي': 'Daily Report',
+    'تقرير أسبوعي': 'Weekly Report',
+    'تقرير شهري': 'Monthly Report',
+    'مخطط مشروع': 'Project Drawing',
+    'طلب عرض RFP': 'RFP',
+    'نموذج BIM': 'BIM Model',
+    'وثيقة BIM': 'BIM Document',
+    'ضمان': 'Warranty',
+    'تقرير حادث': 'Incident Report',
+    'ملف مرفوع': 'Uploaded File',
+
+    // ============ الأرشيف المركزي: تفاصيل وقائمة ============
+    'التاريخ: ': 'Date: ',
+    'الجهة: ': 'Party: ',
+    'تحميل المرفق': 'Download Attachment',
+    'فتح الملف': 'Open File',
+    'فتح المخطط': 'Open Drawing',
+    'ترميز': 'annotation(s)',
+    'أرشيف المستندات': 'Document Archive',
+    'كل مستند مُكوَّد بصيغة BSR-المشروع-النوع-السنة-التسلسل — ': 'Every document is coded as BSR-Project-Type-Year-Sequence — ',
+    'مستند مؤرشف': 'archived document(s)',
+    'بحث بالكود (BSR-...) أو المرجع أو العنوان أو الجهة...': 'Search by code (BSR-...), reference, title, or party...',
+    'كل الأنواع': 'All Types',
+    'كل السنوات': 'All Years',
+    'كود المستند': 'Document Code',
+    'فتح': 'Open',
+    'يعرض أول 400 نتيجة — ضيّق البحث للوصول لبقية المستندات': 'Showing the first 400 results — narrow your search to see the rest of the documents',
+    'لا مستندات مطابقة للبحث': 'No documents match your search'
   });
 
   const APPROVAL_TABS = [
-    { col: 'shopDrawings', name: 'المخططات التنفيذية', icon: '📐' },
-    { col: 'scheduleSubmittals', name: 'الجداول الزمنية', icon: '🗓️' },
-    { col: 'materials', name: 'المواد والداتا شيت', icon: '🧱' },
-    { col: 'wirs', name: 'طلبات الاستلام', icon: '✅' },
-    { col: 'changeOrders', name: 'أوامر التغيير', icon: '🔁' },
-    { col: 'payments', name: 'المستخلصات', icon: '💰' }
+    { col: 'shopDrawings', name: I18n.t('المخططات التنفيذية'), icon: '📐' },
+    { col: 'scheduleSubmittals', name: I18n.t('الجداول الزمنية'), icon: '🗓️' },
+    { col: 'materials', name: I18n.t('المواد والداتا شيت'), icon: '🧱' },
+    { col: 'wirs', name: I18n.t('طلبات الاستلام'), icon: '✅' },
+    { col: 'changeOrders', name: I18n.t('أوامر التغيير'), icon: '🔁' },
+    { col: 'payments', name: I18n.t('المستخلصات'), icon: '💰' }
   ];
 
   function contractorName(ctx, id) {
@@ -588,8 +692,11 @@
             '<td>' + pill(it.status) + '</td>' +
             '<td class="small" style="max-width:220px">' + (it.notes ? esc(it.notes) : '<span class="muted">—</span>') +
             (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : '') + '</td>' +
-            '<td><div class="flex" style="gap:6px">' + window.DrawingViewer.btn(it) +
-            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') + '</div></td>' +
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' + window.DrawingViewer.btn(it) +
+            (it.status === 'pending' ? '<button class="btn sm" data-review="' + it.id + '">' + I18n.t('مراجعة وقرار') + '</button>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-arv-edit="' + it.id + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, tab) ? '<button class="btn danger sm" data-arv-del="' + it.id + '">🗑️</button>' : '') +
+            '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا توجد طلبات في هذا القسم') + '</div>') +
@@ -609,6 +716,22 @@
       b.addEventListener('click', function () {
         const it = items.find(function (x) { return x.id === b.getAttribute('data-dview'); });
         window.DrawingViewer.open(ctx, tab, it, { canEdit: true, canReview: it.status === 'pending' });
+      });
+    });
+    el.querySelectorAll('[data-arv-edit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-arv-edit'); });
+        const fields = [{ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' }];
+        if ('amount' in it) fields.push({ key: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' });
+        if ('days' in it) fields.push({ key: 'days', label: I18n.t('الأيام الإضافية'), type: 'number' });
+        fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+        VS.openGenericEdit({ ctx: ctx, title: I18n.t('تعديل الطلب'), collection: tab, id: it.id, item: it, fields: fields });
+      });
+    });
+    el.querySelectorAll('[data-arv-del]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-arv-del'); });
+        VS.genericDelete(ctx, tab, it.id, it.title);
       });
     });
   }
@@ -733,7 +856,7 @@
     el.innerHTML =
       '<div class="grid" style="grid-template-columns:1.4fr 1fr">' +
       '<div class="card"><h3>👷 ' + I18n.t('مقاولو المشروع') + '</h3><div class="tbl-wrap"><table class="tbl"><thead><tr>' +
-      '<th>' + I18n.t('المقاول') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('قيمة العقد') + '</th><th>' + I18n.t('المدة') + '</th><th>' + I18n.t('الإنجاز') + '</th><th>' + I18n.t('حساب الدخول') + '</th></tr></thead><tbody>' +
+      '<th>' + I18n.t('المقاول') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('قيمة العقد') + '</th><th>' + I18n.t('المدة') + '</th><th>' + I18n.t('الإنجاز') + '</th><th>' + I18n.t('حساب الدخول') + '</th><th>' + I18n.t('إجراءات') + '</th></tr></thead><tbody>' +
       sums.map(function (s) {
         const d = discOf(ctx, s.type);
         const acc = (ctx.S.users || []).find(function (u) { return u.contractorId === s.id; });
@@ -742,10 +865,16 @@
           '<td>' + money(s.contractValue) + '</td>' +
           '<td class="small muted num">' + esc(s.startDate) + '<br>' + esc(s.endDate) + '</td>' +
           '<td><b class="num">' + s.progress + '%</b></td>' +
-          '<td class="small">' + (acc ? '👤 <b class="num">' + esc(acc.username) + '</b>' : '<span class="muted">' + I18n.t('بلا حساب') + '</span>') + '</td></tr>';
+          '<td class="small">' + (acc ? '👤 <b class="num">' + esc(acc.username) + '</b>' : '<span class="muted">' + I18n.t('بلا حساب') + '</span>') + '</td>' +
+          '<td class="flex" style="gap:4px;flex-wrap:nowrap">' +
+          '<button class="btn ghost sm" data-edit-c="' + esc(s.id) + '">✏️ ' + I18n.t('تعديل') + '</button>' +
+          (ctx.U.role === 'admin' ? '<button class="btn danger sm" data-del-c="' + esc(s.id) + '">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
+          '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مقاول جديد') + '</h3>' +
+      '<label class="fl">' + I18n.t('المشروع') + '</label><select class="inp" id="nc-project">' +
+      (ctx.Sall.projects || ctx.S.projects).map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === ctx.projectId ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>' +
       '<label class="fl">' + I18n.t('اسم المقاول') + '</label><input class="inp" id="nc-name" placeholder="' + I18n.t('شركة ...') + '">' +
       '<label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="nc-type">' +
       ctx.S.projects[0].disciplines.map(function (d) { return '<option value="' + d.id + '">' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select>' +
@@ -753,125 +882,22 @@
       '<div><label class="fl">' + I18n.t('الجوال') + '</label><input class="inp num" id="nc-phone" placeholder="05xxxxxxxx"></div></div>' +
       '<div class="grid g2"><div><label class="fl">' + I18n.t('تاريخ البدء') + '</label><input class="inp" id="nc-start" type="date"></div>' +
       '<div><label class="fl">' + I18n.t('تاريخ الانتهاء') + '</label><input class="inp" id="nc-end" type="date"></div></div>' +
-      '<label class="fl">' + I18n.t('بنود جدول الكميات') + '</label><div id="nc-boq"></div>' +
-      '<div class="flex" style="gap:8px;flex-wrap:wrap">' +
-      '<button class="btn ghost sm" id="nc-addrow">' + I18n.t('+ إضافة بند') + '</button>' +
-      '<button class="btn ghost sm" id="nc-csv-import">📤 ' + I18n.t('استيراد من CSV') + '</button>' +
-      '<button class="btn ghost sm" id="nc-csv-template">⬇ ' + I18n.t('تنزيل نموذج CSV') + '</button>' +
-      '<input type="file" id="nc-csv-file" accept=".csv,text/csv" style="display:none"></div>' +
       '<label class="fl">' + I18n.t('اسم مستخدم للمقاول (لإنشاء حساب دخول)') + '</label><input class="inp" id="nc-user" placeholder="cont-name">' +
       '<label class="fl">' + I18n.t('البريد الإلكتروني (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="nc-email" type="email" placeholder="name@example.com" dir="ltr">' +
       '<label class="fl">' + I18n.t('كلمة المرور (اتركها فارغة للتوليد التلقائي)') + '</label><input class="inp" id="nc-pass" placeholder="••••••••">' +
       '<div class="m-actions"><button class="btn block" id="nc-save">' + I18n.t('حفظ المقاول وإنشاء الحساب') + '</button></div>' +
       '</div></div>';
 
-    const boqWrap = el.querySelector('#nc-boq');
-    function addRow() {
-      const r = document.createElement('div');
-      r.className = 'grid'; r.style.cssText = 'grid-template-columns:2fr 1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px';
-      r.innerHTML = '<input class="inp" placeholder="' + I18n.t('وصف البند') + '" data-f="description">' +
-        '<input class="inp" placeholder="' + I18n.t('الوحدة') + '" data-f="unit">' +
-        '<input class="inp num" type="number" placeholder="' + I18n.t('كمية') + '" data-f="qty">' +
-        '<input class="inp num" type="number" placeholder="' + I18n.t('سعر') + '" data-f="unitPrice">' +
-        '<select class="inp" data-f="floor">' + ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>';
-      boqWrap.appendChild(r);
-    }
-    addRow();
-    el.querySelector('#nc-addrow').addEventListener('click', addRow);
-
-    // ============ استيراد بنود الكميات من CSV ============
-    // بلا أي مكتبة خارجية (لتفادي ثغرات معروفة غير مُصلَحة في مكتبات قراءة Excel/xlsx على npm حالياً) —
-    // يدعم CSV مباشرة (يُصدَّر بسهولة من Excel عبر "حفظ باسم CSV")، بمطابقة عناوين أعمدة عربية/إنجليزية مرنة.
-    function parseCsv(text) {
-      const rows = [];
-      let row = [], field = '', inQuotes = false;
-      for (let i = 0; i < text.length; i++) {
-        const c = text[i], next = text[i + 1];
-        if (inQuotes) {
-          if (c === '"' && next === '"') { field += '"'; i++; }
-          else if (c === '"') { inQuotes = false; }
-          else field += c;
-        } else if (c === '"') { inQuotes = true; }
-        else if (c === ',') { row.push(field); field = ''; }
-        else if (c === '\r') { /* تجاهل */ }
-        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-        else field += c;
-      }
-      if (field.length || row.length) { row.push(field); rows.push(row); }
-      return rows.filter(function (r) { return r.some(function (c) { return String(c).trim(); }); });
-    }
-    const COL_ALIASES = {
-      description: ['description', 'item', 'وصف', 'الوصف', 'وصف البند'],
-      unit: ['unit', 'وحدة', 'الوحدة'],
-      qty: ['qty', 'quantity', 'كمية', 'الكمية'],
-      unitPrice: ['unitprice', 'price', 'سعر', 'سعرالوحدة', 'سعر الوحدة'],
-      floor: ['floor', 'دور', 'الدور']
-    };
-    function norm(s) { return String(s || '').trim().toLowerCase().replace(/\s+/g, ''); }
-    function matchColumn(header) {
-      const h = norm(header);
-      let found = null;
-      Object.keys(COL_ALIASES).forEach(function (key) {
-        if (COL_ALIASES[key].some(function (a) { return norm(a) === h; })) found = key;
-      });
-      return found;
-    }
-    function importCsvRows(rows) {
-      if (!rows.length) { toast(I18n.t('الملف فارغ'), true); return; }
-      const header = rows[0].map(matchColumn);
-      if (header.indexOf('description') === -1) { toast(I18n.t('لم يُعثر على عمود "الوصف" في الملف — راجع نموذج CSV'), true); return; }
-      const floorIds = ctx.S.projects[0].floors.map(function (f) { return f.id; });
-      let added = 0;
-      rows.slice(1).forEach(function (r) {
-        const rec = {};
-        header.forEach(function (key, i) { if (key) rec[key] = (r[i] || '').trim(); });
-        if (!rec.description) return;
-        addRow();
-        const last = boqWrap.lastElementChild;
-        if (rec.description) last.querySelector('[data-f="description"]').value = rec.description;
-        if (rec.unit) last.querySelector('[data-f="unit"]').value = rec.unit;
-        if (rec.qty) last.querySelector('[data-f="qty"]').value = rec.qty;
-        if (rec.unitPrice) last.querySelector('[data-f="unitPrice"]').value = rec.unitPrice;
-        if (rec.floor && floorIds.indexOf(rec.floor) !== -1) last.querySelector('[data-f="floor"]').value = rec.floor;
-        added++;
-      });
-      toast('✅ ' + I18n.t('استُوردت') + ' ' + added + ' ' + I18n.t('بند'));
-    }
-    el.querySelector('#nc-csv-import').addEventListener('click', function () { el.querySelector('#nc-csv-file').click(); });
-    el.querySelector('#nc-csv-file').addEventListener('change', async function (ev) {
-      const file = ev.target.files[0];
-      if (!file) return;
-      try {
-        const text = await file.text();
-        importCsvRows(parseCsv(text));
-      } catch (e) { toast(I18n.t('تعذّرت قراءة الملف'), true); }
-      ev.target.value = '';
-    });
-    el.querySelector('#nc-csv-template').addEventListener('click', function () {
-      const csv = 'description,unit,qty,unitPrice,floor\n' +
-        (I18n.t('مثال: أعمال خرسانة الأساسات') + ',م3,120,450,' + (ctx.S.projects[0].floors[0] ? ctx.S.projects[0].floors[0].id : 'GF')) + '\n';
-      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'boq-template.csv'; document.body.appendChild(a); a.click(); a.remove();
-      URL.revokeObjectURL(url);
-    });
-
     el.querySelector('#nc-save').addEventListener('click', async function () {
       const name = el.querySelector('#nc-name').value.trim();
       if (!name) { toast(I18n.t('أدخل اسم المقاول'), true); return; }
-      const boqItems = Array.prototype.map.call(boqWrap.children, function (r) {
-        const o = {};
-        r.querySelectorAll('[data-f]').forEach(function (i) { o[i.getAttribute('data-f')] = i.value; });
-        return o;
-      }).filter(function (o) { return o.description; });
       try {
         const res = await Api.addContractor({
           name: name, type: el.querySelector('#nc-type').value,
-          projectId: ctx.projectId, // اربط المقاول بالمشروع الحالي (وإلا يذهب افتراضياً لأول مشروع فيختفي)
+          projectId: el.querySelector('#nc-project').value,
           contractValue: el.querySelector('#nc-value').value,
           phone: el.querySelector('#nc-phone').value,
           startDate: el.querySelector('#nc-start').value, endDate: el.querySelector('#nc-end').value,
-          boqItems: boqItems,
           username: el.querySelector('#nc-user').value.trim() || null,
           email: el.querySelector('#nc-email').value.trim() || null,
           password: el.querySelector('#nc-pass').value || null
@@ -880,8 +906,57 @@
           modal('<h3>✅ ' + I18n.t('تم إنشاء المقاول وحسابه') + '</h3><div class="m-sub">' + I18n.t('سلّم هذه البيانات للمقاول للدخول على صفحة المشروع:') + '</div>' +
             '<div class="card" style="padding:16px"><div>' + I18n.t('👤 اسم المستخدم: ') + '<b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">' + I18n.t('🔑 كلمة المرور: ') + '<b class="num">' + esc(res.account.password) + '</b></div></div>' +
-            '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم') + '</button></div>');
+            '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم') + '</button></div>');
         } else toast(I18n.t('✅ تمت إضافة المقاول'));
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
+
+    el.querySelectorAll('[data-edit-c]').forEach(function (b) {
+      b.addEventListener('click', function () { openEditContractor(ctx, b.getAttribute('data-edit-c')); });
+    });
+    el.querySelectorAll('[data-del-c]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        const id = b.getAttribute('data-del-c');
+        const c = ctx.S.contractors.find(function (x) { return x.id === id; });
+        if (!confirm(I18n.t('سيُحذف المقاول نهائياً مع بنود جدول كمياته وحساب دخوله — هل أنت متأكد؟') + (c ? ' (' + c.name + ')' : ''))) return;
+        try {
+          await Api.deleteContractor(id);
+          toast('✅ ' + I18n.t('تم حذف المقاول'));
+          ctx.refresh();
+        } catch (e) { toast(e.message, true); }
+      });
+    });
+  }
+
+  /** تعديل بيانات مقاول قائم */
+  function openEditContractor(ctx, id) {
+    const c = ctx.S.contractors.find(function (x) { return x.id === id; });
+    if (!c) return;
+    const m = modal(
+      '<h3>✏️ ' + I18n.t('تعديل بيانات المقاول') + '</h3>' +
+      '<label class="fl">' + I18n.t('اسم المقاول') + '</label><input class="inp" id="ec-name" value="' + esc(c.name) + '">' +
+      '<label class="fl">' + I18n.t('التخصص') + '</label><select class="inp" id="ec-type">' +
+      ctx.S.projects[0].disciplines.map(function (d) { return '<option value="' + d.id + '"' + (d.id === c.type ? ' selected' : '') + '>' + d.icon + ' ' + esc(d.name) + '</option>'; }).join('') + '</select>' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('قيمة العقد (ر.س)') + '</label><input class="inp num" id="ec-value" type="number" value="' + (Number(c.contractValue) || 0) + '"></div>' +
+      '<div><label class="fl">' + I18n.t('الجوال') + '</label><input class="inp num" id="ec-phone" value="' + esc(c.phone || '') + '"></div></div>' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('تاريخ البدء') + '</label><input class="inp" id="ec-start" type="date" value="' + esc(c.startDate || '') + '"></div>' +
+      '<div><label class="fl">' + I18n.t('تاريخ الانتهاء') + '</label><input class="inp" id="ec-end" type="date" value="' + esc(c.endDate || '') + '"></div></div>' +
+      '<div class="m-actions"><button class="btn" id="ec-save">' + I18n.t('حفظ التعديلات') + '</button><button class="btn mutedb" id="ec-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#ec-cancel').addEventListener('click', function () { m.remove(); });
+    m.querySelector('#ec-save').addEventListener('click', async function () {
+      const name = m.querySelector('#ec-name').value.trim();
+      if (!name) { toast(I18n.t('أدخل اسم المقاول'), true); return; }
+      try {
+        await Api.update('contractors', id, {
+          name: name, type: m.querySelector('#ec-type').value,
+          contractValue: Number(m.querySelector('#ec-value').value) || 0,
+          phone: m.querySelector('#ec-phone').value,
+          startDate: m.querySelector('#ec-start').value, endDate: m.querySelector('#ec-end').value
+        });
+        m.remove();
+        toast('✅ ' + I18n.t('تم حفظ التعديلات'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
@@ -891,7 +966,7 @@
   const boqState = { contractor: 'all' };
 
   function renderBoq(el, ctx) {
-    const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1;
+    const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1;
     const items = ctx.S.boqItems.filter(function (b) {
       return boqState.contractor === 'all' || b.contractorId === boqState.contractor;
     });
@@ -913,7 +988,7 @@
       '<span class="pill p-info">' + I18n.t('القيمة: ') + money(Math.round(total)) + '</span>' +
       '<span class="pill p-ok">' + I18n.t('المنفذ: ') + money(Math.round(earned)) + ' (' + (total ? Math.round(earned / total * 100) : 0) + '%)</span></div>' +
       '<div class="tbl-wrap" style="max-height:60vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th></tr></thead><tbody>' +
+      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       items.map(function (b) {
         const d = discOf(ctx, b.discipline);
         return '<tr><td class="num small">' + esc(b.code) + '</td>' +
@@ -925,7 +1000,11 @@
           '<td><div class="flex">' +
           (canEdit ? '<input type="range" min="0" max="100" value="' + b.progress + '" data-bq="' + b.id + '" style="flex:1;accent-color:' + d.color + '">' :
             '<div class="bar" style="flex:1"><i style="width:' + b.progress + '%"></i></div>') +
-          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td></tr>';
+          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td>' +
+          (canEdit ? '<td><div class="flex" style="gap:6px;flex-wrap:nowrap">' +
+            '<button class="btn ghost sm" data-bqedit="' + b.id + '">✏️</button>' +
+            (VS.canDelete(ctx, 'boqItems') ? '<button class="btn danger sm" data-bqdel="' + b.id + '">🗑️</button>' : '') +
+            '</div></td>' : '') + '</tr>';
       }).join('') + '</tbody></table></div></div>';
 
     el.querySelector('#bq-filter').addEventListener('change', function (e) {
@@ -993,6 +1072,27 @@
       });
     });
     if (window.ViewsExtra && window.ViewsExtra.wireBaselineReview) window.ViewsExtra.wireBaselineReview(el, ctx);
+    el.querySelectorAll('[data-bqedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-bqedit'); });
+        VS.openGenericEdit({
+          ctx: ctx, title: I18n.t('تعديل بند الكميات'), collection: 'boqItems', id: it.id, item: it,
+          fields: [
+            { key: 'code', label: I18n.t('الكود'), type: 'text' },
+            { key: 'description', label: I18n.t('وصف البند'), type: 'text' },
+            { key: 'unit', label: I18n.t('الوحدة'), type: 'text' },
+            { key: 'qty', label: I18n.t('الكمية'), type: 'number' },
+            { key: 'unitPrice', label: I18n.t('سعر الوحدة'), type: 'number' }
+          ]
+        });
+      });
+    });
+    el.querySelectorAll('[data-bqdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items.find(function (x) { return x.id === b.getAttribute('data-bqdel'); });
+        VS.genericDelete(ctx, 'boqItems', it.id, it.description);
+      });
+    });
   }
 
   // ============ إعداد التقارير (الاستشاري): يومي / أسبوعي / شهري ============
@@ -1026,7 +1126,8 @@
         '<h3>' + I18n.t('🗄️ أرشيف التقارير اليومية') + '</h3>' +
         ctx.S.dailyReports.map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
-            '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="small muted">' + I18n.t('عمالة: ') + r.manpower + ' · 📎 ' + ((r.photos || []).length + (r.attachments || []).length) + '</span></div>' +
+            '<div class="flex" style="justify-content:space-between"><b class="num">' + esc(r.date) + '</b><span class="flex" style="gap:8px"><span class="small muted">' + I18n.t('عمالة: ') + r.manpower + ' · 📎 ' + ((r.photos || []).length + (r.attachments || []).length) + '</span>' +
+            (VS.canDelete(ctx, 'dailyReports') ? '<button class="btn danger sm" data-drdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + (r.works || []).map(esc).join(' • ') + '</div></div>';
         }).join('');
     } else if (tab === 'weekly') {
@@ -1047,7 +1148,8 @@
         (ctx.S.weeklyReports || []).map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
             '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
-            '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+            '<span class="flex" style="gap:8px"><span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span>' +
+            (VS.canDelete(ctx, 'weeklyReports') ? '<button class="btn danger sm" data-wrrdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + esc(r.summary || '') + '</div>' +
             '<div class="small muted" style="margin-top:6px">📎 ' + ((r.photos || []).length + (r.attachments || []).length) + I18n.t(' مرفقات') + '</div></div>';
         }).join('');
@@ -1066,7 +1168,8 @@
         ctx.S.monthlyReports.map(function (r) {
           return '<div style="border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;background:var(--bg2)">' +
             '<div class="flex" style="justify-content:space-between"><b>' + esc(r.title) + '</b>' +
-            '<span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span></div>' +
+            '<span class="flex" style="gap:8px"><span class="pill ' + (r.progressActual < r.progressPlanned - 3 ? 'p-danger' : 'p-ok') + ' num">' + r.progressActual + '% / ' + r.progressPlanned + '%</span>' +
+            (VS.canDelete(ctx, 'monthlyReports') ? '<button class="btn danger sm" data-mrrdel="' + esc(r.id) + '">🗑️</button>' : '') + '</span></div>' +
             '<div class="small" style="margin-top:6px;color:#c6cdda">' + esc(r.summary || '') + '</div></div>';
         }).join('');
     }
@@ -1083,6 +1186,15 @@
 
     el.querySelectorAll('[data-rtab]').forEach(function (t) {
       t.addEventListener('click', function () { rptState.tab = t.getAttribute('data-rtab'); renderDailyReport(el, ctx); });
+    });
+    el.querySelectorAll('[data-drdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'dailyReports', b.getAttribute('data-drdel')); });
+    });
+    el.querySelectorAll('[data-wrrdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'weeklyReports', b.getAttribute('data-wrrdel')); });
+    });
+    el.querySelectorAll('[data-mrrdel]').forEach(function (b) {
+      b.addEventListener('click', function () { VS.genericDelete(ctx, 'monthlyReports', b.getAttribute('data-mrrdel')); });
     });
 
     const dSave = el.querySelector('#dr-save');
@@ -1145,9 +1257,12 @@
       '<div class="card"><h3>' + I18n.t('🏗️ مشاريع المالك') + ' <span class="hint">' + I18n.t('اضغط "فتح" للتنقل بين المشاريع — أو استخدم مبدّل المشروع أعلى الشاشة') + '</span></h3>' +
       (ctx.Sall || ctx.S).projects.map(function (p) {
         const active = ctx.projectId === p.id;
+        const isDraft = p.status === 'draft';
         return '<div style="border:1px solid ' + (active ? 'var(--accent)' : 'var(--border)') + ';border-radius:12px;padding:16px;margin-bottom:10px;background:var(--bg2)">' +
           '<div class="flex" style="justify-content:space-between"><b style="font-size:16px">' + esc(p.name) + '</b>' +
-          '<div class="flex">' + (active ? '<span class="pill p-ok">' + I18n.t('المشروع الحالي') + '</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">' + I18n.t('فتح المشروع ←') + '</button>') +
+          '<div class="flex">' + (isDraft ? '<span class="pill p-warn">📝 ' + I18n.t('مسودة') + '</span>' : '') +
+          (active ? '<span class="pill p-ok">' + I18n.t('المشروع الحالي') + '</span>' : '<button class="btn sm" data-open-proj="' + p.id + '">' + I18n.t('فتح المشروع ←') + '</button>') +
+          (isDraft ? '<button class="btn ghost sm" data-publish-proj="' + p.id + '">🔓 ' + I18n.t('نشر المشروع') + '</button>' : '') +
           '<span class="pill p-info num">' + (p.progressActual || 0) + '%</span></div></div>' +
           '<div class="small muted" style="margin:6px 0">' + esc(p.location || '—') + I18n.t(' · الميزانية ') + VS.millions(p.budgetPlanned || 0) + '</div>' +
           '<div class="small">' + I18n.t('👨‍💼 الاستشاري: ') + '<b>' + esc(p.consultantName || I18n.t('لم يعيّن')) + '</b></div></div>';
@@ -1175,6 +1290,7 @@
       '<div class="grid g2"><div><label class="fl">' + I18n.t('اسم مستخدم الاستشاري') + '</label><input class="inp" id="np-user" placeholder="consult-x"></div>' +
       '<div><label class="fl">' + I18n.t('كلمة المرور') + '</label><input class="inp" id="np-pass" placeholder="' + I18n.t('تلقائية إن تُركت') + '"></div></div>' +
       '<label class="fl">' + I18n.t('البريد الإلكتروني للاستشاري (لإشعارات الطلبات والردود)') + '</label><input class="inp" id="np-email" type="email" placeholder="name@example.com" dir="ltr">' +
+      '<label class="fl flex" style="cursor:pointer;margin-top:6px"><input type="checkbox" id="np-draft"> ' + I18n.t('حفظ كمسودة (لا يظهر لأحد سوى مَن تُسنِده لاحقاً، حتى تُنشره)') + '</label>' +
       '<div class="m-actions"><button class="btn block" id="np-save">' + I18n.t('إنشاء المشروع وحساب الاستشاري') + '</button></div></div></div>';
 
     // اختيار مدينة يملأ حقلي الإحداثيات تلقائياً
@@ -1262,13 +1378,14 @@
           consultantUsername: el.querySelector('#np-user').value.trim() || null,
           consultantPassword: el.querySelector('#np-pass').value || null,
           consultantEmail: el.querySelector('#np-email').value.trim() || null,
-          ownerName: ctx.S.projects[0].ownerName
+          ownerName: ctx.S.projects[0].ownerName,
+          status: el.querySelector('#np-draft').checked ? 'draft' : 'active'
         });
         if (res.account) {
           modal('<h3>✅ ' + I18n.t('أُنشئ المشروع وحساب الاستشاري') + '</h3><div class="m-sub">' + I18n.t('بيانات دخول الاستشاري:') + '</div>' +
             '<div class="card" style="padding:16px"><div>👤 <b class="num">' + esc(res.account.username) + '</b></div>' +
             '<div class="mt">🔑 <b class="num">' + esc(res.account.password) + '</b></div></div>' +
-            '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم') + '</button></div>');
+            '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم') + '</button></div>');
         } else toast(I18n.t('✅ أُنشئ المشروع — استخدم زر "فتح المشروع" أو المبدّل أعلى الشاشة للانتقال إليه'));
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
@@ -1279,39 +1396,53 @@
         ctx.nav('dashboard');
       });
     });
+    el.querySelectorAll('[data-publish-proj]').forEach(function (b) {
+      b.addEventListener('click', async function () {
+        try {
+          await Api.update('projects', b.getAttribute('data-publish-proj'), { status: 'active' });
+          toast('✅ ' + I18n.t('نُشر المشروع — أصبح مرئياً لكل مَن له صلاحية الاطلاع عليه'));
+          ctx.refresh();
+        } catch (e) { toast(e.message, true); }
+      });
+    });
   }
 
   // ============ إدارة المستخدمين ============
   const ROLE_NAMES = {
-    admin: 'مدير النظام', owner: 'المالك', owner_rep: 'ممثل المالك',
-    consultant: 'الاستشاري', contractor: 'مقاول'
+    admin: I18n.t('مدير النظام'), owner: I18n.t('المالك'), owner_rep: I18n.t('ممثل المالك'),
+    consultant: I18n.t('الاستشاري'), project_manager: I18n.t('مدير المشروع'), contractor: I18n.t('مقاول')
   };
 
   // وصف صلاحيات كل دور (يظهر عند اختيار الدور وفي مصفوفة الصلاحيات)
   const ROLE_META = {
     owner: {
       icon: '👁', color: 'p-info',
-      desc: 'مالك المشروع: اطلاع فقط على مشروعه المسند إليه — عين المالك، رؤية المشروع، الكاميرات، المقاولون، ذكاء بصير، التقارير. لا يضيف ولا يعدل شيئاً.',
+      desc: I18n.t('مالك المشروع: اطلاع فقط على مشروعه المسند إليه — عين المالك، رؤية المشروع، الكاميرات، المقاولون، ذكاء بصير، التقارير. لا يضيف ولا يعدل شيئاً.'),
       scope: 'project'
     },
     owner_rep: {
       icon: '🧑‍💼', color: 'p-info',
-      desc: 'ممثل المالك: يطلع على كامل ملفات ومعلومات جميع المشاريع + سجل النظام، ويضيف المشاريع ويعين الاستشاريين وينشئ المستخدمين ويرسل التقارير.',
+      desc: I18n.t('ممثل المالك: يطلع على كامل ملفات ومعلومات جميع المشاريع + سجل النظام، ويضيف المشاريع ويعين الاستشاريين وينشئ المستخدمين ويرسل التقارير.'),
       scope: 'all'
     },
     consultant: {
       icon: '📐', color: 'p-warn',
-      desc: 'الاستشاري (المكتب الفني): الاعتمادات والتوقيع، خدمات المكتب الفني الـ12، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، الكاميرات والتكامل. يمكن قصره على مشاريع محددة.',
+      desc: I18n.t('الاستشاري (المكتب الفني): الاعتمادات والتوقيع، خدمات المكتب الفني الـ12، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، الكاميرات والتكامل. يمكن قصره على مشاريع محددة.'),
       scope: 'project-optional'
+    },
+    project_manager: {
+      icon: '🧭', color: 'p-warn',
+      desc: I18n.t('مدير المشروع: نفس صلاحيات الاستشاري تقريباً — الاعتمادات، جداول الكميات، إدارة المقاولين وحساباتهم، المخططات والنماذج، التقارير، رفع المرفقات (PDF/Primavera/AutoCAD/Revit) — لكن مقصور دائماً على مشروعه الوحيد المسنَد إليه، لا يرى غيره.'),
+      scope: 'project-required'
     },
     contractor: {
       icon: '👷', color: 'p-muted',
-      desc: 'المقاول: يرى عقده وبنوده ومبالغه فقط، يرفع طلباته (مخططات، مواد، استلامات، مستخلصات، RFI...) ويتابع قراراتها، ويستقبل ما يوجهه له المكتب الفني.',
+      desc: I18n.t('المقاول: يرى عقده وبنوده ومبالغه فقط، يرفع طلباته (مخططات، مواد، استلامات، مستخلصات، RFI...) ويتابع قراراتها، ويستقبل ما يوجهه له المكتب الفني.'),
       scope: 'contractor'
     },
     admin: {
       icon: '⚙️', color: 'p-danger',
-      desc: 'أدمن النظام: كل الصفحات والصلاحيات + إدارة المستخدمين والحذف + سجل النظام + التكامل والإعدادات.',
+      desc: I18n.t('أدمن النظام: كل الصفحات والصلاحيات + إدارة المستخدمين والحذف + سجل النظام + التكامل والإعدادات.'),
       scope: 'all'
     }
   };
@@ -1334,8 +1465,8 @@
   function renderUsers(el, ctx) {
     el.innerHTML =
       // مصفوفة الصلاحيات
-      '<div class="card mb"><h3>🛡️ ' + I18n.t('مستويات النظام وصلاحياتها') + '</h3><div class="grid" style="grid-template-columns:repeat(5,1fr);gap:10px">' +
-      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+      '<div class="card mb"><h3>🛡️ ' + I18n.t('مستويات النظام وصلاحياتها') + '</h3><div class="grid" style="grid-template-columns:repeat(6,1fr);gap:10px">' +
+      ['owner', 'owner_rep', 'consultant', 'project_manager', 'contractor', 'admin'].map(function (r) {
         const m = ROLE_META[r];
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg2)">' +
           '<div style="font-size:20px">' + m.icon + '</div><b class="small">' + esc(I18n.t(ROLE_NAMES[r])) + '</b>' +
@@ -1349,18 +1480,21 @@
       (ctx.S.users || []).map(function (u) {
         const m = ROLE_META[u.role] || { icon: '👤', color: 'p-muted' };
         const chans = [];
-        if (u.notifyEmail !== false && u.email) chans.push('<span class="pill p-info" style="font-size:10px" title="' + esc(u.email) + '">📧 بريد</span>');
-        if (u.notifyWhatsapp && u.phone) chans.push('<span class="pill p-ok" style="font-size:10px" title="' + esc(u.phone) + '">💬 واتساب</span>');
+        if (u.notifyEmail !== false && u.email) chans.push('<span class="pill p-info" style="font-size:10px" title="' + esc(u.email) + '">📧 ' + I18n.t('بريد') + '</span>');
+        if (u.notifyWhatsapp && u.phone) chans.push('<span class="pill p-ok" style="font-size:10px" title="' + esc(u.phone) + '">💬 ' + I18n.t('واتساب') + '</span>');
         return '<tr><td><b>' + esc(u.name) + '</b></td><td class="num">' + esc(u.username) + '</td>' +
           '<td><span class="pill ' + m.color + '">' + m.icon + ' ' + esc(I18n.t(ROLE_NAMES[u.role] || u.role)) + '</span></td>' +
           '<td class="small">' + userScopeLabel(ctx, u) + '</td>' +
           '<td class="small">' + (chans.length ? chans.join(' ') : '<span class="muted">' + I18n.t('داخل النظام فقط') + '</span>') + '</td>' +
-          '<td>' + (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">' + I18n.t('حذف') + '</button>' : '') + '</td></tr>';
+          '<td class="flex" style="gap:4px;flex-wrap:nowrap">' +
+          (u.username !== 'admin' ? '<button class="btn ghost sm" data-edit-u="' + u.id + '">✏️ ' + I18n.t('تعديل') + '</button>' : '') +
+          (u.username !== 'admin' && u.id !== ctx.U.id ? '<button class="btn danger sm" data-del="' + u.id + '">' + I18n.t('حذف') + '</button>' : '') +
+          '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
       '<div class="card"><h3>➕ ' + I18n.t('إضافة مستخدم') + '</h3>' +
       '<label class="fl">' + I18n.t('الدور') + '</label><select class="inp" id="nu-role">' +
-      ['owner', 'owner_rep', 'consultant', 'contractor', 'admin'].map(function (r) {
+      ['owner', 'owner_rep', 'consultant', 'project_manager', 'contractor', 'admin'].map(function (r) {
         return '<option value="' + r + '">' + ROLE_META[r].icon + ' ' + I18n.t(ROLE_NAMES[r]) + '</option>';
       }).join('') + '</select>' +
       '<div class="small muted" id="nu-desc" style="margin-top:8px;line-height:1.8"></div>' +
@@ -1379,14 +1513,43 @@
     function drawScope() {
       const r = roleSel.value;
       descBox.textContent = I18n.t(ROLE_META[r].desc);
+      const allProjects = (ctx.Sall || ctx.S).projects;
       if (r === 'contractor') {
-        scopeBox.innerHTML = '<label class="fl">' + I18n.t('ربط بالمقاول') + '</label><select class="inp" id="nu-cont">' +
-          ctx.S.contractors.map(function (c) { return '<option value="' + c.id + '">' + esc(c.name) + '</option>'; }).join('') + '</select>';
-      } else if (r === 'owner' || r === 'consultant') {
-        scopeBox.innerHTML = '<label class="fl">' + I18n.t(r === 'owner' ? 'مشروع المالك (يرى صفحة مشروعه فقط)' : 'المشاريع المسندة (اتركها كلها فارغة = جميع المشاريع)') + '</label>' +
-          (ctx.Sall || ctx.S).projects.map(function (p) {
+        // اختيار المشروع هنا فلتر فقط لقائمة «ربط بالمقاول» أدناه — مشروع الحساب الفعلي محدَّد
+        // مسبقاً على سجل المقاول نفسه (من صفحة المقاولين)، ولا يُعاد تحديده من هنا
+        scopeBox.innerHTML =
+          (allProjects.length > 1 ? '<label class="fl">' + I18n.t('المشروع') + '</label><select class="inp" id="nu-project">' +
+            allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === ctx.projectId ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>' : '') +
+          '<label class="fl">' + I18n.t('ربط بالمقاول') + '</label><select class="inp" id="nu-cont"></select>' +
+          '<div class="small muted mt" id="nu-cont-empty" hidden>' + I18n.t('لا يوجد مقاولون في هذا المشروع — أضف مقاولاً أولاً من صفحة المقاولين') + '</div>';
+        const projSel = scopeBox.querySelector('#nu-project');
+        const contSel = scopeBox.querySelector('#nu-cont');
+        const emptyMsg = scopeBox.querySelector('#nu-cont-empty');
+        function fillContractors() {
+          const pid = projSel ? projSel.value : (allProjects[0] && allProjects[0].id);
+          const list = ((ctx.Sall || ctx.S).contractors || []).filter(function (c) { return c.projectId === pid; });
+          contSel.innerHTML = list.map(function (c) { return '<option value="' + esc(c.id) + '">' + esc(c.name) + '</option>'; }).join('');
+          contSel.hidden = !list.length;
+          emptyMsg.hidden = !!list.length;
+        }
+        fillContractors();
+        if (projSel) projSel.addEventListener('change', fillContractors);
+      } else if (r === 'consultant') {
+        // مشروع واحد يقيّد الاستشاري بمشروعه فقط — أو «كل المشاريع» ليبقى بلا تقييد (الافتراضي الحالي)
+        scopeBox.innerHTML =
+          '<label class="fl">' + I18n.t('المشروع (يرى بياناته فقط)') + '</label><select class="inp" id="nu-project">' +
+          '<option value="">🗂️ ' + I18n.t('كل المشاريع') + '</option>' +
+          allProjects.map(function (p) { return '<option value="' + esc(p.id) + '">🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+      } else if (r === 'project_manager') {
+        // مدير المشروع مقصور دائماً على مشروع واحد — لا خيار «كل المشاريع» إطلاقاً
+        scopeBox.innerHTML =
+          '<label class="fl">' + I18n.t('المشروع (إلزامي — يرى بياناته فقط)') + '</label><select class="inp" id="nu-project">' +
+          allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === ctx.projectId ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+      } else if (r === 'owner') {
+        scopeBox.innerHTML = '<label class="fl">' + I18n.t('مشروع المالك (يرى صفحة مشروعه فقط)') + '</label>' +
+          allProjects.map(function (p) {
             return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="nu-proj" value="' + p.id + '"' +
-              (r === 'owner' && (ctx.Sall || ctx.S).projects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+              (allProjects.length === 1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
           }).join('');
       } else {
         scopeBox.innerHTML = '';
@@ -1409,9 +1572,21 @@
         notifyEmail: true, notifyWhatsapp: !!el.querySelector('#nu-phone').value.trim()
       };
       const contSel = el.querySelector('#nu-cont');
-      if (contSel) data.contractorId = contSel.value;
+      if (role === 'contractor') {
+        if (!contSel || !contSel.value) { toast(I18n.t('اختر المقاول المطلوب ربط الحساب به'), true); return; }
+        data.contractorId = contSel.value;
+      }
       const projChecks = el.querySelectorAll('.nu-proj:checked');
       if (projChecks.length) data.projectIds = Array.prototype.map.call(projChecks, function (c) { return c.value; });
+      if (role === 'consultant') {
+        const projSel = el.querySelector('#nu-project');
+        if (projSel && projSel.value) data.projectIds = [projSel.value];
+      }
+      if (role === 'project_manager') {
+        const projSel = el.querySelector('#nu-project');
+        if (!projSel || !projSel.value) { toast(I18n.t('حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع'), true); return; }
+        data.projectIds = [projSel.value];
+      }
       if (role === 'owner' && !data.projectIds) { toast(I18n.t('حدد مشروع المالك — المالك يرى صفحة مشروعه'), true); return; }
       try {
         const created = await Api.create('users', data);
@@ -1421,7 +1596,7 @@
           '<div>' + ROLE_META[role].icon + ' <b>' + esc(name) + '</b> — ' + esc(I18n.t(ROLE_NAMES[role])) + '</div>' +
           '<div class="mt">' + I18n.t('👤 اسم المستخدم: ') + '<b class="num">' + esc(username) + '</b></div>' +
           '<div class="mt">' + I18n.t('🔑 كلمة المرور: ') + '<b class="num">' + esc(created.password || data.password) + '</b></div></div>' +
-          '<div class="m-actions"><button class="btn" onclick="this.closest(\'.modal-back\').remove()">' + I18n.t('تم التسليم') + '</button></div>');
+          '<div class="m-actions"><button class="btn" data-close-modal="1">' + I18n.t('تم التسليم') + '</button></div>');
         ctx.refresh();
       } catch (e) { toast(e.message, true); }
     });
@@ -1433,14 +1608,107 @@
         catch (e) { toast(e.message, true); }
       });
     });
+    el.querySelectorAll('[data-edit-u]').forEach(function (b) {
+      b.addEventListener('click', function () { openEditUser(ctx, b.getAttribute('data-edit-u')); });
+    });
+  }
+
+  /** تعديل حساب مستخدم قائم — الاسم والتواصل، وربطه بمقاول/مشاريع محدَّدة، وإعادة تعيين كلمة المرور اختيارياً */
+  function openEditUser(ctx, id) {
+    const u = (ctx.S.users || []).find(function (x) { return x.id === id; });
+    if (!u) return;
+    const allProjects = (ctx.Sall || ctx.S).projects;
+    let scopeHtml = '';
+    if (u.role === 'contractor') {
+      const projOfCurrent = (function () {
+        const c = (ctx.Sall || ctx.S).contractors.find(function (x) { return x.id === u.contractorId; });
+        return c ? c.projectId : ((allProjects[0] && allProjects[0].id) || '');
+      })();
+      scopeHtml =
+        (allProjects.length > 1 ? '<label class="fl">' + I18n.t('المشروع') + '</label><select class="inp" id="eu-project">' +
+          allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === projOfCurrent ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>' : '') +
+        '<label class="fl">' + I18n.t('ربط بالمقاول') + '</label><select class="inp" id="eu-cont"></select>';
+    } else if (u.role === 'consultant') {
+      const cur = (u.projectIds && u.projectIds[0]) || '';
+      scopeHtml = '<label class="fl">' + I18n.t('المشروع (يرى بياناته فقط)') + '</label><select class="inp" id="eu-project">' +
+        '<option value="">🗂️ ' + I18n.t('كل المشاريع') + '</option>' +
+        allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+    } else if (u.role === 'project_manager') {
+      const cur = (u.projectIds && u.projectIds[0]) || '';
+      scopeHtml = '<label class="fl">' + I18n.t('المشروع (إلزامي — يرى بياناته فقط)') + '</label><select class="inp" id="eu-project">' +
+        allProjects.map(function (p) { return '<option value="' + esc(p.id) + '"' + (p.id === cur ? ' selected' : '') + '>🏗️ ' + esc(p.name) + '</option>'; }).join('') + '</select>';
+    } else if (u.role === 'owner') {
+      const cur = u.projectIds || [];
+      scopeHtml = '<label class="fl">' + I18n.t('مشروع المالك (يرى صفحة مشروعه فقط)') + '</label>' +
+        allProjects.map(function (p) {
+          return '<label class="fl flex" style="cursor:pointer;margin:4px 0"><input type="checkbox" class="eu-proj" value="' + esc(p.id) + '"' +
+            (cur.indexOf(p.id) !== -1 ? ' checked' : '') + '> 🏗️ ' + esc(p.name) + '</label>';
+        }).join('');
+    }
+    const m = modal(
+      '<h3>✏️ ' + I18n.t('تعديل بيانات المستخدم') + '</h3>' +
+      '<label class="fl">' + I18n.t('الاسم الكامل') + '</label><input class="inp" id="eu-name" value="' + esc(u.name) + '">' +
+      '<div class="grid g2"><div><label class="fl">' + I18n.t('البريد الإلكتروني (للإشعارات)') + '</label><input class="inp num" id="eu-email" type="email" dir="ltr" value="' + esc(u.email || '') + '"></div>' +
+      '<div><label class="fl">' + I18n.t('الجوال (واتساب)') + '</label><input class="inp num" id="eu-phone" dir="ltr" value="' + esc(u.phone || '') + '"></div></div>' +
+      '<label class="fl">' + I18n.t('كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)') + '</label><input class="inp num" id="eu-pass" placeholder="••••••••" dir="ltr">' +
+      '<div id="eu-scope">' + scopeHtml + '</div>' +
+      '<div class="m-actions"><button class="btn" id="eu-save">' + I18n.t('حفظ التعديلات') + '</button><button class="btn mutedb" id="eu-cancel">' + I18n.t('إلغاء') + '</button></div>'
+    );
+    m.querySelector('#eu-cancel').addEventListener('click', function () { m.remove(); });
+
+    if (u.role === 'contractor') {
+      const projSel = m.querySelector('#eu-project');
+      const contSel = m.querySelector('#eu-cont');
+      function fillContractors() {
+        const pid = projSel ? projSel.value : (allProjects[0] && allProjects[0].id);
+        const list = ((ctx.Sall || ctx.S).contractors || []).filter(function (c) { return c.projectId === pid; });
+        contSel.innerHTML = list.map(function (c) { return '<option value="' + esc(c.id) + '"' + (c.id === u.contractorId ? ' selected' : '') + '>' + esc(c.name) + '</option>'; }).join('');
+      }
+      fillContractors();
+      if (projSel) projSel.addEventListener('change', fillContractors);
+    }
+
+    m.querySelector('#eu-save').addEventListener('click', async function () {
+      const name = m.querySelector('#eu-name').value.trim();
+      if (!name) { toast(I18n.t('أدخل اسم المستخدم')); return; }
+      const patch = {
+        name: name,
+        email: m.querySelector('#eu-email').value.trim(),
+        phone: m.querySelector('#eu-phone').value.trim()
+      };
+      const newPass = m.querySelector('#eu-pass').value;
+      if (newPass) patch.password = newPass;
+      if (u.role === 'contractor') {
+        const contSel = m.querySelector('#eu-cont');
+        if (!contSel || !contSel.value) { toast(I18n.t('اختر المقاول المطلوب ربط الحساب به'), true); return; }
+        patch.contractorId = contSel.value;
+      } else if (u.role === 'consultant') {
+        const projSel = m.querySelector('#eu-project');
+        patch.projectIds = (projSel && projSel.value) ? [projSel.value] : null;
+      } else if (u.role === 'project_manager') {
+        const projSel = m.querySelector('#eu-project');
+        if (!projSel || !projSel.value) { toast(I18n.t('حدد مشروع مدير المشروع — لا يمكن أن يبقى بلا مشروع'), true); return; }
+        patch.projectIds = [projSel.value];
+      } else if (u.role === 'owner') {
+        const checks = m.querySelectorAll('.eu-proj:checked');
+        if (!checks.length) { toast(I18n.t('حدد مشروع المالك — المالك يرى صفحة مشروعه'), true); return; }
+        patch.projectIds = Array.prototype.map.call(checks, function (c) { return c.value; });
+      }
+      try {
+        await Api.update('users', id, patch);
+        m.remove();
+        toast('✅ ' + I18n.t('تم حفظ التعديلات'));
+        ctx.refresh();
+      } catch (e) { toast(e.message, true); }
+    });
   }
 
   // ============ سجل النظام (Audit Log) ============
   const AUDIT_ACTIONS = {
-    login: ['🔑', 'دخول', 'p-info'], create: ['➕', 'إضافة', 'p-ok'],
-    update: ['✏️', 'تعديل', 'p-warn'], delete: ['🗑️', 'حذف', 'p-danger'],
-    review: ['✍️', 'قرار اعتماد', 'p-info'], send: ['📨', 'إرسال تقرير', 'p-ok'],
-    upload: ['📎', 'رفع ملف', 'p-muted'], snapshot: ['📸', 'لقطة كاميرا', 'p-muted']
+    login: ['🔑', I18n.t('دخول'), 'p-info'], create: ['➕', I18n.t('إضافة'), 'p-ok'],
+    update: ['✏️', I18n.t('تعديل'), 'p-warn'], delete: ['🗑️', I18n.t('حذف'), 'p-danger'],
+    review: ['✍️', I18n.t('قرار اعتماد'), 'p-info'], send: ['📨', I18n.t('إرسال تقرير'), 'p-ok'],
+    upload: ['📎', I18n.t('رفع ملف'), 'p-muted'], snapshot: ['📸', I18n.t('لقطة كاميرا'), 'p-muted']
   };
   const auditState = { filter: 'all', q: '' };
 
@@ -1530,13 +1798,15 @@
       '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + I18n.t('المرجع') + '</th><th>' + I18n.t('المخطط') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('المنطقة') + '</th><th>' + I18n.t('التخصص') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الربط') + '</th></tr></thead><tbody>' +
       (ctx.S.planDrawings || []).map(function (dr) {
         const d = discOf(ctx, dr.discipline);
+        const nLinked = (ctx.S.drawingMappings || []).filter(function (m) { return m.drawingId === dr.id; }).length;
         const zoneLbl = (dr.zone == null || dr.zone === '') ? I18n.t('كامل الدور') : I18n.t((VS.ZONE_NAMES || [])[Number(dr.zone)] || ('منطقة ' + dr.zone));
         return '<tr><td class="num small"><b>' + esc(dr.ref) + '</b></td><td>' + esc(dr.title) + '<div class="small muted">📎 ' + VS.att(dr.file) + '</div></td>' +
           '<td class="small">' + (dr.floor === 'ELEV' ? I18n.t('الواجهات') : esc(VS.floorName(ctx, dr.floor))) + '</td>' +
           '<td class="small">' + esc(zoneLbl) + '</td>' +
           '<td class="small">' + d.icon + ' ' + esc(d.name) + '</td>' +
           '<td class="small muted num">' + esc(dr.date || '') + '</td>' +
-          '<td><span class="pill p-ok">' + I18n.t('مربوط بجدول الكميات ✓') + '</span></td></tr>';
+          '<td>' + (nLinked ? '<span class="pill p-ok">' + nLinked + ' ' + I18n.t('منطقة مربوطة') + '</span>' : '<span class="pill p-muted">' + I18n.t('غير مربوط') + '</span>') + '</td>' +
+          '<td><button class="btn ghost sm" data-dview="' + esc(dr.id) + '">' + I18n.t('فتح') + ' ↗</button></td></tr>';
       }).join('') + '</tbody></table></div></div>';
 
     el.querySelector('#bim-up').addEventListener('click', async function () {
@@ -1558,7 +1828,7 @@
     el.querySelectorAll('[data-dview]').forEach(function (b) {
       b.addEventListener('click', function () {
         const dr = (ctx.S.planDrawings || []).find(function (x) { return x.id === b.getAttribute('data-dview'); });
-        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false });
+        if (dr) window.DrawingViewer.open(ctx, 'planDrawings', dr, { canEdit: true, canReview: false, showMap: true, canMap: ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1 });
       });
     });
     el.querySelector('#pd-add').addEventListener('click', async function () {
@@ -1586,10 +1856,10 @@
 
   // ============ صفحات المقاول ============
   const CONT_TABS = APPROVAL_TABS.concat([
-    { col: 'rfis', name: 'استفسارات RFI', icon: '❓' },
-    { col: 'rfps', name: 'طلبات العروض RFP', icon: '📮' },
-    { col: 'methodStatements', name: 'أساليب التنفيذ وITP', icon: '🧾' },
-    { col: 'claims', name: 'المطالبات وEOT', icon: '⚖️' }
+    { col: 'rfis', name: I18n.t('استفسارات RFI'), icon: '❓' },
+    { col: 'rfps', name: I18n.t('طلبات العروض RFP'), icon: '📮' },
+    { col: 'methodStatements', name: I18n.t('أساليب التنفيذ وITP'), icon: '🧾' },
+    { col: 'claims', name: I18n.t('المطالبات وEOT'), icon: '⚖️' }
   ]);
   const contState = { tab: 'shopDrawings' };
 
@@ -1722,6 +1992,26 @@
       (tab === 'claims' ? '<label class="fl">' + I18n.t('نوع المطالبة') + '</label><select class="inp" id="sb-kind"><option value="eot">' + I18n.t('تمديد مدة EOT') + '</option><option value="cost">' + I18n.t('مطالبة مالية') + '</option></select>' : '') +
       (needAmount ? '<label class="fl">' + I18n.t('القيمة (ر.س)') + '</label><input class="inp num" id="sb-amount" type="number">' : '') +
       (tab === 'changeOrders' || tab === 'claims' ? '<label class="fl">' + I18n.t('الأيام الإضافية المطلوبة') + '</label><input class="inp num" id="sb-days" type="number" value="0">' : '') +
+      // مرجع الجدول الزمني المعتمد — ليرى المقاول والاستشاري أثر أيام أمر التغيير على الجدول الرسمي فعلياً
+      (tab === 'changeOrders' ? (function () {
+        const tasks = (ctx.S.scheduleTasks || []).slice().sort(function (a, b) { return String(a.endPlanned || '').localeCompare(String(b.endPlanned || '')); });
+        const P = ctx.S.projects[0];
+        if (!tasks.length) {
+          return '<div class="card" style="padding:10px 14px;margin:4px 0 10px"><b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + '</b>' +
+            '<div class="small muted mt">' + I18n.t('لا يوجد جدول زمني معتمد لهذا المشروع بعد.') + '</div></div>';
+        }
+        const upcoming = tasks.filter(function (t) { return (t.progress || 0) < 100; }).slice(0, 5);
+        return '<div class="card" style="padding:10px 14px;margin:4px 0 10px">' +
+          '<b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + ' <span class="hint">' + I18n.t('ليتّضح أثر الأيام الإضافية على الجدول الرسمي') + '</span></b>' +
+          '<div class="small muted mt">' + I18n.t('تاريخ الانتهاء المخطط: ') + '<b class="num">' + esc(P.endPlanned || '—') + '</b>' +
+          (P.endForecast && P.endForecast !== P.endPlanned ? ' · ' + I18n.t('المتوقع حالياً: ') + '<b class="num">' + esc(P.endForecast) + '</b>' : '') + '</div>' +
+          (upcoming.length ? '<div class="small mt" style="max-height:110px;overflow-y:auto">' +
+            upcoming.map(function (t) {
+              return '<div class="flex" style="justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)">' +
+                '<span>' + esc(t.name) + '</span><span class="num muted">' + esc(t.endPlanned || '—') + ' · ' + (t.progress || 0) + '%</span></div>';
+            }).join('') + '</div>' : '') +
+          '</div>';
+      })() : '') +
       (isWir ? '<label class="fl">' + I18n.t('الموقع / الدور') + '</label><select class="inp" id="sb-loc">' +
         ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>' : '') +
       (isPayment ?
@@ -1777,183 +2067,198 @@
   }
 
   // ============ موديول المكتب الفني (خدمات استشاري المشروع) ============
-  const HSE_KINDS = { violation: 'مخالفة سلامة', incident: 'حادث', observation: 'ملاحظة وقائية' };
-  const SEVERITIES = { low: ['منخفضة', 'p-muted'], medium: ['متوسطة', 'p-warn'], high: ['عالية', 'p-danger'], minor: ['ثانوية', 'p-warn'], major: ['جوهرية', 'p-danger'], critical: ['حرجة', 'p-danger'] };
+  const HSE_KINDS = { violation: I18n.t('مخالفة سلامة'), incident: I18n.t('حادث'), observation: I18n.t('ملاحظة وقائية') };
+  const SEVERITIES = { low: [I18n.t('منخفضة'), 'p-muted'], medium: [I18n.t('متوسطة'), 'p-warn'], high: [I18n.t('عالية'), 'p-danger'], minor: [I18n.t('ثانوية'), 'p-warn'], major: [I18n.t('جوهرية'), 'p-danger'], critical: [I18n.t('حرجة'), 'p-danger'] };
   function sev(s) { const v = SEVERITIES[s] || [s, 'p-muted']; return '<span class="pill ' + v[1] + '">' + esc(I18n.t(v[0])) + '</span>'; }
   function sigCell(it) { return it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate) + '</div>' : ''; }
+  /** عمود مرفق موحّد لكل تبويبات المكتب الفني التي تدعم رفع ملف (hasFile) */
+  function attachCol() {
+    return { h: I18n.t('المرفق'), r: function (it) { return it.file && it.file.url ? '<a class="btn ghost sm" href="' + esc(it.file.url) + '" target="_blank">📎 ' + I18n.t('فتح') + '</a>' : '<span class="muted small">—</span>'; } };
+  }
 
   const TECH_TABS = [
-    { col: 'rfis', name: 'الاستفسارات الفنية RFI', icon: '❓', desc: 'الرد على استفسارات المقاولين وحسم تعارضات المخططات والمواصفات',
-      pendingOf: function (x) { return x.status === 'open'; },
+    { col: 'rfis', name: I18n.t('الاستفسارات الفنية RFI'), icon: '❓', desc: I18n.t('الرد على استفسارات المقاولين وحسم تعارضات المخططات والمواصفات'),
+      pendingOf: function (x) { return x.status === 'open'; }, hasFile: true,
       cols: [
-        { h: 'الاستفسار', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:340px">' + esc(it.question || '') + '</div>'; } },
-        { h: 'الرد الفني', r: function (it) { return it.answer ? '<div class="small" style="max-width:300px;color:var(--ok)">' + esc(it.answer) + '</div>' + sigCell(it) : '<span class="muted small">' + I18n.t('بانتظار الرد') + '</span>'; } }
+        { h: I18n.t('الاستفسار'), r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:340px">' + esc(it.question || '') + '</div>'; } },
+        { h: I18n.t('الرد الفني'), r: function (it) { return it.answer ? '<div class="small" style="max-width:300px;color:var(--ok)">' + esc(it.answer) + '</div>' + sigCell(it) : '<span class="muted small">' + I18n.t('بانتظار الرد') + '</span>'; } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
-        { k: 'title', label: 'الموضوع', type: 'text' }, { k: 'question', label: 'نص الاستفسار', type: 'textarea' }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' }, { k: 'ref', label: I18n.t('المرجع'), type: 'text' },
+        { k: 'title', label: I18n.t('الموضوع'), type: 'text' }, { k: 'question', label: I18n.t('نص الاستفسار'), type: 'textarea' }
       ],
       action: function (ctx, it) {
         if (it.status !== 'open') return null;
         return { label: I18n.t('↩️ رد فني'), run: function () { answerModal(ctx, 'rfis', it, I18n.t('الرد الفني على الاستفسار'), 'answer', { status: 'answered' }); } };
       } },
 
-    { col: 'ncrs', name: 'عدم المطابقة NCR', icon: '🚫', desc: 'رصد الأعمال المخالفة للمواصفات ومتابعة الإجراءات التصحيحية حتى الإغلاق',
-      pendingOf: function (x) { return x.status === 'open'; },
+    { col: 'ncrs', name: I18n.t('عدم المطابقة NCR'), icon: '🚫', desc: I18n.t('رصد الأعمال المخالفة للمواصفات ومتابعة الإجراءات التصحيحية حتى الإغلاق'),
+      pendingOf: function (x) { return x.status === 'open'; }, hasFile: true,
       cols: [
-        { h: 'المخالفة', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:320px">' + esc(it.description || '') + '</div>'; } },
-        { h: 'الخطورة', r: function (it) { return sev(it.severity); } },
-        { h: 'الإجراء التصحيحي', r: function (it) { return it.correctiveAction ? '<div class="small" style="max-width:280px">' + esc(it.correctiveAction) + '</div>' + sigCell(it) : '<span class="muted small">—</span>'; } }
+        { h: I18n.t('المخالفة'), r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:320px">' + esc(it.description || '') + '</div>'; } },
+        { h: I18n.t('الخطورة'), r: function (it) { return sev(it.severity); } },
+        { h: I18n.t('الإجراء التصحيحي'), r: function (it) { return it.correctiveAction ? '<div class="small" style="max-width:280px">' + esc(it.correctiveAction) + '</div>' + sigCell(it) : '<span class="muted small">—</span>'; } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
-        { k: 'title', label: 'عنوان المخالفة', type: 'text' }, { k: 'description', label: 'وصف عدم المطابقة', type: 'textarea' },
-        { k: 'severity', label: 'الخطورة', type: 'select', options: [['minor', 'ثانوية'], ['major', 'جوهرية'], ['critical', 'حرجة']] }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' }, { k: 'ref', label: I18n.t('المرجع'), type: 'text' },
+        { k: 'title', label: I18n.t('عنوان المخالفة'), type: 'text' }, { k: 'description', label: I18n.t('وصف عدم المطابقة'), type: 'textarea' },
+        { k: 'severity', label: I18n.t('الخطورة'), type: 'select', options: [['minor', I18n.t('ثانوية')], ['major', I18n.t('جوهرية')], ['critical', I18n.t('حرجة')]] }
       ],
       action: function (ctx, it) {
         if (it.status !== 'open') return null;
         return { label: I18n.t('✅ إغلاق'), run: function () { answerModal(ctx, 'ncrs', it, I18n.t('الإجراء التصحيحي المنفذ'), 'correctiveAction', { status: 'closed' }); } };
       } },
 
-    { col: 'siteInstructions', name: 'التعليمات الموقعية', icon: '📢', desc: 'إصدار تعليمات ملزمة للمقاولين ومتابعة تنفيذها',
-      pendingOf: function (x) { return x.status === 'issued'; },
+    { col: 'siteInstructions', name: I18n.t('التعليمات الموقعية'), icon: '📢', desc: I18n.t('إصدار تعليمات ملزمة للمقاولين ومتابعة تنفيذها'),
+      pendingOf: function (x) { return x.status === 'issued'; }, hasFile: true,
       cols: [
-        { h: 'التعليمات', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:360px">' + esc(it.details || '') + '</div>' + sigCell(it); } }
+        { h: I18n.t('التعليمات'), r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:360px">' + esc(it.details || '') + '</div>' + sigCell(it); } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
-        { k: 'title', label: 'عنوان التعليمات', type: 'text' }, { k: 'details', label: 'التفاصيل', type: 'textarea' }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' }, { k: 'ref', label: I18n.t('المرجع'), type: 'text' },
+        { k: 'title', label: I18n.t('عنوان التعليمات'), type: 'text' }, { k: 'details', label: I18n.t('التفاصيل'), type: 'textarea' }
       ],
       action: function (ctx, it) {
         if (it.status !== 'issued') return null;
         return { label: I18n.t('✔ تم التنفيذ'), run: function () { quickUpdate(ctx, 'siteInstructions', it, { status: 'done' }); } };
       } },
 
-    { col: 'methodStatements', name: 'أساليب التنفيذ وITP', icon: '🧾', desc: 'اعتماد بيانات طرق التنفيذ وخطط الفحص والاختبار المقدمة من المقاولين',
-      pendingOf: function (x) { return x.status === 'pending'; },
+    { col: 'methodStatements', name: I18n.t('أساليب التنفيذ وITP'), icon: '🧾', desc: I18n.t('اعتماد بيانات طرق التنفيذ وخطط الفحص والاختبار المقدمة من المقاولين'),
+      pendingOf: function (x) { return x.status === 'pending'; }, hasFile: true,
       cols: [
-        { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + I18n.t(it.kind === 'itp' ? 'خطة فحص ITP' : 'أسلوب تنفيذ MS') + '</span>'; } },
-        { h: 'العنوان', r: function (it) { return '<b>' + esc(it.title) + '</b>' + (it.file ? '<div class="small muted">📎 ' + VS.att(it.file) + '</div>' : ''); } },
-        { h: 'الملاحظات', r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
+        { h: I18n.t('النوع'), r: function (it) { return '<span class="pill p-muted">' + I18n.t(it.kind === 'itp' ? 'خطة فحص ITP' : 'أسلوب تنفيذ MS') + '</span>'; } },
+        { h: I18n.t('العنوان'), r: function (it) { return '<b>' + esc(it.title) + '</b>'; } },
+        { h: I18n.t('الملاحظات'), r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' },
-        { k: 'kind', label: 'النوع', type: 'select', options: [['ms', 'أسلوب تنفيذ MS'], ['itp', 'خطة فحص ITP']] },
-        { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'العنوان', type: 'text' }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' },
+        { k: 'kind', label: I18n.t('النوع'), type: 'select', options: [['ms', I18n.t('أسلوب تنفيذ MS')], ['itp', I18n.t('خطة فحص ITP')]] },
+        { k: 'ref', label: I18n.t('المرجع'), type: 'text' }, { k: 'title', label: I18n.t('العنوان'), type: 'text' }
       ],
       action: function (ctx, it) {
         if (it.status !== 'pending') return null;
         return { label: I18n.t('✍️ قرار'), run: function () { openReviewModal(ctx, 'methodStatements', it); } };
       } },
 
-    { col: 'materialTests', name: 'اختبارات المواد', icon: '🧪', desc: 'توثيق نتائج الاختبارات المعملية والحقلية (خرسانة، تربة، ضغط، شد...)',
-      pendingOf: function (x) { return x.result === 'fail'; },
+    { col: 'materialTests', name: I18n.t('اختبارات المواد'), icon: '🧪', desc: I18n.t('توثيق نتائج الاختبارات المعملية والحقلية (خرسانة، تربة، ضغط، شد...)'),
+      pendingOf: function (x) { return x.result === 'fail'; }, hasFile: true,
       cols: [
-        { h: 'الاختبار', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted">🏛️ ' + esc(it.lab || '') + '</div>'; } },
-        { h: 'المطلوب / النتيجة', r: function (it) { return '<div class="small num">' + I18n.t('المطلوب: ') + esc(it.target || '—') + '</div><div class="small num"><b>' + I18n.t('النتيجة: ') + esc(it.value || '—') + '</b></div>' + (it.notes ? '<div class="small muted">' + esc(it.notes) + '</div>' : ''); } },
-        { h: 'الحكم', r: function (it) { return pill(it.result); } }
+        { h: I18n.t('الاختبار'), r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted">🏛️ ' + esc(it.lab || '') + '</div>'; } },
+        { h: I18n.t('المطلوب / النتيجة'), r: function (it) { return '<div class="small num">' + I18n.t('المطلوب: ') + esc(it.target || '—') + '</div><div class="small num"><b>' + I18n.t('النتيجة: ') + esc(it.value || '—') + '</b></div>' + (it.notes ? '<div class="small muted">' + esc(it.notes) + '</div>' : ''); } },
+        { h: I18n.t('الحكم'), r: function (it) { return pill(it.result); } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
-        { k: 'title', label: 'الاختبار', type: 'text' }, { k: 'lab', label: 'المختبر', type: 'text' },
-        { k: 'target', label: 'القيمة المطلوبة', type: 'text' }, { k: 'value', label: 'النتيجة', type: 'text' },
-        { k: 'result', label: 'الحكم', type: 'select', options: [['pass', 'ناجح'], ['fail', 'راسب']] },
-        { k: 'notes', label: 'ملاحظات', type: 'textarea' }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' }, { k: 'ref', label: I18n.t('المرجع'), type: 'text' },
+        { k: 'title', label: I18n.t('الاختبار'), type: 'text' }, { k: 'lab', label: I18n.t('المختبر'), type: 'text' },
+        { k: 'target', label: I18n.t('القيمة المطلوبة'), type: 'text' }, { k: 'value', label: I18n.t('النتيجة'), type: 'text' },
+        { k: 'result', label: I18n.t('الحكم'), type: 'select', options: [['pass', I18n.t('ناجح')], ['fail', I18n.t('راسب')]] },
+        { k: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' }
       ],
       statusKey: 'result' },
 
-    { col: 'meetings', name: 'محاضر الاجتماعات', icon: '🤝', desc: 'محاضر اجتماعات التنسيق الأسبوعية وقراراتها',
-      pendingOf: function () { return false; }, noContractor: true, noStatus: true,
+    { col: 'meetings', name: I18n.t('محاضر الاجتماعات'), icon: '🤝', desc: I18n.t('محاضر اجتماعات التنسيق الأسبوعية وقراراتها'),
+      pendingOf: function () { return false; }, noContractor: true, noStatus: true, hasFile: true,
       cols: [
-        { h: 'الاجتماع', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted">' + I18n.t('الحضور: ') + esc(it.attendees || '') + '</div>'; } },
-        { h: 'أبرز البنود والقرارات', r: function (it) { return '<ul style="margin-right:16px;font-size:12.5px;line-height:1.9;max-width:380px">' + (it.items || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; } }
+        { h: I18n.t('الاجتماع'), r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted">' + I18n.t('الحضور: ') + esc(it.attendees || '') + '</div>'; } },
+        { h: I18n.t('أبرز البنود والقرارات'), r: function (it) { return '<ul style="margin-right:16px;font-size:12.5px;line-height:1.9;max-width:380px">' + (it.items || []).map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>'; } },
+        attachCol()
       ],
       fields: [
-        { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'عنوان الاجتماع', type: 'text' },
-        { k: 'date', label: 'التاريخ', type: 'date' }, { k: 'attendees', label: 'الحضور', type: 'text' },
-        { k: 'items', label: 'البنود (سطر لكل بند)', type: 'lines' }
+        { k: 'ref', label: I18n.t('المرجع'), type: 'text' }, { k: 'title', label: I18n.t('عنوان الاجتماع'), type: 'text' },
+        { k: 'date', label: I18n.t('التاريخ'), type: 'date' }, { k: 'attendees', label: I18n.t('الحضور'), type: 'text' },
+        { k: 'items', label: I18n.t('البنود (سطر لكل بند)'), type: 'lines' }
       ] },
 
-    { col: 'snags', name: 'قوائم الملاحظات', icon: '📌', desc: 'ملاحظات الاستلام الابتدائي (Snag List) ومتابعة إغلاقها قبل التسليم',
-      pendingOf: function (x) { return x.status === 'open'; },
+    { col: 'snags', name: I18n.t('قوائم الملاحظات'), icon: '📌', desc: I18n.t('ملاحظات الاستلام الابتدائي (Snag List) ومتابعة إغلاقها قبل التسليم'),
+      pendingOf: function (x) { return x.status === 'open'; }, hasFile: true,
       cols: [
-        { h: 'الملاحظة', r: function (it) { return '<b>' + esc(it.title) + '</b>' + sigCell(it); } },
-        { h: 'الموقع', r: function (it, ctx) { return '<span class="pill p-muted">' + esc(VS.floorName(ctx, it.location)) + '</span>'; } }
+        { h: I18n.t('الملاحظة'), r: function (it) { return '<b>' + esc(it.title) + '</b>' + sigCell(it); } },
+        { h: I18n.t('الموقع'), r: function (it, ctx) { return '<span class="pill p-muted">' + esc(VS.floorName(ctx, it.location)) + '</span>'; } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
-        { k: 'title', label: 'وصف الملاحظة', type: 'text' }, { k: 'location', label: 'الموقع', type: 'floor' }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' }, { k: 'ref', label: I18n.t('المرجع'), type: 'text' },
+        { k: 'title', label: I18n.t('وصف الملاحظة'), type: 'text' }, { k: 'location', label: I18n.t('الموقع'), type: 'floor' }
       ],
       action: function (ctx, it) {
         if (it.status !== 'open') return null;
         return { label: I18n.t('✅ إغلاق'), run: function () { quickUpdate(ctx, 'snags', it, { status: 'closed' }); } };
       } },
 
-    { col: 'hseReports', name: 'السلامة HSE', icon: '🦺', desc: 'مخالفات وحوادث وملاحظات السلامة والصحة المهنية بالموقع',
-      pendingOf: function (x) { return x.status === 'open'; },
+    { col: 'hseReports', name: I18n.t('السلامة HSE'), icon: '🦺', desc: I18n.t('مخالفات وحوادث وملاحظات السلامة والصحة المهنية بالموقع'),
+      pendingOf: function (x) { return x.status === 'open'; }, hasFile: true,
       cols: [
-        { h: 'النوع', r: function (it) { return '<span class="pill ' + (it.kind === 'incident' ? 'p-danger' : it.kind === 'violation' ? 'p-warn' : 'p-info') + '">' + esc(I18n.t(HSE_KINDS[it.kind] || it.kind)) + '</span>'; } },
-        { h: 'التقرير', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:330px">' + esc(it.details || '') + '</div>' + sigCell(it); } },
-        { h: 'الخطورة', r: function (it) { return sev(it.severity); } }
+        { h: I18n.t('النوع'), r: function (it) { return '<span class="pill ' + (it.kind === 'incident' ? 'p-danger' : it.kind === 'violation' ? 'p-warn' : 'p-info') + '">' + esc(I18n.t(HSE_KINDS[it.kind] || it.kind)) + '</span>'; } },
+        { h: I18n.t('التقرير'), r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:330px">' + esc(it.details || '') + '</div>' + sigCell(it); } },
+        { h: I18n.t('الخطورة'), r: function (it) { return sev(it.severity); } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
-        { k: 'kind', label: 'النوع', type: 'select', options: [['violation', 'مخالفة'], ['incident', 'حادث'], ['observation', 'ملاحظة وقائية']] },
-        { k: 'title', label: 'العنوان', type: 'text' }, { k: 'details', label: 'التفاصيل', type: 'textarea' },
-        { k: 'severity', label: 'الخطورة', type: 'select', options: [['low', 'منخفضة'], ['medium', 'متوسطة'], ['high', 'عالية']] }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' }, { k: 'ref', label: I18n.t('المرجع'), type: 'text' },
+        { k: 'kind', label: I18n.t('النوع'), type: 'select', options: [['violation', I18n.t('مخالفة')], ['incident', I18n.t('حادث')], ['observation', I18n.t('ملاحظة وقائية')]] },
+        { k: 'title', label: I18n.t('العنوان'), type: 'text' }, { k: 'details', label: I18n.t('التفاصيل'), type: 'textarea' },
+        { k: 'severity', label: I18n.t('الخطورة'), type: 'select', options: [['low', I18n.t('منخفضة')], ['medium', I18n.t('متوسطة')], ['high', I18n.t('عالية')]] }
       ],
       action: function (ctx, it) {
         if (it.status !== 'open') return null;
         return { label: I18n.t('✅ إغلاق'), run: function () { quickUpdate(ctx, 'hseReports', it, { status: 'closed' }); } };
       } },
 
-    { col: 'claims', name: 'المطالبات وEOT', icon: '⚖️', desc: 'دراسة مطالبات المقاولين المالية وطلبات تمديد المدة والتوصية بشأنها',
-      pendingOf: function (x) { return x.status === 'pending'; },
+    { col: 'claims', name: I18n.t('المطالبات وEOT'), icon: '⚖️', desc: I18n.t('دراسة مطالبات المقاولين المالية وطلبات تمديد المدة والتوصية بشأنها'),
+      pendingOf: function (x) { return x.status === 'pending'; }, hasFile: true,
       cols: [
-        { h: 'النوع', r: function (it) { return '<span class="pill p-muted">' + I18n.t(it.kind === 'eot' ? 'تمديد مدة EOT' : 'مطالبة مالية') + '</span>'; } },
-        { h: 'المطالبة', r: function (it) { return '<b>' + esc(it.title) + '</b>'; } },
-        { h: 'القيمة / المدة', r: function (it) { return (it.amount ? '<div class="num small">' + money(it.amount) + '</div>' : '') + (it.days ? '<div class="num small">+' + it.days + I18n.t(' يوم') + '</div>' : ''); } },
-        { h: 'القرار', r: function (it) { return (it.notes ? '<div class="small" style="max-width:240px">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
+        { h: I18n.t('النوع'), r: function (it) { return '<span class="pill p-muted">' + I18n.t(it.kind === 'eot' ? 'تمديد مدة EOT' : 'مطالبة مالية') + '</span>'; } },
+        { h: I18n.t('المطالبة'), r: function (it) { return '<b>' + esc(it.title) + '</b>'; } },
+        { h: I18n.t('القيمة / المدة'), r: function (it) { return (it.amount ? '<div class="num small">' + money(it.amount) + '</div>' : '') + (it.days ? '<div class="num small">+' + it.days + I18n.t(' يوم') + '</div>' : ''); } },
+        { h: I18n.t('القرار'), r: function (it) { return (it.notes ? '<div class="small" style="max-width:240px">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' },
-        { k: 'kind', label: 'النوع', type: 'select', options: [['eot', 'تمديد مدة EOT'], ['cost', 'مطالبة مالية']] },
-        { k: 'ref', label: 'المرجع', type: 'text' }, { k: 'title', label: 'العنوان', type: 'text' },
-        { k: 'days', label: 'الأيام المطلوبة', type: 'number' }, { k: 'amount', label: 'القيمة (ر.س)', type: 'number' }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' },
+        { k: 'kind', label: I18n.t('النوع'), type: 'select', options: [['eot', I18n.t('تمديد مدة EOT')], ['cost', I18n.t('مطالبة مالية')]] },
+        { k: 'ref', label: I18n.t('المرجع'), type: 'text' }, { k: 'title', label: I18n.t('العنوان'), type: 'text' },
+        { k: 'days', label: I18n.t('الأيام المطلوبة'), type: 'number' }, { k: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' }
       ],
       action: function (ctx, it) {
         if (it.status !== 'pending') return null;
         return { label: I18n.t('✍️ قرار'), run: function () { openReviewModal(ctx, 'claims', it); } };
       } },
 
-    { col: 'valueEngineering', name: 'الهندسة القيمية', icon: '💡', desc: 'دراسة مقترحات خفض التكلفة مع الحفاظ على الجودة والوظيفة',
-      pendingOf: function (x) { return x.status === 'pending'; },
+    { col: 'valueEngineering', name: I18n.t('الهندسة القيمية'), icon: '💡', desc: I18n.t('دراسة مقترحات خفض التكلفة مع الحفاظ على الجودة والوظيفة'),
+      pendingOf: function (x) { return x.status === 'pending'; }, hasFile: true,
       cols: [
-        { h: 'المقترح', r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:320px">' + esc(it.details || '') + '</div>'; } },
-        { h: 'الوفر المتوقع', r: function (it) { return '<b class="num" style="color:var(--ok)">' + money(it.saving) + '</b>'; } },
-        { h: 'القرار', r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } }
+        { h: I18n.t('المقترح'), r: function (it) { return '<b>' + esc(it.title) + '</b><div class="small muted" style="max-width:320px">' + esc(it.details || '') + '</div>'; } },
+        { h: I18n.t('الوفر المتوقع'), r: function (it) { return '<b class="num" style="color:var(--ok)">' + money(it.saving) + '</b>'; } },
+        { h: I18n.t('القرار'), r: function (it) { return (it.notes ? '<div class="small">' + esc(it.notes) + '</div>' : '<span class="muted small">—</span>') + sigCell(it); } },
+        attachCol()
       ],
       fields: [
-        { k: 'contractorId', label: 'المقاول', type: 'contractor' }, { k: 'ref', label: 'المرجع', type: 'text' },
-        { k: 'title', label: 'المقترح', type: 'text' }, { k: 'saving', label: 'الوفر المتوقع (ر.س)', type: 'number' },
-        { k: 'details', label: 'التفاصيل', type: 'textarea' }
+        { k: 'contractorId', label: I18n.t('المقاول'), type: 'contractor' }, { k: 'ref', label: I18n.t('المرجع'), type: 'text' },
+        { k: 'title', label: I18n.t('المقترح'), type: 'text' }, { k: 'saving', label: I18n.t('الوفر المتوقع (ر.س)'), type: 'number' },
+        { k: 'details', label: I18n.t('التفاصيل'), type: 'textarea' }
       ],
       action: function (ctx, it) {
         if (it.status !== 'pending') return null;
         return { label: I18n.t('✍️ قرار'), run: function () { openReviewModal(ctx, 'valueEngineering', it); } };
       } },
 
-    { col: 'correspondence', name: 'المراسلات', icon: '📮', desc: 'سجل الخطابات الصادرة والواردة الرسمية للمشروع',
-      pendingOf: function () { return false; }, noContractor: true, noStatus: true,
+    { col: 'correspondence', name: I18n.t('المراسلات'), icon: '📮', desc: I18n.t('سجل الخطابات الصادرة والواردة الرسمية للمشروع'),
+      pendingOf: function () { return false; }, noContractor: true, noStatus: true, hasFile: true,
       cols: [
-        { h: 'الاتجاه', r: function (it) { return it.direction === 'out' ? '<span class="pill p-info">' + I18n.t('صادر ↗') + '</span>' : '<span class="pill p-warn">' + I18n.t('وارد ↙') + '</span>'; } },
-        { h: 'الخطاب', r: function (it) { return '<b>' + esc(it.title) + '</b>'; } },
-        { h: 'الجهة', r: function (it) { return '<div class="small">' + (it.from ? I18n.t('من: ') + esc(it.from) + '<br>' : '') + I18n.t('إلى: ') + esc(it.to || '—') + '</div>'; } }
+        { h: I18n.t('الاتجاه'), r: function (it) { return it.direction === 'out' ? '<span class="pill p-info">' + I18n.t('صادر ↗') + '</span>' : '<span class="pill p-warn">' + I18n.t('وارد ↙') + '</span>'; } },
+        { h: I18n.t('الخطاب'), r: function (it) { return '<b>' + esc(it.title) + '</b>'; } },
+        { h: I18n.t('الجهة'), r: function (it) { return '<div class="small">' + (it.from ? I18n.t('من: ') + esc(it.from) + '<br>' : '') + I18n.t('إلى: ') + esc(it.to || '—') + '</div>'; } },
+        attachCol()
       ],
       fields: [
-        { k: 'ref', label: 'المرجع', type: 'text' },
-        { k: 'direction', label: 'الاتجاه', type: 'select', options: [['out', 'صادر'], ['in', 'وارد']] },
-        { k: 'to', label: 'الجهة', type: 'text' }, { k: 'title', label: 'الموضوع', type: 'text' }
+        { k: 'ref', label: I18n.t('المرجع'), type: 'text' },
+        { k: 'direction', label: I18n.t('الاتجاه'), type: 'select', options: [['out', I18n.t('صادر')], ['in', I18n.t('وارد')]] },
+        { k: 'to', label: I18n.t('الجهة'), type: 'text' }, { k: 'title', label: I18n.t('الموضوع'), type: 'text' }
       ] }
   ];
 
@@ -2009,10 +2314,11 @@
         if (f.type === 'date') return '<label class="fl">' + esc(I18n.t(f.label)) + '</label><input class="inp" id="' + id + '" type="date" value="' + new Date().toISOString().slice(0, 10) + '">';
         return '<label class="fl">' + esc(I18n.t(f.label)) + '</label><input class="inp" id="' + id + '">';
       }).join('') +
+      (tabDef.hasFile ? '<label class="fl">' + I18n.t('مرفق (اختياري)') + '</label><input class="inp" id="tf-file" type="file">' : '') +
       '<div class="m-actions"><button class="btn" id="tf-ok">' + I18n.t('حفظ') + '</button><button class="btn mutedb" id="tf-cancel">' + I18n.t('إلغاء') + '</button></div>'
     );
     m.querySelector('#tf-cancel').addEventListener('click', function () { m.remove(); });
-    m.querySelector('#tf-ok').addEventListener('click', function () {
+    m.querySelector('#tf-ok').addEventListener('click', async function () {
       const data = {};
       tabDef.fields.forEach(function (f) {
         if (f.k === 'ref') return; // لا حقل DOM له — يُولَّد المرجع من الخادم
@@ -2024,6 +2330,10 @@
       if (!data.title) { toast(I18n.t('أدخل العنوان'), true); return; }
       if (tabDef.col === 'meetings') data.by = ctx.U.name;
       if (tabDef.col === 'correspondence' && data.direction === 'out') data.by = ctx.U.name;
+      if (tabDef.hasFile) {
+        const files = m.querySelector('#tf-file').files;
+        if (files.length) data.file = await Api.upload(files[0], { category: 'وثائق فنية' });
+      }
       Api.create(tabDef.col, data)
         .then(function () { m.remove(); toast(I18n.t('✅ تمت الإضافة')); ctx.refresh(); })
         .catch(function (e) { toast(e.message, true); });
@@ -2079,7 +2389,11 @@
             t.cols.map(function (c) { return '<td>' + c.r(it, ctx) + '</td>'; }).join('') +
             '<td class="small muted num">' + esc(it.date || '') + '</td>' +
             (t.noStatus ? '' : '<td>' + pill(it[t.statusKey || 'status']) + '</td>') +
-            '<td>' + (act ? '<button class="btn sm" data-tact="' + idx + '">' + act.label + '</button>' : '') + '</td>' +
+            '<td><div class="flex" style="gap:6px;flex-wrap:wrap">' +
+            (act ? '<button class="btn sm" data-tact="' + idx + '">' + act.label + '</button>' : '') +
+            (VS.canManage(ctx) ? '<button class="btn ghost sm" data-ttedit="' + idx + '">✏️</button>' : '') +
+            (VS.canDelete(ctx, t.col) ? '<button class="btn danger sm" data-ttdel="' + idx + '">🗑️</button>' : '') +
+            '</div></td>' +
             '</tr>';
         }).join('') + '</tbody></table></div>'
         : '<div class="empty"><div class="e-ico">📭</div>' + I18n.t('لا سجلات بعد') + '</div>') +
@@ -2095,6 +2409,23 @@
         const it = items[Number(b.getAttribute('data-tact'))];
         const act = t.action(ctx, it);
         if (act) act.run();
+      });
+    });
+    el.querySelectorAll('[data-ttedit]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items[Number(b.getAttribute('data-ttedit'))];
+        const fields = [];
+        if ('title' in it) fields.push({ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' });
+        if ('question' in it) fields.push({ key: 'question', label: I18n.t('نص الاستفسار'), type: 'textarea' });
+        if ('details' in it) fields.push({ key: 'details', label: I18n.t('التفاصيل'), type: 'textarea' });
+        fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+        VS.openGenericEdit({ ctx: ctx, title: esc(I18n.t(t.name)) + ' — ' + I18n.t('تعديل'), collection: t.col, id: it.id, item: it, fields: fields });
+      });
+    });
+    el.querySelectorAll('[data-ttdel]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        const it = items[Number(b.getAttribute('data-ttdel'))];
+        VS.genericDelete(ctx, t.col, it.id, it.title || it.ref);
       });
     });
   }
@@ -2155,22 +2486,23 @@
 
   // ============ الأرشيف المركزي: كل مستند مُكوَّد وقابل للاسترجاع ============
   const ARCHIVE_TYPES = [
-    ['shopDrawings', '📐 مخطط تنفيذي', 'SD'], ['materials', '🧱 اعتماد مواد', 'MAT'],
-    ['scheduleSubmittals', '🗓️ جدول زمني', 'SCH'], ['wirs', '✅ طلب استلام', 'WIR'],
-    ['changeOrders', '🔁 أمر تغيير', 'CO'], ['payments', '💰 مستخلص', 'IPC'],
-    ['methodStatements', '🧾 أسلوب تنفيذ/ITP', 'MS'], ['claims', '⚖️ مطالبة/EOT', 'CLM'],
-    ['valueEngineering', '💡 هندسة قيمية', 'VE'],
-    ['rfis', '❓ استفسار RFI', 'RFI'], ['ncrs', '🚫 عدم مطابقة', 'NCR'],
-    ['siteInstructions', '📢 تعليمات موقعية', 'SI'], ['snags', '📌 ملاحظة تسليم', 'SNG'],
-    ['hseReports', '🦺 سلامة', 'HSE'], ['materialTests', '🧪 اختبار مواد', 'TST'],
-    ['meetings', '🤝 محضر اجتماع', 'MOM'], ['correspondence', '📮 خطاب', 'COR'],
-    ['dailyReports', '📝 تقرير يومي', 'DDR'], ['weeklyReports', '🗓️ تقرير أسبوعي', 'WKR'],
-    ['monthlyReports', '📊 تقرير شهري', 'MOR'], ['planDrawings', '🏢 مخطط مشروع', 'DRW'],
-    ['rfps', '📮 طلب عرض RFP', 'RFP'], ['bimModels', '🧊 نموذج BIM', 'BIM'],
-    ['bimDocs', '📚 وثيقة BIM', 'BDC'],
-    ['punchList', '📌 ملاحظة تسليم', 'PNL'], ['warranties', '🛡️ ضمان', 'WTY'],
-    ['incidents', '🚨 تقرير حادث', 'INC'], ['files', '📎 ملف مرفوع', 'FIL']
+    ['shopDrawings', '📐', 'مخطط تنفيذي', 'SD'], ['materials', '🧱', 'اعتماد مواد', 'MAT'],
+    ['scheduleSubmittals', '🗓️', 'جدول زمني', 'SCH'], ['wirs', '✅', 'طلب استلام', 'WIR'],
+    ['changeOrders', '🔁', 'أمر تغيير', 'CO'], ['payments', '💰', 'مستخلص', 'IPC'],
+    ['methodStatements', '🧾', 'أسلوب تنفيذ/ITP', 'MS'], ['claims', '⚖️', 'مطالبة/EOT', 'CLM'],
+    ['valueEngineering', '💡', 'هندسة قيمية', 'VE'],
+    ['rfis', '❓', 'استفسار RFI', 'RFI'], ['ncrs', '🚫', 'عدم مطابقة', 'NCR'],
+    ['siteInstructions', '📢', 'تعليمات موقعية', 'SI'], ['snags', '📌', 'ملاحظة تسليم', 'SNG'],
+    ['hseReports', '🦺', 'سلامة', 'HSE'], ['materialTests', '🧪', 'اختبار مواد', 'TST'],
+    ['meetings', '🤝', 'محضر اجتماع', 'MOM'], ['correspondence', '📮', 'خطاب', 'COR'],
+    ['dailyReports', '📝', 'تقرير يومي', 'DDR'], ['weeklyReports', '🗓️', 'تقرير أسبوعي', 'WKR'],
+    ['monthlyReports', '📊', 'تقرير شهري', 'MOR'], ['planDrawings', '🏢', 'مخطط مشروع', 'DRW'],
+    ['rfps', '📮', 'طلب عرض RFP', 'RFP'], ['bimModels', '🧊', 'نموذج BIM', 'BIM'],
+    ['bimDocs', '📚', 'وثيقة BIM', 'BDC'],
+    ['punchList', '📌', 'ملاحظة تسليم', 'PNL'], ['warranties', '🛡️', 'ضمان', 'WTY'],
+    ['incidents', '🚨', 'تقرير حادث', 'INC'], ['files', '📎', 'ملف مرفوع', 'FIL']
   ];
+  function archiveTypeLabel(t) { return t[1] + ' ' + I18n.t(t[2]); }
   const DONE_STATES = ['approved', 'approved_notes', 'answered', 'done', 'closed', 'pass'];
   const archState = { q: '', type: 'all', status: 'all', year: 'all' };
 
@@ -2179,7 +2511,7 @@
     ARCHIVE_TYPES.forEach(function (t) {
       (ctx.S[t[0]] || []).forEach(function (it) {
         rows.push({
-          col: t[0], typeName: t[1], item: it,
+          col: t[0], typeName: archiveTypeLabel(t), item: it,
           docCode: it.docCode || '', ref: it.ref || '', title: it.title || it.name || it.item || '',
           date: it.date || it.month || it.weekOf || it.raisedDate || it.startDate || '',
           status: it.status || it.result || '',
@@ -2201,25 +2533,48 @@
       '<div><b>' + esc(row.title || '—') + '</b></div>' +
       (it.description || it.question || it.details || it.summary ?
         '<div class="small" style="margin-top:8px;line-height:1.9;color:#c6cdda">' + esc(it.description || it.question || it.details || it.summary) + '</div>' : '') +
-      '<div class="small muted" style="margin-top:10px">التاريخ: <b class="num">' + esc(row.date) + '</b>' +
-      (row.contractor !== '—' ? ' · الجهة: <b>' + esc(row.contractor) + '</b>' : '') +
-      (it.amount ? ' · القيمة: ' + money(it.amount) : '') + '</div>' +
+      '<div class="small muted" style="margin-top:10px">' + I18n.t('التاريخ: ') + '<b class="num">' + esc(row.date) + '</b>' +
+      (row.contractor !== '—' ? ' · ' + I18n.t('الجهة: ') + '<b>' + esc(row.contractor) + '</b>' : '') +
+      (it.amount ? ' · ' + I18n.t('القيمة: ') + money(it.amount) : '') + '</div>' +
       (row.status ? '<div style="margin-top:8px">' + pill(row.status) + '</div>' : '') +
       (it.notes ? '<div class="small mt">📝 ' + esc(it.notes) + '</div>' : '') +
       (it.answer ? '<div class="small mt" style="color:var(--ok)">↩ ' + esc(it.answer) + '</div>' : '') +
       (it.signature ? '<div class="sig">✍️ ' + esc(it.signature) + ' · ' + esc(it.signDate || '') + '</div>' : '') +
-      (it.file && typeof it.file === 'object' && it.file.url ? '<div class="mt"><a class="btn ghost sm" href="' + esc(it.file.url) + '" target="_blank">⬇ تحميل المرفق</a></div>' : '') +
-      (it.url ? '<div class="mt"><a class="btn ghost sm" href="' + esc(it.url) + '" target="_blank">⬇ فتح الملف</a></div>' : '') +
+      (it.file && typeof it.file === 'object' && it.file.url ? '<div class="mt"><a class="btn ghost sm" href="' + esc(it.file.url) + '" target="_blank">⬇ ' + I18n.t('تحميل المرفق') + '</a></div>' : '') +
+      (it.url ? '<div class="mt"><a class="btn ghost sm" href="' + esc(it.url) + '" target="_blank">⬇ ' + I18n.t('فتح الملف') + '</a></div>' : '') +
       '</div>' +
       '<div class="m-actions">' +
-      (hasDrawing ? '<button class="btn" id="ad-view">🖊 فتح المخطط' + ((it.annotations || []).length ? ' (' + it.annotations.length + ' ترميز)' : '') + '</button>' : '') +
-      '<button class="btn mutedb" onclick="this.closest(\'.modal-back\').remove()">إغلاق</button></div>'
+      (hasDrawing ? '<button class="btn" id="ad-view">🖊 ' + I18n.t('فتح المخطط') + ((it.annotations || []).length ? ' (' + it.annotations.length + ' ' + I18n.t('ترميز') + ')' : '') + '</button>' : '') +
+      (VS.canManage(ctx) ? '<button class="btn ghost" id="ad-edit">✏️ ' + I18n.t('تعديل') + '</button>' : '') +
+      (VS.canDelete(ctx, row.col) ? '<button class="btn danger" id="ad-del">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
+      '<button class="btn mutedb" data-close-modal="1">' + I18n.t('إغلاق') + '</button></div>'
     );
     const v = m.querySelector('#ad-view');
     if (v) v.addEventListener('click', function () {
       m.remove();
-      const canEdit = ['consultant', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
+      const canEdit = ['consultant', 'project_manager', 'admin'].indexOf(ctx.U.role) !== -1 && row.col !== 'files';
       window.DrawingViewer.open(ctx, row.col, it, { canEdit: canEdit, canReview: canEdit && it.status === 'pending' });
+    });
+    const edBtn = m.querySelector('#ad-edit');
+    if (edBtn) edBtn.addEventListener('click', function () {
+      m.remove();
+      // حقول تعديل تُبنى ديناميكياً بحسب ما يحمله السجل فعلياً — يناسب كل أنواع السجلات الـ28 بنموذج واحد
+      const fields = [];
+      if ('title' in it) fields.push({ key: 'title', label: I18n.t('عنوان الطلب'), type: 'text' });
+      else if ('name' in it) fields.push({ key: 'name', label: I18n.t('الاسم'), type: 'text' });
+      if ('description' in it) fields.push({ key: 'description', label: I18n.t('الوصف'), type: 'textarea' });
+      if ('question' in it) fields.push({ key: 'question', label: I18n.t('نص الاستفسار'), type: 'textarea' });
+      if ('summary' in it) fields.push({ key: 'summary', label: I18n.t('الملخص'), type: 'textarea' });
+      if ('amount' in it) fields.push({ key: 'amount', label: I18n.t('القيمة (ر.س)'), type: 'number' });
+      if ('days' in it) fields.push({ key: 'days', label: I18n.t('الأيام الإضافية'), type: 'number' });
+      if ('notes' in it) fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+      if (!fields.length) fields.push({ key: 'notes', label: I18n.t('ملاحظات'), type: 'textarea' });
+      VS.openGenericEdit({ ctx: ctx, title: row.typeName + ' — ' + I18n.t('تعديل'), collection: row.col, id: it.id, item: it, fields: fields });
+    });
+    const delBtn = m.querySelector('#ad-del');
+    if (delBtn) delBtn.addEventListener('click', function () {
+      m.remove();
+      VS.genericDelete(ctx, row.col, it.id, row.title);
     });
   }
 
@@ -2244,26 +2599,26 @@
     el.innerHTML =
       '<div class="card">' +
       '<div class="flex" style="justify-content:space-between;flex-wrap:wrap;margin-bottom:12px">' +
-      '<h3 style="margin:0">📚 سجل كل المعاملات <span class="hint">العرض الافتراضي لكل السجلات (RFI · أوامر تغيير · مستخلصات · طلبات استلام…) — ' + all.length + ' سجل</span></h3></div>' +
+      '<h3 style="margin:0">📚 ' + I18n.t('أرشيف المستندات') + ' <span class="hint">' + I18n.t('كل مستند مُكوَّد بصيغة BSR-المشروع-النوع-السنة-التسلسل — ') + all.length + ' ' + I18n.t('مستند مؤرشف') + '</span></h3></div>' +
       '<div class="grid" style="grid-template-columns:2fr 1fr 1fr 1fr;gap:10px;margin-bottom:14px">' +
-      '<input class="inp" id="ar-q" placeholder="🔍 بحث بالكود (BSR-...) أو المرجع أو العنوان أو الجهة..." value="' + esc(archState.q) + '">' +
-      '<select class="inp" id="ar-type"><option value="all">كل الأنواع</option>' +
+      '<input class="inp" id="ar-q" placeholder="🔍 ' + I18n.t('بحث بالكود (BSR-...) أو المرجع أو العنوان أو الجهة...') + '" value="' + esc(archState.q) + '">' +
+      '<select class="inp" id="ar-type"><option value="all">' + I18n.t('كل الأنواع') + '</option>' +
       ARCHIVE_TYPES.map(function (t) {
         const n = (ctx.S[t[0]] || []).length;
-        return n ? '<option value="' + t[0] + '"' + (archState.type === t[0] ? ' selected' : '') + '>' + t[1] + ' (' + n + ')</option>' : '';
+        return n ? '<option value="' + t[0] + '"' + (archState.type === t[0] ? ' selected' : '') + '>' + archiveTypeLabel(t) + ' (' + n + ')</option>' : '';
       }).join('') + '</select>' +
       '<select class="inp" id="ar-status">' +
       [['all', 'كل الحالات'], ['active', 'قيد الإجراء'], ['done', 'معتمد / مغلق'], ['rejected', 'مرفوض / راسب']].map(function (o) {
-        return '<option value="' + o[0] + '"' + (archState.status === o[0] ? ' selected' : '') + '>' + o[1] + '</option>';
+        return '<option value="' + o[0] + '"' + (archState.status === o[0] ? ' selected' : '') + '>' + I18n.t(o[1]) + '</option>';
       }).join('') + '</select>' +
-      '<select class="inp" id="ar-year"><option value="all">كل السنوات</option>' +
+      '<select class="inp" id="ar-year"><option value="all">' + I18n.t('كل السنوات') + '</option>' +
       Object.keys(years).sort().reverse().map(function (y) {
         return '<option value="' + y + '"' + (archState.year === y ? ' selected' : '') + '>' + y + '</option>';
       }).join('') + '</select>' +
       '</div>' +
       (rows.length ?
         '<div class="tbl-wrap" style="max-height:62vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-        '<th>كود المستند</th><th>النوع</th><th>العنوان</th><th>الجهة</th><th>التاريخ</th><th>الحالة</th><th></th></tr></thead><tbody>' +
+        '<th>' + I18n.t('كود المستند') + '</th><th>' + I18n.t('النوع') + '</th><th>' + I18n.t('العنوان') + '</th><th>' + I18n.t('الجهة') + '</th><th>' + I18n.t('التاريخ') + '</th><th>' + I18n.t('الحالة') + '</th><th></th></tr></thead><tbody>' +
         rows.slice(0, 400).map(function (r, i) {
           return '<tr>' +
             '<td class="num small" style="white-space:nowrap"><b style="color:var(--accent2)">' + esc(r.docCode || '—') + '</b>' +
@@ -2273,10 +2628,10 @@
             '<td class="small">' + esc(r.contractor) + '</td>' +
             '<td class="small muted num">' + esc(r.date) + '</td>' +
             '<td>' + (r.status ? pill(r.status) : '<span class="muted small">—</span>') + '</td>' +
-            '<td><button class="btn ghost sm" data-arow="' + i + '">فتح 📂</button></td></tr>';
+            '<td><button class="btn ghost sm" data-arow="' + i + '">' + I18n.t('فتح') + ' 📂</button></td></tr>';
         }).join('') + '</tbody></table></div>' +
-        (rows.length > 400 ? '<div class="small muted mt">يعرض أول 400 نتيجة — ضيّق البحث للوصول لبقية المستندات</div>' : '')
-        : '<div class="empty"><div class="e-ico">📚</div>لا مستندات مطابقة للبحث</div>') +
+        (rows.length > 400 ? '<div class="small muted mt">' + I18n.t('يعرض أول 400 نتيجة — ضيّق البحث للوصول لبقية المستندات') + '</div>' : '')
+        : '<div class="empty"><div class="e-ico">📚</div>' + I18n.t('لا مستندات مطابقة للبحث') + '</div>') +
       '</div>';
 
     function rewire(keepFocus) {

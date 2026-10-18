@@ -53,7 +53,8 @@
     users: 'مستخدم', contractors: 'مقاول', projects: 'مشروع', photos: 'صورة', comments: 'رد',
     bimModels: 'نموذج BIM', bimDocs: 'وثيقة BIM',
     handoverItems: 'بند تسليم', punchList: 'ملاحظة تسليم Punch', warranties: 'ضمان',
-    keysLog: 'تسليم مفاتيح', incidents: 'تقرير حادث', scheduleTasks: 'مرحلة مشروع'
+    keysLog: 'تسليم مفاتيح', incidents: 'تقرير حادث', scheduleTasks: 'مرحلة مشروع',
+    drawingMappings: 'ربط منطقة مخطط', bimMappings: 'ربط عنصر BIM'
   };
 
   function labelOf(collection, item) {
@@ -75,49 +76,68 @@
 
   // من يستطيع إنشاء عناصر في كل مجموعة
   const CREATE_RULES = {
-    shopDrawings: ['contractor', 'consultant', 'admin'],
-    materials: ['contractor', 'consultant', 'admin'],
-    scheduleSubmittals: ['contractor', 'consultant', 'admin'],
-    boqSubmittals: ['contractor', 'consultant', 'admin'],
-    wirs: ['contractor', 'consultant', 'admin'],
-    changeOrders: ['contractor', 'consultant', 'admin'],
-    payments: ['contractor', 'consultant', 'admin'],
-    dailyReports: ['consultant', 'admin'],
-    monthlyReports: ['consultant', 'admin'],
-    boqItems: ['consultant', 'admin'],
+    shopDrawings: ['contractor', 'consultant', 'project_manager', 'admin'],
+    materials: ['contractor', 'consultant', 'project_manager', 'admin'],
+    scheduleSubmittals: ['contractor', 'consultant', 'project_manager', 'admin'],
+    boqSubmittals: ['contractor', 'consultant', 'project_manager', 'admin'],
+    wirs: ['contractor', 'consultant', 'project_manager', 'admin'],
+    changeOrders: ['contractor', 'consultant', 'project_manager', 'admin'],
+    payments: ['contractor', 'consultant', 'project_manager', 'admin'],
+    dailyReports: ['consultant', 'project_manager', 'admin'],
+    monthlyReports: ['consultant', 'project_manager', 'admin'],
+    boqItems: ['consultant', 'project_manager', 'admin'],
     aiInsights: ['admin'],
-    photos: ['consultant', 'contractor', 'admin'],
+    photos: ['consultant', 'contractor', 'project_manager', 'admin'],
     users: ['admin', 'owner_rep'],
-    contractors: ['consultant', 'admin'],
+    contractors: ['consultant', 'project_manager', 'admin'],
     projects: ['owner_rep', 'admin'],
     // موديول المكتب الفني
-    rfis: ['contractor', 'consultant', 'admin'],
-    rfps: ['contractor', 'consultant', 'admin'],
-    methodStatements: ['contractor', 'consultant', 'admin'],
-    claims: ['contractor', 'consultant', 'admin'],
-    valueEngineering: ['contractor', 'consultant', 'admin'],
-    handoverDocs: ['contractor', 'consultant', 'admin'],
-    weeklyReports: ['consultant', 'admin'],
-    cameras: ['consultant', 'admin'],
-    planDrawings: ['consultant', 'admin'],
-    ncrs: ['consultant', 'admin'],
-    siteInstructions: ['consultant', 'admin'],
-    snags: ['consultant', 'admin'],
-    hseReports: ['consultant', 'admin'],
-    materialTests: ['consultant', 'admin'],
-    meetings: ['consultant', 'admin'],
-    correspondence: ['consultant', 'admin'],
-    comments: ['contractor', 'consultant', 'admin'],
-    bimModels: ['consultant', 'admin'],
-    bimDocs: ['consultant', 'admin'],
+    rfis: ['contractor', 'consultant', 'project_manager', 'admin'],
+    rfps: ['contractor', 'consultant', 'project_manager', 'admin'],
+    methodStatements: ['contractor', 'consultant', 'project_manager', 'admin'],
+    claims: ['contractor', 'consultant', 'project_manager', 'admin'],
+    valueEngineering: ['contractor', 'consultant', 'project_manager', 'admin'],
+    handoverDocs: ['contractor', 'consultant', 'project_manager', 'admin'],
+    weeklyReports: ['consultant', 'project_manager', 'admin'],
+    cameras: ['consultant', 'project_manager', 'admin'],
+    planDrawings: ['consultant', 'project_manager', 'admin'],
+    ncrs: ['consultant', 'project_manager', 'admin'],
+    siteInstructions: ['consultant', 'project_manager', 'admin'],
+    snags: ['consultant', 'project_manager', 'admin'],
+    hseReports: ['consultant', 'project_manager', 'admin'],
+    materialTests: ['consultant', 'project_manager', 'admin'],
+    meetings: ['consultant', 'project_manager', 'admin'],
+    correspondence: ['consultant', 'project_manager', 'admin'],
+    comments: ['contractor', 'consultant', 'project_manager', 'admin'],
+    bimModels: ['consultant', 'project_manager', 'admin'],
+    bimDocs: ['consultant', 'project_manager', 'admin'],
     // وحدة التسليم والإغلاق ومراحل المشروع
-    handoverItems: ['consultant', 'admin'],
-    punchList: ['consultant', 'admin'],
-    warranties: ['contractor', 'consultant', 'admin'],
-    keysLog: ['consultant', 'admin', 'owner_rep'],
-    incidents: ['consultant', 'admin'],
-    scheduleTasks: ['consultant', 'admin']
+    handoverItems: ['consultant', 'project_manager', 'admin'],
+    punchList: ['consultant', 'project_manager', 'admin'],
+    warranties: ['contractor', 'consultant', 'project_manager', 'admin'],
+    keysLog: ['consultant', 'project_manager', 'admin', 'owner_rep'],
+    incidents: ['consultant', 'project_manager', 'admin'],
+    scheduleTasks: ['consultant', 'project_manager', 'admin'],
+    // ربط مناطق المخططات وعناصر BIM ببنود جدول الكميات
+    drawingMappings: ['consultant', 'project_manager', 'admin'],
+    bimMappings: ['consultant', 'project_manager', 'admin']
   };
+
+  // الحذف افتراضياً للأدمن فقط (+ممثل المالك لحساب المستخدمين) — عدا مجموعات دورة التقديمات
+  // والاعتمادات/المكتب الفني أدناه، حيث يُسمح أيضاً للمالك/الاستشاري/ممثل المالك/مدير المشروع بالحذف
+  // (طلب العميل صراحة: تصحيح تقديم خاطئ أو مكرر دون انتظار الأدمن — ثم وسّع الطلب ليشمل المالك أيضاً)
+  const BROAD_DELETE_COLLECTIONS = [
+    'shopDrawings', 'materials', 'scheduleSubmittals', 'boqSubmittals', 'wirs', 'changeOrders', 'payments',
+    'methodStatements', 'claims', 'valueEngineering', 'handoverDocs', 'rfis', 'rfps',
+    'ncrs', 'siteInstructions', 'snags', 'hseReports', 'materialTests', 'meetings', 'correspondence'
+  ];
+  const BROAD_DELETE_ROLES = ['admin', 'owner', 'owner_rep', 'consultant', 'project_manager'];
+  const KSA_BOUNDS = { latMin: 16, latMax: 33, lngMin: 34, lngMax: 56 };
+  const KSA_COORDS_ERROR = 'أدخل إحداثيات صحيحة داخل المملكة (خط العرض 16–33، خط الطول 34–56)';
+  function validKsaCoords(lat, lng) {
+    return typeof lat === 'number' && typeof lng === 'number' && isFinite(lat) && isFinite(lng) &&
+      lat >= KSA_BOUNDS.latMin && lat <= KSA_BOUNDS.latMax && lng >= KSA_BOUNDS.lngMin && lng <= KSA_BOUNDS.lngMax;
+  }
 
   function createCore(db, persist, opts) {
     persist = persist || function () {};
@@ -210,6 +230,20 @@
       const s = {};
       const role = user.role;
       s.projects = db.projects;
+      // مشروع في حالة "مسودة" لا يظهر إلا لمنشئه أو لمن أُسند إليه صراحة (استشاري/مالك بمشاريع
+      // محدَّدة عبر projectIds، أو مقاول رُبط به) — الأدمن يرى كل شيء دائماً كبقية استثناءاته بالنظام
+      if (role !== 'admin') {
+        const myContractorProjectId = (role === 'contractor')
+          ? (function () { const c = db.contractors.find(function (x) { return x.id === user.contractorId; }); return c && c.projectId; })()
+          : null;
+        s.projects = s.projects.filter(function (p) {
+          if (p.status !== 'draft') return true;
+          if (p.createdBy === user.id) return true;
+          if (user.projectIds && user.projectIds.indexOf(p.id) !== -1) return true;
+          if (myContractorProjectId && myContractorProjectId === p.id) return true;
+          return false;
+        });
+      }
       s.scheduleCurve = db.scheduleCurve;
       s.scheduleTasks = db.scheduleTasks;
       s.costCurve = db.costCurve;
@@ -232,8 +266,11 @@
       s.warranties = db.warranties || [];
       s.keysLog = db.keysLog || [];
       s.incidents = db.incidents || [];
+      // ربط مناطق المخططات وعناصر BIM ببنود جدول الكميات (§11/§6 من وثيقة المتطلبات)
+      s.drawingMappings = db.drawingMappings || [];
+      s.bimMappings = db.bimMappings || [];
       // المالك يطلع على وثائق مشروعه (قراءة) — يقيدها نطاق المشروع أدناه
-      s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant' || role === 'owner') ? (db.files || []) : [];
+      s.files = (role === 'admin' || role === 'owner_rep' || role === 'consultant' || role === 'project_manager' || role === 'owner') ? (db.files || []) : [];
       s.messages = db.messages;
       s.contractors = db.contractors;
       s.boqItems = db.boqItems;
@@ -249,9 +286,22 @@
         s.bimDocs = [];
         s.boqItems = db.boqItems.filter(function (x) { return x.contractorId === cid; });
         s.contractors = db.contractors.filter(function (x) { return x.id === cid; });
-        // المقاول يرى مشروعه فقط
+        // المقاول يرى مشروعه فقط — يشمل ذلك كل بيانات المشروع العامة (صور، تقارير، مخططات،
+        // نماذج BIM وربطها، رؤى الذكاء الاصطناعي، منحنيات الجدول والتكلفة) لا بيانات أي مشروع آخر إطلاقاً
         const myC = db.contractors.find(function (x) { return x.id === cid; });
-        if (myC && myC.projectId) s.projects = db.projects.filter(function (p) { return p.id === myC.projectId; });
+        const myPid = myC && myC.projectId;
+        if (myPid) {
+          s.projects = db.projects.filter(function (p) { return p.id === myPid; });
+          ['photos', 'dailyReports', 'weeklyReports', 'monthlyReports', 'planDrawings', 'bimModels',
+            'drawingMappings', 'bimMappings', 'aiInsights', 'scheduleCurve', 'scheduleTasks', 'costCurve', 'healthHistory']
+            .forEach(function (c) { s[c] = (s[c] || []).filter(function (x) { return x.projectId === myPid; }); });
+          // الجدول الزمني الذي يرفعه الاستشاري/الأدمن مباشرة كخط أساس للمشروع لا يخص مقاولاً
+          // بعينه (لا يوجد حقل اختيار مقاول في تلك الشاشة) — فيظهر لكل مقاولي المشروع بدل أن
+          // يختفي تماماً من حساباتهم لمجرد أنه بلا contractorId
+          s.scheduleSubmittals = (db.scheduleSubmittals || []).filter(function (x) {
+            return x.contractorId === cid || (!x.contractorId && x.projectId === myPid);
+          });
+        }
         s.messages = [];
         s.users = [];
         // التسليم: المقاول يرى ما يخصه فقط (ملاحظاته وضماناته وحوادثه)
@@ -275,8 +325,8 @@
       if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
 
       // تقييد النطاق بالمشاريع المسندة: المالك يرى مشروعه فقط
-      // (وينطبق كذلك على استشاري أُسندت له مشاريع محددة)
-      if (user.projectIds && (role === 'owner' || role === 'consultant')) {
+      // (وينطبق كذلك على استشاري أُسندت له مشاريع محددة، ومدير المشروع دائماً بمشروعه الوحيد)
+      if (user.projectIds && (role === 'owner' || role === 'consultant' || role === 'project_manager')) {
         const pids = user.projectIds;
         const inScope = function (x) { return !x.projectId || pids.indexOf(x.projectId) !== -1; };
         s.projects = s.projects.filter(function (p) { return pids.indexOf(p.id) !== -1; });
@@ -340,11 +390,12 @@
       return notif;
     }
 
-    /** المستخدمون الذين يخصهم إشعار معيّن (دور + الأدمن، أو مقاول محدد) */
+    /** المستخدمون الذين يخصهم إشعار معيّن (دور + الأدمن، أو مقاول محدد) —
+     * مدير المشروع يعامَل كمكافئ للاستشاري في استقبال إشعارات الدور 'consultant' */
     function notifyTargets(target) {
       return (db.users || []).filter(function (u) {
         if (target.contractorId) return u.role === 'contractor' && u.contractorId === target.contractorId;
-        if (target.role) return u.role === target.role || u.role === 'admin';
+        if (target.role) return u.role === target.role || u.role === 'admin' || (target.role === 'consultant' && u.role === 'project_manager');
         return false;
       }).map(stripPassword);
     }
@@ -352,7 +403,7 @@
     function myNotifications(user) {
       return (db.notifications || []).filter(function (n) {
         if (n.contractorId) return user.role === 'contractor' && user.contractorId === n.contractorId;
-        if (n.role) return user.role === n.role || user.role === 'admin';
+        if (n.role) return user.role === n.role || user.role === 'admin' || (n.role === 'consultant' && user.role === 'project_manager');
         return false;
       });
     }
@@ -390,6 +441,11 @@
 
     function createItem(user, collection, data) {
       assertCanCreate(user, collection);
+      // مدير المشروع دور مقصور دائماً على مشروع واحد بالتصميم — يُرفَض إنشاؤه بلا مشروع محدَّد
+      // (وإلا فسيصبح بلا نطاق ويرى كل المشاريع، عكس الغرض من الدور تماماً)
+      if (collection === 'users' && data.role === 'project_manager' && (!data.projectIds || data.projectIds.length !== 1)) {
+        throw err('مدير المشروع يجب أن يُسنَد إلى مشروع واحد بالضبط', 400);
+      }
       const item = Object.assign({}, data);
       item.id = nextId(collection.substring(0, 2).toUpperCase());
 
@@ -421,8 +477,11 @@
         const myContractor = db.contractors.find(function (c) { return c.id === user.contractorId; });
         item.projectId = (myContractor && myContractor.projectId) || item.projectId || 'P1';
         if (APPROVAL_COLLECTIONS.indexOf(collection) !== -1) item.status = 'pending';
-      } else {
-        // المشروع من العميل (المشروع المعروض)، وإلا مشروع المستخدم الأول، وإلا الأول في النظام
+      } else if (collection !== 'users') {
+        // حساب المستخدم (users) ليس كياناً مقيَّداً بمشروع واحد بطبيعته — نطاقه الفعلي يُحدَّد عبر
+        // projectIds (مالك/استشاري) أو contractorId (مقاول)، فلا معنى لِوَسم كل حساب جديد بمشروع افتراضي P1
+        // المشروع من العميل (المشروع المعروض) أولاً، وإلا مشروع المستخدم الحالي، وإلا أول مشروع في النظام —
+        // يمنع تسرّب المستندات لمشروع P1 افتراضياً حين يعمل المستخدم فعلياً على مشروع آخر
         item.projectId = item.projectId ||
           (user.projectIds && user.projectIds[0]) ||
           (db.projects[0] && db.projects[0].id) || 'P1';
@@ -483,6 +542,40 @@
           if (!allowed) throw err('لا يمكن تعديل طلب تم البت فيه — يمكنك الرد على الملاحظات أو رفع نسخة معدلة', 403);
         }
       }
+      // بعد اعتماد/رفض الطلب فعلياً: القيمة المالية والأثر الزمني يُقفلان لكل الأدوار (بما فيها الأدمن)
+      // لضمان بقاء السجل مطابقاً تماماً للقرار الموثَّق — أي تصحيح لاحق يجب أن يمر عبر أمر تغيير جديد
+      // لا عبر تعديل صامت يُبقي الحالة «معتمد» بأرقام مختلفة عما اعتُمد فعلياً (أثر مالي/جدولي غير موثّق)
+      if (item.status && ['approved', 'approved_notes', 'rejected', 'fail'].indexOf(item.status) !== -1) {
+        if ('amount' in patch || 'days' in patch) {
+          throw err('لا يمكن تعديل القيمة المالية أو الأثر الزمني بعد اعتماد/رفض الطلب — أنشئ أمر تغيير جديداً لأي تعديل لاحق', 403);
+        }
+      }
+      if (collection === 'users') {
+        // تعديل حسابات المستخدمين صلاحية الأدمن وممثل المالك فقط (تطابق CREATE_RULES.users) —
+        // تعديل الملف الشخصي لأي مستخدم عن نفسه يمر عبر updateProfile، لا هذا المسار العام
+        if (['admin', 'owner_rep'].indexOf(user.role) === -1) throw err('تعديل المستخدمين صلاحية الأدمن وممثل المالك', 403);
+        // نفس قيد الإنشاء: مدير مشروع لا يبقى أبداً بلا مشروع واحد محدَّد بالضبط
+        const resultingRole = patch.role || item.role;
+        const resultingProjectIds = patch.projectIds !== undefined ? patch.projectIds : item.projectIds;
+        if (resultingRole === 'project_manager' && (!resultingProjectIds || resultingProjectIds.length !== 1)) {
+          throw err('مدير المشروع يجب أن يُسنَد إلى مشروع واحد بالضبط', 400);
+        }
+        if (patch.password) {
+          // كلمة مرور جديدة: تُشفَّر بنفس طريقة storeAccount عند الإنشاء — لا تُخزَّن كنص صريح أبداً
+          const plain = patch.password;
+          patch = Object.assign({}, patch);
+          delete patch.password;
+          if (pwd.hash) Object.assign(patch, pwd.hash(plain));
+          else patch.password = plain; // احتياط وضع الديمو بلا وحدة تشفير
+        }
+      }
+      if (collection === 'projects' && ('lat' in patch || 'lng' in patch)) {
+        const la = 'lat' in patch ? Number(patch.lat) : item.lat;
+        const lo = 'lng' in patch ? Number(patch.lng) : item.lng;
+        if (!validKsaCoords(la, lo)) throw err(KSA_COORDS_ERROR, 400);
+        if ('lat' in patch) patch.lat = la;
+        if ('lng' in patch) patch.lng = lo;
+      }
       const wasOpen = item.status === 'open';
       const prevAssignee = item.assignedTo;
       Object.assign(item, patch);
@@ -502,8 +595,10 @@
     }
 
     function deleteItem(user, collection, id) {
-      if (user.role !== 'admin' && !(user.role === 'owner_rep' && collection === 'users')) {
-        throw err('الحذف متاح للأدمن فقط', 403);
+      const broadDelete = BROAD_DELETE_COLLECTIONS.indexOf(collection) !== -1 && BROAD_DELETE_ROLES.indexOf(user.role) !== -1;
+      const narrowDelete = user.role === 'admin' || (user.role === 'owner_rep' && collection === 'users');
+      if (!broadDelete && !narrowDelete) {
+        throw err('لا تملك صلاحية الحذف', 403);
       }
       const list = db[collection];
       if (!list) throw err('مجموعة غير معروفة', 404);
@@ -523,7 +618,7 @@
      */
     function review(user, opts) {
       const collection = opts.collection, id = opts.id, status = opts.status;
-      const isReviewer = user.role === 'consultant' || user.role === 'admin';
+      const isReviewer = user.role === 'consultant' || user.role === 'project_manager' || user.role === 'admin';
       const isOwnerRep = user.role === 'owner_rep';
       const baseline = BASELINE_COLLECTIONS.indexOf(collection) !== -1;
       // ممثل المالك يشارك في اعتماد تعديلات خط الأساس فقط (جدول الكميات/الجدول الزمني)
@@ -661,7 +756,7 @@
       const item = list.find(function (x) { return x.id === id; });
       if (!item) throw err('المستند غير موجود', 404);
       if (user.role === 'contractor' && item.contractorId !== user.contractorId) throw err('غير مصرح', 403);
-      if (['contractor', 'consultant', 'admin'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      if (['contractor', 'consultant', 'project_manager', 'admin'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
       if (item.status === 'pending') throw err('المستند قيد المراجعة بالفعل', 400);
 
       if (!item.revisions) item.revisions = [];
@@ -690,7 +785,7 @@
 
     /** إضافة مقاول جديد مع حسابه وبنود كمياته (صلاحية الاستشاري) */
     function addContractor(user, payload) {
-      if (['consultant', 'admin'].indexOf(user.role) === -1) throw err('إضافة المقاولين صلاحية الاستشاري', 403);
+      if (['consultant', 'project_manager', 'admin'].indexOf(user.role) === -1) throw err('إضافة المقاولين صلاحية الاستشاري', 403);
       const c = {
         id: nextId('C'), projectId: payload.projectId || 'P1',
         name: payload.name, type: payload.type,
@@ -720,17 +815,41 @@
       return { contractor: c, account: account };
     }
 
+    /**
+     * حذف مقاول نهائياً (صلاحية الأدمن فقط — كبقية عمليات الحذف في النظام).
+     * يحذف معه: حساب دخوله، بنود جدول كمياته، وأي ربط مناطق مخططات/عناصر BIM ببنود كمياته
+     * (لتفادي بيانات يتيمة تُسبب أخطاء عرض). طلبات الاعتماد والمستخلصات السابقة تبقى كسجل تاريخي
+     * ولا تُحذف — يظهر اسم المقاول فيها كمعرّف فقط بعد الحذف.
+     */
+    function deleteContractor(user, id) {
+      if (user.role !== 'admin') throw err('حذف المقاولين متاح للأدمن فقط', 403);
+      const c = db.contractors.find(function (x) { return x.id === id; });
+      if (!c) throw err('المقاول غير موجود', 404);
+      const boqIds = db.boqItems.filter(function (b) { return b.contractorId === id; }).map(function (b) { return b.id; });
+      db.boqItems = db.boqItems.filter(function (b) { return b.contractorId !== id; });
+      db.drawingMappings = (db.drawingMappings || []).filter(function (m) { return boqIds.indexOf(m.boqItemId) === -1; });
+      db.bimMappings = (db.bimMappings || []).filter(function (m) { return boqIds.indexOf(m.boqItemId) === -1; });
+      db.users = db.users.filter(function (u) { return u.contractorId !== id; });
+      db.contractors = db.contractors.filter(function (x) { return x.id !== id; });
+      audit(user, 'delete', labelOf('contractors', c));
+      persist();
+      return { ok: true };
+    }
+
     /** إضافة مشروع وتعيين استشاري بحسابه (صلاحية ممثل المالك) */
     function addProject(user, payload) {
       if (['owner_rep', 'admin'].indexOf(user.role) === -1) throw err('إضافة المشاريع صلاحية ممثل المالك', 403);
-      const lat = payload.lat != null ? Number(payload.lat) : null;
-      const lng = payload.lng != null ? Number(payload.lng) : null;
+      const name = String(payload.name || '').trim();
+      if (!name) throw err('اسم المشروع مطلوب', 400);
+      if (payload.lat == null || payload.lng == null) throw err(KSA_COORDS_ERROR, 400);
+      const lat = Number(payload.lat), lng = Number(payload.lng);
+      if (!validKsaCoords(lat, lng)) throw err(KSA_COORDS_ERROR, 400);
       const p = {
-        id: nextId('P'), name: payload.name, location: payload.location || '',
-        lat: (lat != null && !isNaN(lat)) ? lat : null,
-        lng: (lng != null && !isNaN(lng)) ? lng : null,
+        id: nextId('P'), name: name, location: payload.location || '',
+        lat: lat, lng: lng,
         description: payload.description || '', ownerName: payload.ownerName || '',
         consultantName: payload.consultantName || '',
+        status: payload.status === 'draft' ? 'draft' : 'active', createdBy: user.id,
         startPlanned: payload.startPlanned, endPlanned: payload.endPlanned,
         startActual: null, endForecast: payload.endPlanned,
         budgetPlanned: Number(payload.budgetPlanned) || 0, costActual: 0, costPlannedToDate: 0,
@@ -757,7 +876,7 @@
 
     /** إرسال تقرير للمالك (واتساب / إيميل) — محاكاة قناة الإرسال مع سجل موثق */
     function sendReport(user, payload) {
-      if (['consultant', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      if (['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
       const msg = {
         id: nextId('MSG'), channel: payload.channel === 'whatsapp' ? 'whatsapp' : 'email',
         to: payload.to, title: payload.title || 'تقرير المشروع',
@@ -936,6 +1055,7 @@
       computeProjectHealth: computeProjectHealth,
       recordHealthSnapshot: recordHealthSnapshot,
       addContractor: addContractor,
+      deleteContractor: deleteContractor,
       addProject: addProject,
       sendReport: sendReport,
       contractorSummary: contractorSummary,
