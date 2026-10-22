@@ -67,11 +67,16 @@ else
   echo "    انسخ .env.example إلى .env هنا واملأه إن أردت تفعيلها، ثم أعد التشغيل."
 fi
 
+# LOCAL_ONLY=1 يقيّد الحاوية لـ 127.0.0.1 فقط (بعد تأكيد عمل Nginx+HTTPS أمامها) —
+# اتركه فارغاً أثناء الإعداد الأول قبل وجود Nginx، وإلا فقد الموقع الوصول بالكامل.
+BIND_ADDR="0.0.0.0"
+if [ "${LOCAL_ONLY:-}" = "1" ]; then BIND_ADDR="127.0.0.1"; fi
+
 echo "==> [6/7] تشغيل الحاوية الجديدة..."
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
-  -p "${HOST_PORT}:3000" \
+  -p "${BIND_ADDR}:${HOST_PORT}:3000" \
   -v "${DATA_DIR}:/app/data" \
   -v "${UPLOADS_HOST_DIR}:/app/uploads-external" \
   -e UPLOADS_DIR=/app/uploads-external \
@@ -79,7 +84,12 @@ docker run -d \
   "${IMAGE_NAME}:${TAG}"
 
 echo "==> [7/7] تأكيد..."
-echo "✅ الحاوية bassir-owner-eyes تعمل على المنفذ ${HOST_PORT} — مكشوف مباشرة على الإنترنت (0.0.0.0)."
-echo "   افتح: http://<server-ip>:${HOST_PORT}  (تأكد أن المنفذ مفتوح في الجدار الناري/Security Group إن لزم)"
+if [ "${BIND_ADDR}" = "127.0.0.1" ]; then
+  echo "✅ الحاوية bassir-owner-eyes تعمل على 127.0.0.1:${HOST_PORT} — غير مكشوفة مباشرة على الإنترنت، فقط عبر Nginx."
+else
+  echo "✅ الحاوية bassir-owner-eyes تعمل على المنفذ ${HOST_PORT} — مكشوف مباشرة على الإنترنت (0.0.0.0)."
+  echo "   افتح: http://<server-ip>:${HOST_PORT}  (تأكد أن المنفذ مفتوح في الجدار الناري/Security Group إن لزم)"
+  echo "   بعد تأكيد عمل Nginx+HTTPS أمام هذا المنفذ: أعد التشغيل بـ LOCAL_ONLY=1 ./run.sh لقفله عن الوصول المباشر."
+fi
 echo "   الملفات المرفوعة تُخزَّن في: ${UPLOADS_HOST_DIR}/{documents,images}"
 echo "   المتابعة: docker logs -f ${CONTAINER_NAME}"
