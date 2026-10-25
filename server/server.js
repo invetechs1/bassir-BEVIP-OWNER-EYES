@@ -390,6 +390,7 @@ const server = http.createServer(async function (req, res) {
 
     // ===== مسارات المنصّة العامة (بلا مصادقة — صفحة الهبوط والتسجيل والدفع) =====
     if (u === '/api/platform/plans') return json(res, 200, core.publicPlans());
+    if (u === '/api/platform/visit' && req.method === 'POST') { return json(res, 200, core.recordVisit()); }
     if (u === '/api/platform/register' && req.method === 'POST') { const body = await readBody(req); return json(res, 201, core.registerTenant(body)); }
     if (u === '/api/platform/subscribe' && req.method === 'POST') { const body = await readBody(req); return json(res, 201, core.subscribeTenant(body)); }
 

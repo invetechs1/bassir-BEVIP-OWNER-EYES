@@ -1318,13 +1318,18 @@ textarea.inp { resize: vertical; min-height: 80px; }
       ['مؤسسة البنيان الحديث', 'م. فيصل الحربي', 'f@bunyan.sa', '0551100007', 'pending', 1, '2026-10-14'],
       ['شركة المشاريع المتكاملة', 'أ. سارة المطيري', 'ops@ipc.sa', '0551100008', 'active', 2, '2026-09-02']
     ];
+    const plusYear = function (d) { return d ? (parseInt(d.slice(0, 4), 10) + 1) + d.slice(4) : null; };
     db.tenants = tnames.map(function (t, i) {
       const created = t[6];
       const active = t[4] === 'active';
+      const subStart = (active || t[4] === 'suspended') ? created : null;
       return {
         id: 'T' + (i + 1), companyName: t[0], contactName: t[1], email: t[2], phone: t[3],
         planId: 'standard', pricePerProject: PRICE, projectCount: t[5], status: t[4],
-        createdAt: created, activatedAt: (active || t[4] === 'suspended') ? created : null,
+        createdAt: created, activatedAt: subStart,
+        subscriptionStart: subStart,                 // بداية الاشتراك
+        subscriptionEnd: plusYear(subStart),         // نهاية مدّة الاشتراك (سنوي)
+        billingCycle: 'monthly',                     // الفوترة شهرية ضمن المدّة
         trialEndsAt: t[4] === 'trial' ? '2026-10-19' : null,
         nextInvoiceDate: active ? '2026-11-01' : null,
         lastPaymentAt: active ? '2026-10-01' : (t[4] === 'suspended' ? '2026-08-01' : null),
@@ -1359,7 +1364,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
     // مستخدم مالك المنصّة (بصير بزنس) + حساب أدمن للمنصّة
     db.users.push({ id: 'U9', username: 'biz', password: 'biz123', name: 'بصير بزنس — مالك المنصّة', role: 'platform_admin', email: 'business@bassir.app', phone: '0550000000', notifyEmail: true, notifyWhatsapp: false });
 
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 22, docSeq: docSeq, invSeq: invSeq };
+    // زوّار صفحة الهبوط (دخلوا النظام ولم يشترِ بعضهم) — لقياس التحويل ونمو النظام
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 23, docSeq: docSeq, invSeq: invSeq, landingVisits: 342 };
 
     return db;
   }
@@ -2437,6 +2443,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       platformState: platformState,
       platformStats: platformStats,
       publicPlans: publicPlans,
+      recordVisit: recordVisit,
       registerTenant: registerTenant,
       subscribeTenant: subscribeTenant,
       createTenant: createTenant,
@@ -2484,8 +2491,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const paid = invs.filter(function (i) { return i.status === 'paid'; });
       const totalRevenue = paid.reduce(function (a, i) { return a + (i.amount || 0); }, 0);
       const thisMonth = monthKey();
+      const lastMonth = addMonthsISO(todayISO(), -1).slice(0, 7);
       const newThisMonth = ts.filter(function (t) { return monthKey(t.createdAt) === thisMonth; }).length;
+      const newLastMonth = ts.filter(function (t) { return monthKey(t.createdAt) === lastMonth; }).length;
       const revThisMonth = paid.filter(function (i) { return (i.paidAt || '').slice(0, 7) === thisMonth; }).reduce(function (a, i) { return a + (i.amount || 0); }, 0);
+      // النمو: عدد المشتركين الجدد شهرياً، والدخل المتكرر مقارنةً بالشهر الماضي
+      const activeBeforeThisMonth = active.filter(function (t) { return monthKey(t.activatedAt || t.createdAt) < thisMonth; });
+      const mrrLastMonth = activeBeforeThisMonth.reduce(function (a, t) { return a + tenantAmount(t); }, 0);
+      const mrrGrowthPct = mrrLastMonth ? Math.round(((mrr - mrrLastMonth) / mrrLastMonth) * 100) : (mrr ? 100 : 0);
+      const tenantGrowthPct = newLastMonth ? Math.round(((newThisMonth - newLastMonth) / newLastMonth) * 100) : (newThisMonth ? 100 : 0);
+      // قمع التحويل: زوّار دخلوا النظام → سجّلوا → اشتركوا (وكم زائر لم يشترِ)
+      const visits = Number((db.meta && db.meta.landingVisits) || 0);
+      const buyers = active.length + ts.filter(function (t) { return t.status === 'suspended'; }).length; // اشتروا فعلاً (ولو أوقِفوا لاحقاً)
+      const leads = ts.filter(function (t) { return t.status === 'pending' || t.status === 'trial'; }).length; // دخلوا وسجّلوا ولم يدفعوا بعد
+      const notBought = Math.max(0, visits - ts.length); // زاروا ولم يسجّلوا أصلاً
+      const conversionPct = visits ? Math.round((buyers / visits) * 100) : 0;
       return {
         tenants: ts.length,
         active: active.length,
@@ -2495,12 +2515,23 @@ textarea.inp { resize: vertical; min-height: 80px; }
         projects: ts.reduce(function (a, t) { return a + (t.projectCount || 0); }, 0),
         activeProjects: active.reduce(function (a, t) { return a + (t.projectCount || 0); }, 0),
         users: ts.reduce(function (a, t) { return a + (t.usersCount || 0); }, 0),
-        mrr: mrr, arr: mrr * 12, totalRevenue: totalRevenue, revThisMonth: revThisMonth, newThisMonth: newThisMonth,
+        mrr: mrr, arr: mrr * 12, totalRevenue: totalRevenue, revThisMonth: revThisMonth,
+        newThisMonth: newThisMonth, newLastMonth: newLastMonth,
+        mrrLastMonth: mrrLastMonth, mrrGrowthPct: mrrGrowthPct, tenantGrowthPct: tenantGrowthPct,
+        visits: visits, buyers: buyers, leads: leads, notBought: notBought, conversionPct: conversionPct,
         pricePerProject: DEFAULT_PRICE,
         unpaid: invs.filter(function (i) { return i.status === 'unpaid'; }).length,
         overdue: invs.filter(function (i) { return i.status === 'overdue'; }).length,
         outstanding: invs.filter(function (i) { return i.status !== 'paid'; }).reduce(function (a, i) { return a + (i.amount || 0); }, 0)
       };
+    }
+
+    // تسجيل زيارة لصفحة الهبوط (عام) — لقياس عدد الزوّار ونسبة التحويل
+    function recordVisit() {
+      db.meta = db.meta || {};
+      db.meta.landingVisits = Number(db.meta.landingVisits || 0) + 1;
+      persist();
+      return { visits: db.meta.landingVisits };
     }
 
     function publicPlans() { return { plans: db.plans || [], pricePerProject: DEFAULT_PRICE }; }
@@ -2520,6 +2551,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         email: payload.email, phone: payload.phone || '', planId: payload.planId || 'standard',
         pricePerProject: DEFAULT_PRICE, projectCount: Math.max(1, Number(payload.projectCount) || 1),
         status: 'pending', createdAt: todayISO(), activatedAt: null, trialEndsAt: null,
+        subscriptionStart: null, subscriptionEnd: null, billingCycle: 'monthly',
         nextInvoiceDate: null, lastPaymentAt: null, usersCount: 1, cardLast4: null
       };
       db.tenants = db.tenants || [];
@@ -2541,6 +2573,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (!charge.ok) throw err(charge.error || 'فشل الدفع', 402);
       t.status = 'active';
       t.activatedAt = t.activatedAt || todayISO();
+      t.subscriptionStart = t.subscriptionStart || todayISO();
+      t.subscriptionEnd = addMonthsISO(t.subscriptionStart, 12);
       t.lastPaymentAt = todayISO();
       t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
       t.cardLast4 = charge.last4;
@@ -2557,7 +2591,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const r = registerTenant(payload);
       const t = r.tenant;
       if (payload.status === 'active') {
-        t.status = 'active'; t.activatedAt = todayISO(); t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
+        t.status = 'active'; t.activatedAt = todayISO();
+        t.subscriptionStart = todayISO(); t.subscriptionEnd = addMonthsISO(todayISO(), 12);
+        t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
       } else if (payload.status === 'trial') {
         t.status = 'trial'; t.trialEndsAt = addDaysISO(todayISO(), 14);
       }
@@ -2589,7 +2625,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const t = tenantById(tenantId);
       if (!t) throw err('مستأجر غير موجود', 404);
       t.status = status;
-      if (status === 'active') { t.activatedAt = t.activatedAt || todayISO(); t.nextInvoiceDate = t.nextInvoiceDate || addMonthsISO(todayISO(), 1); }
+      if (status === 'active') {
+        t.activatedAt = t.activatedAt || todayISO();
+        t.subscriptionStart = t.subscriptionStart || todayISO();
+        t.subscriptionEnd = t.subscriptionEnd || addMonthsISO(t.subscriptionStart, 12);
+        t.nextInvoiceDate = t.nextInvoiceDate || addMonthsISO(todayISO(), 1);
+      }
       t.statusReason = reason || '';
       audit(user, 'update', 'تغيير حالة المستأجر ' + t.companyName + ' إلى ' + status);
       persist();
@@ -2674,6 +2715,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     }
     // ===== مسارات المنصّة العامة (بلا مصادقة — صفحة الهبوط) =====
     if (path === '/api/platform/plans') return c.publicPlans();
+    if (path === '/api/platform/visit') return c.recordVisit();
     if (path === '/api/platform/register') return c.registerTenant(body);
     if (path === '/api/platform/subscribe') return c.subscribeTenant(body);
     if (!demoUser) { const e = new Error('يلزم تسجيل الدخول'); e.status = 401; throw e; }
@@ -2759,6 +2801,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     sendReport(p) { return call('/api/actions/send-report', 'POST', p); },
     // ===== طبقة المنصّة (بصير بزنس) =====
     platformPlans() { return call('/api/platform/plans'); },
+    platformVisit() { return call('/api/platform/visit', 'POST', {}); },
     platformRegister(p) { return call('/api/platform/register', 'POST', p); },
     platformSubscribe(p) { return call('/api/platform/subscribe', 'POST', p); },
     platformState() { return call('/api/platform/state'); },
@@ -13293,6 +13336,27 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="card kpi ' + ((st.overdue || 0) ? 'k-danger' : 'k-ok') + '"><div class="lbl">مستحقّات غير محصّلة</div><div class="val">' + SAR(st.outstanding) + '</div><div class="sub">' + (st.overdue || 0) + ' متأخرة · ' + (st.unpaid || 0) + ' غير مدفوعة</div></div>' +
       '</div>' +
 
+      // ===== نمو النظام وقمع التحويل =====
+      '<div class="grid g2 mb">' +
+      '<div class="card"><h3>🚀 نمو النظام <span class="hint">مقارنةً بالشهر الماضي</span></h3>' +
+      '<div class="grid g2" style="gap:12px">' +
+      growthCard('مشتركون جدد هذا الشهر', st.newThisMonth || 0, st.tenantGrowthPct, 'الشهر الماضي ' + (st.newLastMonth || 0)) +
+      growthCard('نمو الدخل المتكرر (MRR)', SAR(st.mrr), st.mrrGrowthPct, 'كان ' + SAR(st.mrrLastMonth)) +
+      '</div>' +
+      '<div class="small muted mt">📈 الدخل المتكرر ينمو مع كل مشترك جديد ومع كل مشروع يُضاف لمحفظة العملاء.</div></div>' +
+
+      '<div class="card"><h3>🧲 قمع التحويل <span class="hint">من زائر إلى مشترك</span></h3>' +
+      funnelRow('👀 زوّار دخلوا النظام', st.visits || 0, 100, 'var(--brand)') +
+      funnelRow('📝 سجّلوا شركاتهم', st.tenants || 0, pct(st.tenants, st.visits), 'var(--info)') +
+      funnelRow('💳 اشتركوا ودفعوا', st.buyers || 0, pct(st.buyers, st.visits), 'var(--ok)') +
+      '<div class="flex mt" style="gap:8px;flex-wrap:wrap">' +
+      '<span class="pill p-info">نسبة التحويل ' + (st.conversionPct || 0) + '%</span>' +
+      '<span class="pill p-warn">⏳ ' + (st.leads || 0) + ' سجّلوا ولم يدفعوا بعد</span>' +
+      '<span class="pill p-muted">🚶 ' + (st.notBought || 0) + ' زاروا ولم يسجّلوا</span>' +
+      '</div>' +
+      '<div class="small muted mt">💡 كل زائر لم يشترِ هو فرصة بيع — تابعهم لرفع نسبة التحويل.</div></div>' +
+      '</div>' +
+
       '<div class="grid g2 mb">' +
       '<div class="card"><h3>📈 الإيراد الشهري <span class="hint">من الفواتير المدفوعة</span></h3>' +
       (months.length ? '<div class="flex" style="align-items:flex-end;height:180px;gap:10px;padding:8px 4px">' + bars + '</div>' : '<div class="empty"><div class="e-ico">📈</div>لا إيراد بعد</div>') + '</div>' +
@@ -13322,6 +13386,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return '<div class="card" style="background:var(--bg2)"><b>' + title + '</b><ul style="margin:8px 0 0;padding-right:18px">' +
       items.map(function (x) { return '<li class="small" style="margin:4px 0">' + esc(x) + '</li>'; }).join('') + '</ul></div>';
   }
+  const pct = function (a, b) { return b ? Math.round((Number(a || 0) / Number(b)) * 100) : 0; };
+  function growthCard(label, val, growthPct, subNote) {
+    const g = Number(growthPct || 0);
+    const up = g >= 0;
+    const arrow = '<span style="color:' + (up ? 'var(--ok)' : 'var(--danger)') + ';font-weight:800">' + (up ? '▲' : '▼') + ' ' + Math.abs(g) + '%</span>';
+    return '<div class="card" style="background:var(--bg2);padding:14px">' +
+      '<div class="small muted">' + esc(label) + '</div>' +
+      '<div class="flex" style="justify-content:space-between;align-items:baseline;margin-top:4px"><b style="font-size:20px" class="num">' + (typeof val === 'number' ? val : val) + '</b>' + arrow + '</div>' +
+      '<div class="small muted num mt">' + esc(subNote) + '</div></div>';
+  }
+  function funnelRow(label, n, widthPct, color) {
+    const w = Math.max(6, Math.min(100, widthPct));
+    return '<div style="margin:9px 0"><div class="flex" style="justify-content:space-between"><span class="small">' + label + '</span><b class="num">' + Number(n || 0).toLocaleString('en-US') + '</b></div>' +
+      '<div style="height:12px;background:var(--bg2);border-radius:7px;overflow:hidden;margin-top:4px"><i style="display:block;height:100%;width:' + w + '%;background:' + color + ';border-radius:7px"></i></div></div>';
+  }
 
   // ============ المشتركون (المستأجرون) ============
   function renderTenants(el, ctx) {
@@ -13333,9 +13412,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<td><b>' + esc(t.companyName) + '</b><div class="small muted">' + esc(t.contactName || '') + ' · ' + esc(t.email) + '</div></td>' +
         '<td class="small">' + esc((D.plans.find(function (p) { return p.id === t.planId; }) || {}).name || t.planId) + '</td>' +
         '<td class="num small">' + (t.projectCount || 1) + '</td>' +
-        '<td class="num small"><b>' + SAR(amount) + '</b><div class="muted">/شهر</div></td>' +
+        '<td class="num small"><b>' + SAR(amount) + '</b><div class="muted">/شهر · سنوياً ' + SAR(amount * 12) + '</div></td>' +
+        '<td class="small num">' + esc(t.subscriptionStart || '—') + '<div class="muted">إلى ' + esc(t.subscriptionEnd || '—') + '</div></td>' +
         '<td>' + statusChip(t.status) + (t.statusReason ? '<div class="small muted">' + esc(t.statusReason) + '</div>' : '') + '</td>' +
-        '<td class="small muted num">' + esc(t.lastPaymentAt || '—') + '</td>' +
+        '<td class="small muted num">' + esc(t.lastPaymentAt || '—') + (t.nextInvoiceDate ? '<div class="muted">تجديد ' + esc(t.nextInvoiceDate) + '</div>' : '') + '</td>' +
         '<td><div class="flex" style="gap:4px;flex-wrap:wrap">' +
         (t.status !== 'active' ? '<button class="btn sm" data-activate="' + t.id + '">تفعيل</button>' : '<button class="btn danger sm" data-suspend="' + t.id + '">إيقاف</button>') +
         '<button class="btn ghost sm" data-invs="' + t.id + '">فواتير (' + nInv + ')</button>' +
@@ -13345,8 +13425,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
     el.innerHTML =
       '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap"><h3 style="margin:0">🏢 المشتركون (المستأجرون) <span class="hint">كل عميل اشترى النظام</span></h3>' +
       '<button class="btn sm" id="biz-add-tenant">➕ إضافة مشترك</button></div>' +
-      '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>الشركة</th><th>الباقة</th><th>المشاريع</th><th>الاشتراك الشهري</th><th>الحالة</th><th>آخر دفع</th><th></th></tr></thead><tbody>' +
-      (rows || '<tr><td colspan="7"><div class="empty"><div class="e-ico">🏢</div>لا مشتركون بعد</div></td></tr>') + '</tbody></table></div></div>';
+      '<div class="small muted mb">يعرض لك: الشركة، الباقة، عدد مشاريعها، قيمة الاشتراك (شهري/سنوي)، بداية ونهاية الاشتراك، الحالة، وآخر دفع والتجديد القادم.</div>' +
+      '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>الشركة</th><th>الباقة</th><th>المشاريع</th><th>قيمة الاشتراك</th><th>مدّة الاشتراك</th><th>الحالة</th><th>آخر دفع · التجديد</th><th></th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="8"><div class="empty"><div class="e-ico">🏢</div>لا مشتركون بعد</div></td></tr>') + '</tbody></table></div></div>';
 
     el.querySelectorAll('[data-activate]').forEach(function (b) { b.addEventListener('click', function () { setStatus(ctx, b.getAttribute('data-activate'), 'active'); }); });
     el.querySelectorAll('[data-suspend]').forEach(function (b) { b.addEventListener('click', function () { setStatus(ctx, b.getAttribute('data-suspend'), 'suspended', 'إيقاف يدوي من المالك'); }); });
@@ -13712,7 +13793,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
   function renderLogin(msg) {
     app.innerHTML =
       '<div class="login-wrap">' + langSwitchHtml('login-lang-switch') + '<div class="login-card">' +
-      '<div class="login-logo">👁</div>' +
+      '<div class="login-logo" id="lg-logo" title="بصير">👁</div>' +
       '<div class="login-title">بصير <small>BASSIR · OWNER EYES</small></div>' +
       '<div class="login-sub">' + t('عينك على مشروعك — منصة الرؤية البصرية التي تربط المالك بالاستشاري والمقاول<br>وترى بها تقدم مشروعك كما لو كنت في الموقع') + '</div>' +
       (msg ? '<div class="pill p-danger" style="display:block;text-align:center;margin-bottom:12px;padding:10px">' + esc(msg) + '</div>' : '') +
@@ -13724,7 +13805,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
        ['pm', 'pm123', '🧭 مدير المشروع'],
        ['cont-arch', 'cont123', '👷 مقاول معماري'], ['cont-str', 'cont123', '🏗️ مقاول إنشائي'], ['admin', 'admin123', '⚙️ الأدمن']]
         .map(function (a) { return '<span class="demo-chip" data-u="' + a[0] + '" data-p="' + a[1] + '">' + t(a[2]) + '</span>'; }).join('') +
-      '</div></div></div>';
+      '</div>' +
+      // بوّابة مالك المنصّة (بصير بزنس) — مخفيّة؛ تظهر بالضغط ثلاث مرّات على شعار العين (يعرفها الأدمن فقط)
+      '<div id="plat-gate" style="display:none;margin-top:14px;padding:14px 16px;border:1px solid var(--brand);border-radius:12px;background:rgba(224,164,88,.07);text-align:start">' +
+      '<div style="color:var(--brand);font-weight:800;margin-bottom:6px">🔐 ' + t('بوّابة مالك المنصّة — بصير بزنس') + '</div>' +
+      '<div class="small" style="color:var(--muted);margin-bottom:10px">' + t('لوحة تحكّم المنصّة: الشركات المشتركة، الاشتراكات والفواتير، ونمو النظام.') + '</div>' +
+      '<button class="btn block" id="plat-go">' + t('دخول كمالك المنصّة') + '</button></div>' +
+      '</div></div>';
 
     wireLangSwitch(app);
     app.querySelectorAll('.demo-chip').forEach(function (c) {
@@ -13736,6 +13823,25 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
     document.getElementById('lg-go').addEventListener('click', doLogin);
     document.getElementById('lg-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+
+    // الدخول المخفيّ لمالك المنصّة: ثلاث ضغطات على شعار العين تكشف البوّابة
+    var logoClicks = 0, logoTimer = null;
+    var logo = document.getElementById('lg-logo');
+    if (logo) logo.addEventListener('click', function () {
+      logoClicks++;
+      clearTimeout(logoTimer); logoTimer = setTimeout(function () { logoClicks = 0; }, 1400);
+      if (logoClicks >= 3) {
+        logoClicks = 0;
+        var g = document.getElementById('plat-gate');
+        if (g) { g.style.display = 'block'; g.scrollIntoView({ block: 'center' }); }
+      }
+    });
+    var platGo = document.getElementById('plat-go');
+    if (platGo) platGo.addEventListener('click', function () {
+      document.getElementById('lg-user').value = 'biz';
+      document.getElementById('lg-pass').value = 'biz123';
+      doLogin();
+    });
   }
 
   async function doLogin() {
