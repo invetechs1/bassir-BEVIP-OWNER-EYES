@@ -792,13 +792,18 @@
       ['مؤسسة البنيان الحديث', 'م. فيصل الحربي', 'f@bunyan.sa', '0551100007', 'pending', 1, '2026-10-14'],
       ['شركة المشاريع المتكاملة', 'أ. سارة المطيري', 'ops@ipc.sa', '0551100008', 'active', 2, '2026-09-02']
     ];
+    const plusYear = function (d) { return d ? (parseInt(d.slice(0, 4), 10) + 1) + d.slice(4) : null; };
     db.tenants = tnames.map(function (t, i) {
       const created = t[6];
       const active = t[4] === 'active';
+      const subStart = (active || t[4] === 'suspended') ? created : null;
       return {
         id: 'T' + (i + 1), companyName: t[0], contactName: t[1], email: t[2], phone: t[3],
         planId: 'standard', pricePerProject: PRICE, projectCount: t[5], status: t[4],
-        createdAt: created, activatedAt: (active || t[4] === 'suspended') ? created : null,
+        createdAt: created, activatedAt: subStart,
+        subscriptionStart: subStart,                 // بداية الاشتراك
+        subscriptionEnd: plusYear(subStart),         // نهاية مدّة الاشتراك (سنوي)
+        billingCycle: 'monthly',                     // الفوترة شهرية ضمن المدّة
         trialEndsAt: t[4] === 'trial' ? '2026-10-19' : null,
         nextInvoiceDate: active ? '2026-11-01' : null,
         lastPaymentAt: active ? '2026-10-01' : (t[4] === 'suspended' ? '2026-08-01' : null),
@@ -833,7 +838,8 @@
     // مستخدم مالك المنصّة (بصير بزنس) + حساب أدمن للمنصّة
     db.users.push({ id: 'U9', username: 'biz', password: 'biz123', name: 'بصير بزنس — مالك المنصّة', role: 'platform_admin', email: 'business@bassir.app', phone: '0550000000', notifyEmail: true, notifyWhatsapp: false });
 
-    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 22, docSeq: docSeq, invSeq: invSeq };
+    // زوّار صفحة الهبوط (دخلوا النظام ولم يشترِ بعضهم) — لقياس التحويل ونمو النظام
+    db.meta = { seq: 1000, seededAt: '2026-07-18', version: 23, docSeq: docSeq, invSeq: invSeq, landingVisits: 342 };
 
     return db;
   }

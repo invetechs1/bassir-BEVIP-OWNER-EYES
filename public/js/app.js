@@ -268,7 +268,7 @@
   function renderLogin(msg) {
     app.innerHTML =
       '<div class="login-wrap">' + langSwitchHtml('login-lang-switch') + '<div class="login-card">' +
-      '<div class="login-logo">👁</div>' +
+      '<div class="login-logo" id="lg-logo" title="بصير">👁</div>' +
       '<div class="login-title">بصير <small>BASSIR · OWNER EYES</small></div>' +
       '<div class="login-sub">' + t('عينك على مشروعك — منصة الرؤية البصرية التي تربط المالك بالاستشاري والمقاول<br>وترى بها تقدم مشروعك كما لو كنت في الموقع') + '</div>' +
       (msg ? '<div class="pill p-danger" style="display:block;text-align:center;margin-bottom:12px;padding:10px">' + esc(msg) + '</div>' : '') +
@@ -280,7 +280,13 @@
        ['pm', 'pm123', '🧭 مدير المشروع'],
        ['cont-arch', 'cont123', '👷 مقاول معماري'], ['cont-str', 'cont123', '🏗️ مقاول إنشائي'], ['admin', 'admin123', '⚙️ الأدمن']]
         .map(function (a) { return '<span class="demo-chip" data-u="' + a[0] + '" data-p="' + a[1] + '">' + t(a[2]) + '</span>'; }).join('') +
-      '</div></div></div>';
+      '</div>' +
+      // بوّابة مالك المنصّة (بصير بزنس) — مخفيّة؛ تظهر بالضغط ثلاث مرّات على شعار العين (يعرفها الأدمن فقط)
+      '<div id="plat-gate" style="display:none;margin-top:14px;padding:14px 16px;border:1px solid var(--brand);border-radius:12px;background:rgba(224,164,88,.07);text-align:start">' +
+      '<div style="color:var(--brand);font-weight:800;margin-bottom:6px">🔐 ' + t('بوّابة مالك المنصّة — بصير بزنس') + '</div>' +
+      '<div class="small" style="color:var(--muted);margin-bottom:10px">' + t('لوحة تحكّم المنصّة: الشركات المشتركة، الاشتراكات والفواتير، ونمو النظام.') + '</div>' +
+      '<button class="btn block" id="plat-go">' + t('دخول كمالك المنصّة') + '</button></div>' +
+      '</div></div>';
 
     wireLangSwitch(app);
     app.querySelectorAll('.demo-chip').forEach(function (c) {
@@ -292,6 +298,25 @@
     });
     document.getElementById('lg-go').addEventListener('click', doLogin);
     document.getElementById('lg-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
+
+    // الدخول المخفيّ لمالك المنصّة: ثلاث ضغطات على شعار العين تكشف البوّابة
+    var logoClicks = 0, logoTimer = null;
+    var logo = document.getElementById('lg-logo');
+    if (logo) logo.addEventListener('click', function () {
+      logoClicks++;
+      clearTimeout(logoTimer); logoTimer = setTimeout(function () { logoClicks = 0; }, 1400);
+      if (logoClicks >= 3) {
+        logoClicks = 0;
+        var g = document.getElementById('plat-gate');
+        if (g) { g.style.display = 'block'; g.scrollIntoView({ block: 'center' }); }
+      }
+    });
+    var platGo = document.getElementById('plat-go');
+    if (platGo) platGo.addEventListener('click', function () {
+      document.getElementById('lg-user').value = 'biz';
+      document.getElementById('lg-pass').value = 'biz123';
+      doLogin();
+    });
   }
 
   async function doLogin() {

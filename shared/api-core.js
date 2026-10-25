@@ -1116,6 +1116,7 @@
       platformState: platformState,
       platformStats: platformStats,
       publicPlans: publicPlans,
+      recordVisit: recordVisit,
       registerTenant: registerTenant,
       subscribeTenant: subscribeTenant,
       createTenant: createTenant,
@@ -1163,8 +1164,21 @@
       const paid = invs.filter(function (i) { return i.status === 'paid'; });
       const totalRevenue = paid.reduce(function (a, i) { return a + (i.amount || 0); }, 0);
       const thisMonth = monthKey();
+      const lastMonth = addMonthsISO(todayISO(), -1).slice(0, 7);
       const newThisMonth = ts.filter(function (t) { return monthKey(t.createdAt) === thisMonth; }).length;
+      const newLastMonth = ts.filter(function (t) { return monthKey(t.createdAt) === lastMonth; }).length;
       const revThisMonth = paid.filter(function (i) { return (i.paidAt || '').slice(0, 7) === thisMonth; }).reduce(function (a, i) { return a + (i.amount || 0); }, 0);
+      // النمو: عدد المشتركين الجدد شهرياً، والدخل المتكرر مقارنةً بالشهر الماضي
+      const activeBeforeThisMonth = active.filter(function (t) { return monthKey(t.activatedAt || t.createdAt) < thisMonth; });
+      const mrrLastMonth = activeBeforeThisMonth.reduce(function (a, t) { return a + tenantAmount(t); }, 0);
+      const mrrGrowthPct = mrrLastMonth ? Math.round(((mrr - mrrLastMonth) / mrrLastMonth) * 100) : (mrr ? 100 : 0);
+      const tenantGrowthPct = newLastMonth ? Math.round(((newThisMonth - newLastMonth) / newLastMonth) * 100) : (newThisMonth ? 100 : 0);
+      // قمع التحويل: زوّار دخلوا النظام → سجّلوا → اشتركوا (وكم زائر لم يشترِ)
+      const visits = Number((db.meta && db.meta.landingVisits) || 0);
+      const buyers = active.length + ts.filter(function (t) { return t.status === 'suspended'; }).length; // اشتروا فعلاً (ولو أوقِفوا لاحقاً)
+      const leads = ts.filter(function (t) { return t.status === 'pending' || t.status === 'trial'; }).length; // دخلوا وسجّلوا ولم يدفعوا بعد
+      const notBought = Math.max(0, visits - ts.length); // زاروا ولم يسجّلوا أصلاً
+      const conversionPct = visits ? Math.round((buyers / visits) * 100) : 0;
       return {
         tenants: ts.length,
         active: active.length,
@@ -1174,12 +1188,23 @@
         projects: ts.reduce(function (a, t) { return a + (t.projectCount || 0); }, 0),
         activeProjects: active.reduce(function (a, t) { return a + (t.projectCount || 0); }, 0),
         users: ts.reduce(function (a, t) { return a + (t.usersCount || 0); }, 0),
-        mrr: mrr, arr: mrr * 12, totalRevenue: totalRevenue, revThisMonth: revThisMonth, newThisMonth: newThisMonth,
+        mrr: mrr, arr: mrr * 12, totalRevenue: totalRevenue, revThisMonth: revThisMonth,
+        newThisMonth: newThisMonth, newLastMonth: newLastMonth,
+        mrrLastMonth: mrrLastMonth, mrrGrowthPct: mrrGrowthPct, tenantGrowthPct: tenantGrowthPct,
+        visits: visits, buyers: buyers, leads: leads, notBought: notBought, conversionPct: conversionPct,
         pricePerProject: DEFAULT_PRICE,
         unpaid: invs.filter(function (i) { return i.status === 'unpaid'; }).length,
         overdue: invs.filter(function (i) { return i.status === 'overdue'; }).length,
         outstanding: invs.filter(function (i) { return i.status !== 'paid'; }).reduce(function (a, i) { return a + (i.amount || 0); }, 0)
       };
+    }
+
+    // تسجيل زيارة لصفحة الهبوط (عام) — لقياس عدد الزوّار ونسبة التحويل
+    function recordVisit() {
+      db.meta = db.meta || {};
+      db.meta.landingVisits = Number(db.meta.landingVisits || 0) + 1;
+      persist();
+      return { visits: db.meta.landingVisits };
     }
 
     function publicPlans() { return { plans: db.plans || [], pricePerProject: DEFAULT_PRICE }; }
@@ -1199,6 +1224,7 @@
         email: payload.email, phone: payload.phone || '', planId: payload.planId || 'standard',
         pricePerProject: DEFAULT_PRICE, projectCount: Math.max(1, Number(payload.projectCount) || 1),
         status: 'pending', createdAt: todayISO(), activatedAt: null, trialEndsAt: null,
+        subscriptionStart: null, subscriptionEnd: null, billingCycle: 'monthly',
         nextInvoiceDate: null, lastPaymentAt: null, usersCount: 1, cardLast4: null
       };
       db.tenants = db.tenants || [];
@@ -1220,6 +1246,8 @@
       if (!charge.ok) throw err(charge.error || 'فشل الدفع', 402);
       t.status = 'active';
       t.activatedAt = t.activatedAt || todayISO();
+      t.subscriptionStart = t.subscriptionStart || todayISO();
+      t.subscriptionEnd = addMonthsISO(t.subscriptionStart, 12);
       t.lastPaymentAt = todayISO();
       t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
       t.cardLast4 = charge.last4;
@@ -1236,7 +1264,9 @@
       const r = registerTenant(payload);
       const t = r.tenant;
       if (payload.status === 'active') {
-        t.status = 'active'; t.activatedAt = todayISO(); t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
+        t.status = 'active'; t.activatedAt = todayISO();
+        t.subscriptionStart = todayISO(); t.subscriptionEnd = addMonthsISO(todayISO(), 12);
+        t.nextInvoiceDate = addMonthsISO(todayISO(), 1);
       } else if (payload.status === 'trial') {
         t.status = 'trial'; t.trialEndsAt = addDaysISO(todayISO(), 14);
       }
@@ -1268,7 +1298,12 @@
       const t = tenantById(tenantId);
       if (!t) throw err('مستأجر غير موجود', 404);
       t.status = status;
-      if (status === 'active') { t.activatedAt = t.activatedAt || todayISO(); t.nextInvoiceDate = t.nextInvoiceDate || addMonthsISO(todayISO(), 1); }
+      if (status === 'active') {
+        t.activatedAt = t.activatedAt || todayISO();
+        t.subscriptionStart = t.subscriptionStart || todayISO();
+        t.subscriptionEnd = t.subscriptionEnd || addMonthsISO(t.subscriptionStart, 12);
+        t.nextInvoiceDate = t.nextInvoiceDate || addMonthsISO(todayISO(), 1);
+      }
       t.statusReason = reason || '';
       audit(user, 'update', 'تغيير حالة المستأجر ' + t.companyName + ' إلى ' + status);
       persist();

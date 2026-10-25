@@ -124,6 +124,7 @@
       <a class="logo" href="#top"><span class="eye">👁</span><span>بصير<small>OWNER EYES</small></span></a>
       <div class="nav-links">
         <a class="btn ghost" href="#why">القيمة</a>
+        <a class="btn ghost" href="#roi">العائد</a>
         <a class="btn ghost" href="#pricing">الأسعار</a>
         <a class="btn ghost" href="/">دخول المشتركين</a>
         <a class="btn primary" href="#subscribe">اشترك الآن</a>
@@ -215,6 +216,70 @@
         <div class="step"><div class="n">2</div><div><h4>أنشئ مشروعك واختر نوعه</h4><p>مبنى بأدوار وأقبية، طرق، بنية تحتية… النظام يبني هيكل المشروع المناسب تلقائياً.</p></div></div>
         <div class="step"><div class="n">3</div><div><h4>ارفع المخططات والنماذج والكميات</h4><p>PDF ومخططات ونماذج IFC/BIM وجداول كميات موزّعة على الأدوار.</p></div></div>
         <div class="step"><div class="n">4</div><div><h4>راقب الإنجاز واعتمد القرارات</h4><p>خريطة إنجاز تضيء مع التنفيذ، مؤشر صحة، وتقارير واعتمادات موثّقة.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY BUY / ROI -->
+  <section id="roi">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">لماذا تشتري بصير؟</span>
+        <h2>مشروعك يخسر الملايين بصمت — بصير يوقف النزيف</h2>
+        <p>تجاوز الميزانية، التأخير، إعادة العمل، والنزاعات تلتهم من ٥٪ إلى ٢٠٪ من قيمة أي مشروع إنشائي. الرؤية المبكرة توفّر أضعاف تكلفة النظام.</p>
+      </div>
+
+      <div class="grid g3" style="margin-bottom:34px">
+        <div class="card"><span class="ico">📉</span><h3>تجاوز الميزانية</h3><p style="color:var(--muted);margin:0">متوسط تجاوز الكلفة في المشاريع الإنشائية ١٠–٢٠٪. بصير يكشف الانحراف مبكراً قبل أن يتضخّم.</p></div>
+        <div class="card"><span class="ico">⏳</span><h3>التأخير الزمني</h3><p style="color:var(--muted);margin:0">كل يوم تأخير تكلفة. مؤشّر الزمن والتقدير الآلي ينبّهك قبل أن يصبح التأخير خارج السيطرة.</p></div>
+        <div class="card"><span class="ico">🔁</span><h3>الهدر وإعادة العمل</h3><p style="color:var(--muted);margin:0">أعمال تُنفّذ خطأ وتُعاد. ربط الكميات بالمخططات والنماذج يقلّل الهدر ويوثّق المنفَّذ.</p></div>
+      </div>
+
+      <div class="card" style="background:radial-gradient(500px 220px at 50% 0,rgba(224,164,88,.12),transparent 70%)">
+        <div class="sec-head" style="margin-bottom:22px"><h2 style="font-size:28px;margin:0">احسب كم يوفّر عليك بصير 👇</h2><p style="margin-top:8px">أدخل قيمة مشروعك وعدد مشاريعك</p></div>
+        <div class="pay-grid" style="align-items:center">
+          <div>
+            <label class="fl">قيمة المشروع التقديرية (ر.س)</label>
+            <input class="inp num" id="roi-value" dir="ltr" inputmode="numeric" value="50,000,000">
+            <label class="fl">عدد المشاريع</label>
+            <div class="stepper" style="display:flex;border:1px solid var(--border);border-radius:11px;overflow:hidden;width:max-content">
+              <button type="button" id="roi-minus" style="width:44px;height:48px;background:var(--bg2);border:0;color:var(--text);font-size:22px;cursor:pointer">−</button>
+              <input id="roi-count" class="num" value="1" inputmode="numeric" style="width:66px;height:48px;border:0;background:var(--bg);color:var(--text);text-align:center;font-size:20px;font-weight:800;font-family:inherit">
+              <button type="button" id="roi-plus" style="width:44px;height:48px;background:var(--bg2);border:0;color:var(--text);font-size:22px;cursor:pointer">＋</button>
+            </div>
+            <div class="note">💡 تقديرات تحفّظية مبنية على متوسطات القطاع — النتائج الفعلية تختلف حسب المشروع.</div>
+          </div>
+          <div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div class="flex" style="justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px"><span>🛑 منع تجاوز الميزانية (كشف مبكر ~٣٪)</span><b class="num" id="roi-s1">—</b></div>
+              <div class="flex" style="justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px"><span>🔁 تقليل الهدر وإعادة العمل (~١٫٥٪)</span><b class="num" id="roi-s2">—</b></div>
+              <div class="flex" style="justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px 16px"><span>⚡ تسريع الاعتماد والتحصيل (~٠٫٥٪)</span><b class="num" id="roi-s3">—</b></div>
+              <div class="flex" style="justify-content:space-between;background:linear-gradient(135deg,rgba(63,178,127,.16),rgba(63,178,127,.05));border:1px solid rgba(63,178,127,.5);border-radius:14px;padding:18px 18px"><span style="font-weight:800;font-size:18px">💰 التوفير التقديري السنوي</span><b class="num" id="roi-total" style="color:#8fe3bd;font-size:26px">—</b></div>
+              <div class="flex" style="justify-content:space-between;color:var(--muted);padding:4px 4px"><span>تكلفة اشتراك بصير سنوياً</span><b class="num" id="roi-cost">—</b></div>
+              <div style="text-align:center;background:rgba(224,164,88,.1);border:1px solid rgba(224,164,88,.4);border-radius:14px;padding:16px;font-size:19px;font-weight:800">لكل ريال تدفعه لبصير، يوفّر عليك ما يقارب <span id="roi-x" style="color:var(--brand);font-size:26px">—</span> ريال</div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:24px"><a class="btn primary lg" href="#subscribe">ابدأ اشتراكك الآن</a></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY BASSIR IS THE RIGHT TECH CHOICE -->
+  <section class="alt" id="whybassir">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">الخيار التقني الصحيح</span>
+        <h2>لماذا بصير هو المنصّة المناسبة لمراقبة مشاريعك؟</h2>
+        <p>ليس مجرّد تقارير — نظام رؤية بصرية متكامل صُمّم لواقع المشاريع في السعودية.</p>
+      </div>
+      <div class="grid g3">
+        <div class="card"><span class="ico">🗺️</span><h3>رؤية بصرية حقيقية</h3><p style="color:var(--muted);margin:0">خريطة إنجاز على مخططاتك الفعلية ونماذج BIM/IFC ثلاثية الأبعاد — ترى التنفيذ، لا تقرأ عنه فقط.</p></div>
+        <div class="card"><span class="ico">🇸🇦</span><h3>صُمّم للسوق السعودي</h3><p style="color:var(--muted);margin:0">عربي بالكامل، مصطلحات ومستخلصات ومكتب فنّي كما تعمل به شركاتنا — لا تعريب سطحي لمنتج أجنبي.</p></div>
+        <div class="card"><span class="ico">🤝</span><h3>كل الأطراف في مكان واحد</h3><p style="color:var(--muted);margin:0">المالك وممثّله والاستشاري والمقاول على منصّة واحدة — لا مراسلات مبعثرة ولا نسخ متضاربة.</p></div>
+        <div class="card"><span class="ico">🔏</span><h3>حوكمة ونزاهة</h3><p style="color:var(--muted);margin:0">كل اعتماد وقرار موثّق بالاسم والوقت — سجلّ لا يُنكَر يحمي حقوقك ويحسم أي نزاع.</p></div>
+        <div class="card"><span class="ico">📱</span><h3>بلا تركيب ولا تعقيد</h3><p style="color:var(--muted);margin:0">يعمل من المتصفّح على الجوال والحاسب. تسجّل، تدفع، وتبدأ خلال دقائق.</p></div>
+        <div class="card"><span class="ico">🔒</span><h3>بياناتك معزولة وآمنة</h3><p style="color:var(--muted);margin:0">عزل كامل لكل مشروع، وصلاحيات دقيقة لكل دور — لا تسرّب ولا خلط بين المشاريع.</p></div>
       </div>
     </div>
   </section>
@@ -327,144 +392,6 @@
   <!-- نواة المنطق (للعمل على الخادم الحقيقي أو كعرض ثابت) -->
   <script src="/shared/seed-data.js"></script>
   <script src="/shared/api-core.js"></script>
-  <script>
-  (function () {
-    'use strict';
-    var PRICE = 2000;
-
-    // ====== طبقة اتصال: الخادم الحقيقي إن وُجد، وإلا نواة داخل المتصفح ======
-    var _core = null;
-    function localCore() {
-      if (_core) return _core;
-      var db = null;
-      try { var s = localStorage.getItem('bassir-demo-db'); if (s) db = JSON.parse(s); } catch (e) {}
-      var fresh = window.BassirSeed.buildSeed();
-      if (!db || !db.meta || db.meta.version !== fresh.meta.version) db = fresh;
-      _core = window.BassirCore.createCore(db, function () {
-        try { localStorage.setItem('bassir-demo-db', JSON.stringify(db)); } catch (e) {}
-      });
-      return _core;
-    }
-    async function apiCall(path, body) {
-      try {
-        var res = await fetch(path, {
-          method: body ? 'POST' : 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          body: body ? JSON.stringify(body) : undefined
-        });
-        if (res.ok) return await res.json();
-        // الخادم موجود لكنه رفض الطلب — مرّر الخطأ للمستخدم
-        var d = await res.json().catch(function () { return {}; });
-        var e = new Error(d.error || ('خطأ ' + res.status)); e.status = res.status; throw e;
-      } catch (netErr) {
-        if (netErr && netErr.status) throw netErr;   // خطأ حقيقي من الخادم
-        // تعذّر الوصول للخادم (عرض ثابت) — شغّل النواة محلياً
-        var c = localCore();
-        if (path === '/api/platform/subscribe') return c.subscribeTenant(body);
-        if (path === '/api/platform/register') return c.registerTenant(body);
-        throw netErr;
-      }
-    }
-
-    function fmt(n) { return Number(n || 0).toLocaleString('en-US'); }
-    function clampCount(v) { v = parseInt(v, 10); if (!v || v < 1) v = 1; if (v > 200) v = 200; return v; }
-
-    // ====== حاسبة الأسعار (قسم الأسعار) ======
-    var pCount = document.getElementById('p-count');
-    function syncPrice() {
-      var n = clampCount(pCount.value); pCount.value = n;
-      var total = fmt(n * PRICE);
-      document.getElementById('p-total').textContent = total;
-      document.getElementById('p-total2').textContent = total;
-    }
-    document.getElementById('p-plus').onclick = function () { pCount.value = clampCount(pCount.value) + 1; syncPrice(); };
-    document.getElementById('p-minus').onclick = function () { pCount.value = clampCount(pCount.value) - 1; syncPrice(); };
-    pCount.oninput = syncPrice;
-    document.getElementById('price-cta').onclick = function () {
-      document.getElementById('f-proj').value = clampCount(pCount.value); syncForm();
-    };
-
-    // ====== نموذج الاشتراك ======
-    var fProj = document.getElementById('f-proj');
-    function syncForm() {
-      var n = clampCount(fProj.value); fProj.value = n;
-      var total = fmt(n * PRICE);
-      document.getElementById('f-total').textContent = total;
-      document.getElementById('pay-amount').textContent = total;
-    }
-    document.getElementById('f-plus').onclick = function () { fProj.value = clampCount(fProj.value) + 1; syncForm(); };
-    document.getElementById('f-minus').onclick = function () { fProj.value = clampCount(fProj.value) - 1; syncForm(); };
-    fProj.oninput = syncForm;
-
-    // ====== معاينة البطاقة الحيّة ======
-    var cNum = document.getElementById('c-num'), cName = document.getElementById('c-name'), cExp = document.getElementById('c-exp');
-    cNum.oninput = function () {
-      var d = cNum.value.replace(/\D/g, '').slice(0, 16);
-      cNum.value = d.replace(/(.{4})/g, '$1 ').trim();
-      document.getElementById('cf-num').textContent = (cNum.value || '•••• •••• •••• ••••').padEnd(19, '•');
-    };
-    cName.oninput = function () { document.getElementById('cf-name').textContent = cName.value.toUpperCase() || 'الاسم على البطاقة'; };
-    cExp.oninput = function () {
-      var d = cExp.value.replace(/\D/g, '').slice(0, 4);
-      if (d.length >= 3) d = d.slice(0, 2) + '/' + d.slice(2);
-      cExp.value = d;
-      document.getElementById('cf-exp').textContent = d || 'MM/YY';
-    };
-
-    function showErr(msg) { var e = document.getElementById('err'); e.textContent = '⚠️ ' + msg; e.style.display = 'block'; }
-    function hideErr() { document.getElementById('err').style.display = 'none'; }
-
-    function successModal(res) {
-      var t = res.tenant || {}, amount = res.amount || (clampCount(fProj.value) * PRICE);
-      var back = document.createElement('div');
-      back.className = 'modal-back';
-      back.innerHTML =
-        '<div class="modal">' +
-        '<div class="big">🎉</div>' +
-        '<h2 style="margin:0 0 6px">تم تفعيل حسابك!</h2>' +
-        '<p style="color:var(--muted);margin:0 0 6px">أهلاً بك في بصير، <b>' + (t.companyName || '') + '</b>.</p>' +
-        '<p style="margin:0 0 4px">اشتراكك: <b class="num">' + fmt(amount) + ' ر.س</b> / شهر لـ <b class="num">' + (t.projectCount || 1) + '</b> مشروع.</p>' +
-        '<p style="color:var(--muted);font-size:13px">صدرت فاتورة مدفوعة' + (t.cardLast4 ? ' على بطاقة تنتهي بـ <b class="num">' + t.cardLast4 + '</b>' : '') + '.</p>' +
-        '<a class="btn primary lg" href="/" style="width:100%;justify-content:center;margin-top:12px">ادخل إلى لوحتك الآن</a>' +
-        '<button class="btn ghost" id="m-close" style="margin-top:10px">إغلاق</button>' +
-        '</div>';
-      document.body.appendChild(back);
-      back.querySelector('#m-close').onclick = function () { back.remove(); };
-      back.onclick = function (ev) { if (ev.target === back) back.remove(); };
-    }
-
-    document.getElementById('sub-form').onsubmit = async function (ev) {
-      ev.preventDefault();
-      hideErr();
-      var company = document.getElementById('f-company').value.trim();
-      var email = document.getElementById('f-email').value.trim();
-      if (!company) { showErr('أدخل اسم الشركة.'); return; }
-      if (!email) { showErr('أدخل البريد الإلكتروني.'); return; }
-      var cardNum = cNum.value.replace(/\D/g, '');
-      if (cardNum.length < 12) { showErr('أدخل رقم بطاقة صحيح (جرّب 4111 1111 1111 1111).'); return; }
-      var btn = document.getElementById('pay-btn');
-      btn.disabled = true; var old = btn.innerHTML; btn.innerHTML = '⏳ جارٍ الدفع والتفعيل…';
-      try {
-        var payload = {
-          companyName: company,
-          contactName: document.getElementById('f-contact').value.trim(),
-          email: email,
-          phone: document.getElementById('f-phone').value.trim(),
-          projectCount: clampCount(fProj.value),
-          planId: 'standard',
-          card: { number: cardNum, name: cName.value.trim(), exp: cExp.value, cvc: document.getElementById('c-cvc').value.trim() }
-        };
-        var res = await apiCall('/api/platform/subscribe', payload);
-        successModal(res);
-      } catch (e) {
-        showErr(e.message || 'تعذّر إتمام العملية.');
-      } finally {
-        btn.disabled = false; btn.innerHTML = old;
-      }
-    };
-
-    syncPrice(); syncForm();
-  })();
-  </script>
+  <script src="/js/landing.js"></script>
 </body>
 </html>

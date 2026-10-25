@@ -46,6 +46,7 @@
     }
     // ===== مسارات المنصّة العامة (بلا مصادقة — صفحة الهبوط) =====
     if (path === '/api/platform/plans') return c.publicPlans();
+    if (path === '/api/platform/visit') return c.recordVisit();
     if (path === '/api/platform/register') return c.registerTenant(body);
     if (path === '/api/platform/subscribe') return c.subscribeTenant(body);
     if (!demoUser) { const e = new Error('يلزم تسجيل الدخول'); e.status = 401; throw e; }
@@ -131,6 +132,7 @@
     sendReport(p) { return call('/api/actions/send-report', 'POST', p); },
     // ===== طبقة المنصّة (بصير بزنس) =====
     platformPlans() { return call('/api/platform/plans'); },
+    platformVisit() { return call('/api/platform/visit', 'POST', {}); },
     platformRegister(p) { return call('/api/platform/register', 'POST', p); },
     platformSubscribe(p) { return call('/api/platform/subscribe', 'POST', p); },
     platformState() { return call('/api/platform/state'); },
