@@ -152,6 +152,7 @@ const core = coreModule.createCore(db, persist, {
   password: { hash: hashPassword, verify: verifyPassword },
   onNotify: deliverNotification
 });
+core.repairOrphanedProjectIds();
 
 // ============ توكنات موقعة (JWT HS256) تبقى صالحة بعد إعادة التشغيل ============
 const SECRET_FILE = path.join(DATA_DIR, '.jwt-secret');
