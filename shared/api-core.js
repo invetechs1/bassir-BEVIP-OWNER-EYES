@@ -449,6 +449,14 @@
       const item = Object.assign({}, data);
       item.id = nextId(collection.substring(0, 2).toUpperCase());
 
+      // كلمة مرور الحساب الجديد تُشفَّر فوراً ولا تُخزَّن نصاً صريحاً أبداً — نفس آلية storeAccount/
+      // updateItem تماماً (كانت هذه المسارة الوحيدة المنسية، وهي ما تستخدمه شاشة «إضافة مستخدم»)
+      if (collection === 'users' && item.password && pwd.hash) {
+        const plain = item.password;
+        delete item.password;
+        Object.assign(item, pwd.hash(plain));
+      }
+
       if (collection === 'comments') {
         const parent = resolveCommentParent(user, item);
         item.contractorId = parent.contractorId || null;

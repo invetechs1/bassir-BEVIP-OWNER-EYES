@@ -1,0 +1,4 @@
+# سكربتات تُنفَّذ مباشرة على خادم Linux — يجب أن تبقى LF دائماً بغضّ النظر عن core.autocrlf
+# على أي جهاز Windows، وإلا يفشل الشيبانغ (#!/usr/bin/env bash) بخطأ "bash\r: No such file"
+*.sh text eol=lf
+Dockerfile text eol=lf

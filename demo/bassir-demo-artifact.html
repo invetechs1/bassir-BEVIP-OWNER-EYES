@@ -1826,6 +1826,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const item = Object.assign({}, data);
       item.id = nextId(collection.substring(0, 2).toUpperCase());
 
+      // كلمة مرور الحساب الجديد تُشفَّر فوراً ولا تُخزَّن نصاً صريحاً أبداً — نفس آلية storeAccount/
+      // updateItem تماماً (كانت هذه المسارة الوحيدة المنسية، وهي ما تستخدمه شاشة «إضافة مستخدم»)
+      if (collection === 'users' && item.password && pwd.hash) {
+        const plain = item.password;
+        delete item.password;
+        Object.assign(item, pwd.hash(plain));
+      }
+
       if (collection === 'comments') {
         const parent = resolveCommentParent(user, item);
         item.contractorId = parent.contractorId || null;
@@ -13850,12 +13858,6 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<label class="fl">' + t('اسم المستخدم') + '</label><input class="inp num" id="lg-user" autocomplete="username">' +
       '<label class="fl">' + t('كلمة المرور') + '</label><input class="inp num" id="lg-pass" type="password" autocomplete="current-password">' +
       '<div class="m-actions"><button class="btn block" id="lg-go">' + t('دخول') + '</button></div>' +
-      '<div class="demo-accounts"><h4>' + t('حسابات تجريبية — اضغط للتعبئة:') + '</h4>' +
-      [['owner', 'owner123', '👁 المالك'], ['rep', 'rep123', '🧑‍💼 ممثل المالك'], ['consultant', 'consult123', '📐 الاستشاري'],
-       ['pm', 'pm123', '🧭 مدير المشروع'],
-       ['cont-arch', 'cont123', '👷 مقاول معماري'], ['cont-str', 'cont123', '🏗️ مقاول إنشائي'], ['admin', 'admin123', '⚙️ الأدمن']]
-        .map(function (a) { return '<span class="demo-chip" data-u="' + a[0] + '" data-p="' + a[1] + '">' + t(a[2]) + '</span>'; }).join('') +
-      '</div>' +
       // بوّابة مالك المنصّة (بصير بزنس) — مخفيّة؛ تظهر بالضغط ثلاث مرّات على شعار العين (يعرفها الأدمن فقط)
       '<div id="plat-gate" style="display:none;margin-top:14px;padding:14px 16px;border:1px solid var(--brand);border-radius:12px;background:rgba(224,164,88,.07);text-align:start">' +
       '<div style="color:var(--brand);font-weight:800;margin-bottom:6px">🔐 ' + t('بوّابة مالك المنصّة — بصير بزنس') + '</div>' +
@@ -13864,13 +13866,6 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '</div></div>';
 
     wireLangSwitch(app);
-    app.querySelectorAll('.demo-chip').forEach(function (c) {
-      c.addEventListener('click', function () {
-        document.getElementById('lg-user').value = c.getAttribute('data-u');
-        document.getElementById('lg-pass').value = c.getAttribute('data-p');
-        doLogin();
-      });
-    });
     document.getElementById('lg-go').addEventListener('click', doLogin);
     document.getElementById('lg-pass').addEventListener('keydown', function (e) { if (e.key === 'Enter') doLogin(); });
 
