@@ -2037,6 +2037,7 @@
 
     m.querySelector('#sb-cancel').addEventListener('click', function () { m.remove(); });
     m.querySelector('#sb-ok').addEventListener('click', async function () {
+      const okBtn = m.querySelector('#sb-ok');
       const data = {
         title: m.querySelector('#sb-title').value
       };
@@ -2047,8 +2048,6 @@
       if (tab === 'rfps') data.to = m.querySelector('#sb-to').value;
       if (tab === 'methodStatements' || tab === 'claims') data.kind = m.querySelector('#sb-kind').value;
       if (isWir) data.location = m.querySelector('#sb-loc').value;
-      const files = m.querySelector('#sb-file').files;
-      if (files.length) data.file = await Api.upload(files[0]);
       if (isPayment) {
         data.lines = Array.prototype.map.call(m.querySelector('#sb-lines').children, function (r) {
           return {
@@ -2057,12 +2056,18 @@
           };
         }).filter(function (l) { return l.progress > 0; });
       }
+      // رفع المرفق كان خارج try/catch تماماً — أي فشل فيه (حجم كبير، انقطاع شبكة، رفض الخادم)
+      // كان يسقط كـ unhandled promise rejection بلا أي رسالة للمستخدم، فيبدو الزر وكأنه "لا يعمل"
+      // رغم أن الطلب فعلياً فشل صامتاً عند رفع الملف لا عند الإرسال نفسه
+      okBtn.disabled = true;
       try {
+        const files = m.querySelector('#sb-file').files;
+        if (files.length) data.file = await Api.upload(files[0]);
         await Api.create(tab, data);
         m.remove();
         toast(I18n.t('✅ أُرسل الطلب للاستشاري'));
         ctx.refresh();
-      } catch (e) { toast(e.message, true); }
+      } catch (e) { toast(e.message, true); okBtn.disabled = false; }
     });
   }
 
@@ -2319,6 +2324,7 @@
     );
     m.querySelector('#tf-cancel').addEventListener('click', function () { m.remove(); });
     m.querySelector('#tf-ok').addEventListener('click', async function () {
+      const okBtn = m.querySelector('#tf-ok');
       const data = {};
       tabDef.fields.forEach(function (f) {
         if (f.k === 'ref') return; // لا حقل DOM له — يُولَّد المرجع من الخادم
@@ -2330,13 +2336,17 @@
       if (!data.title) { toast(I18n.t('أدخل العنوان'), true); return; }
       if (tabDef.col === 'meetings') data.by = ctx.U.name;
       if (tabDef.col === 'correspondence' && data.direction === 'out') data.by = ctx.U.name;
-      if (tabDef.hasFile) {
-        const files = m.querySelector('#tf-file').files;
-        if (files.length) data.file = await Api.upload(files[0], { category: 'وثائق فنية' });
-      }
-      Api.create(tabDef.col, data)
-        .then(function () { m.remove(); toast(I18n.t('✅ تمت الإضافة')); ctx.refresh(); })
-        .catch(function (e) { toast(e.message, true); });
+      // رفع المرفق كان خارج معالجة الخطأ تماماً (لا try/catch ولا .catch) — أي فشل فيه كان يسقط
+      // صامتاً كـ unhandled promise rejection بلا أي رسالة للمستخدم، فيبدو الزر "لا يعمل"
+      okBtn.disabled = true;
+      try {
+        if (tabDef.hasFile) {
+          const files = m.querySelector('#tf-file').files;
+          if (files.length) data.file = await Api.upload(files[0], { category: 'وثائق فنية' });
+        }
+        await Api.create(tabDef.col, data);
+        m.remove(); toast(I18n.t('✅ تمت الإضافة')); ctx.refresh();
+      } catch (e) { toast(e.message, true); okBtn.disabled = false; }
     });
   }
 

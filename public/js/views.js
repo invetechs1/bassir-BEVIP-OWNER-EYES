@@ -432,8 +432,9 @@
     'لا بيانات جدول زمني لهذا المشروع بعد — يرفعها الاستشاري': 'No schedule data for this project yet — uploaded by the consultant',
     'لا بيانات تكلفة لهذا المشروع بعد': 'No cost data for this project yet',
     'التدفق النقدي مقابل الإنجاز': 'Cash Flow vs. Progress',
-    'الوارد من المالك مقابل المنصرف للمقاولين (مليون ر.س)': 'Inflow from owner vs. outflow to contractors (million SAR)',
-    'الوارد': 'Inflow',
+    'الالتزام حسب الميزانية مقابل المنصرف الفعلي للمقاولين (مليون ر.س) — لا تتوفر حالياً ميزة تسجيل ودائع المالك الفعلية':
+      'Budgeted commitment vs. actual disbursed to contractors (million SAR) — actual owner deposits aren\'t tracked as a feature yet',
+    'الالتزام المخطط': 'Budgeted',
     'المنصرف': 'Outflow',
     'الإنجاز المرتبط بآخر فترة ': 'Progress linked to the latest period ',
     'صافي التدفق ': 'Net cash flow ',
@@ -580,17 +581,27 @@
     return 'rgb(' + r.join(',') + ')';
   }
 
+  // نسبة الوقت المنقضي من مدة عقد مقاول (startDate ← endDate) — أساس "المخطط" الحي بدل الحقل الثابت
+  // plannedProgress الذي لا يحدّثه شيء أبداً بعد إنشاء المقاول (كان يبقى 0% للأبد لكل مقاول حقيقي)
+  function contractorPlannedProgress(c) {
+    const s = new Date(c.startDate).getTime(), e = new Date(c.endDate).getTime();
+    if (!isFinite(s) || !isFinite(e) || e <= s) return 0;
+    const now = Date.now();
+    return now <= s ? 0 : now >= e ? 100 : Math.round(((now - s) / (e - s)) * 1000) / 10;
+  }
+
   function summarize(ctx) {
     // ملخصات المقاولين محلياً (تطابق منطق الخادم)
     return ctx.S.contractors.map(function (c) {
       const items = ctx.S.boqItems.filter(function (b) { return b.contractorId === c.id; });
       const progress = weightedProgress(items) || 0;
       const earnedValue = c.contractValue * progress / 100;
+      const planned = contractorPlannedProgress(c);
       return {
         id: c.id, name: c.name, type: c.type, contractValue: c.contractValue,
         amountReceived: c.amountReceived, startDate: c.startDate, endDate: c.endDate,
-        progress: progress, plannedProgress: c.plannedProgress || 0,
-        delayed: progress < (c.plannedProgress || 0) - 3,
+        progress: progress, plannedProgress: planned,
+        delayed: progress < planned - 3,
         overpaid: c.amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
@@ -1161,10 +1172,10 @@
       '</div>' +
 
       '<div class="grid g2 mb">' +
-      '<div class="card"><h3>💵 ' + I18n.t('التدفق النقدي مقابل الإنجاز') + ' <span class="hint">' + I18n.t('الوارد من المالك مقابل المنصرف للمقاولين (مليون ر.س)') + '</span></h3>' +
+      '<div class="card"><h3>💵 ' + I18n.t('التدفق النقدي مقابل الإنجاز') + ' <span class="hint">' + I18n.t('الالتزام حسب الميزانية مقابل المنصرف الفعلي للمقاولين (مليون ر.س) — لا تتوفر حالياً ميزة تسجيل ودائع المالك الفعلية') + '</span></h3>' +
       ((ctx.S.cashFlow || []).length > 1
         ? Charts.sCurve((ctx.S.cashFlow || []).map(function (c) { return { month: c.month, planned: c.inflow, actual: c.outflow }; }),
-            { maxY: 55, unit: 'م', plannedLabel: I18n.t('الوارد'), actualLabel: I18n.t('المنصرف') }) +
+            { maxY: 55, unit: 'م', plannedLabel: I18n.t('الالتزام المخطط'), actualLabel: I18n.t('المنصرف') }) +
           (function () {
             const last = ctx.S.cashFlow[ctx.S.cashFlow.length - 1];
             const net = Math.round((last.inflow - last.outflow) * 10) / 10;
@@ -1189,8 +1200,11 @@
     });
     wireProjectsMap(el, ctx);
 
-    // تسجيل لقطة الصحة الشهرية وإطلاق تنبيه تلقائي عند هبوط الدرجة لفئة أدنى
-    if (['consultant', 'project_manager', 'admin', 'owner'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
+    // تسجيل لقطة الصحة الشهرية وإطلاق تنبيه تلقائي عند هبوط الدرجة لفئة أدنى — يشمل ممثل المالك
+    // أيضاً (كان مستثنى سابقاً رغم أنه لا يوجد قيد صلاحية على الخادم لهذا الاستدعاء): بدونه، إن لم
+    // يزر الاستشاري/المدير/الأدمن لوحة التحكم في شهر معيّن تتوقف اللقطات الشهرية عن التسجيل رغم أن
+    // ممثل المالك هو من يستخدم اللوحة فعلياً
+    if (['consultant', 'project_manager', 'admin', 'owner', 'owner_rep'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
       Api.recordHealth(ctx.projectId).then(function (r) {
         if (r && r.dropped) { toast('📉 ' + I18n.t('تنبيه: تراجعت درجة صحة المشروع — راجع الإشعارات')); ctx.refresh(); }
         else if (r && r.improved) { toast('📈 ' + I18n.t('تحسّنت درجة صحة المشروع — راجع الإشعارات')); ctx.refresh(); }
@@ -2092,7 +2106,8 @@
         await Api.sendReport({
           channel: el.querySelector('#rp-channel').value,
           to: el.querySelector('#rp-to').value,
-          title: el.querySelector('#rp-title').value
+          title: el.querySelector('#rp-title').value,
+          projectId: ctx.projectId
         });
         toast(I18n.t('✅ تم إرسال التقرير بنجاح عبر ') + (el.querySelector('#rp-channel').value === 'whatsapp' ? I18n.t('واتساب') : I18n.t('البريد الإلكتروني')));
         ctx.refresh();

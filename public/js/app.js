@@ -67,7 +67,21 @@
     'إدارة BIM': 'BIM Management',
     'قاعدة بيانات المقاولين': 'Contractor Database',
     'محفظة المشاريع': 'Projects Portfolio',
-    'خادم الملفات المركزي': 'Central File Server'
+    'خادم الملفات المركزي': 'Central File Server',
+    'التقارير': 'Reports',
+    'تقديماتي': 'My Submissions',
+    'مستنداتي': 'My Documents',
+    'لوحة المنصّة': 'Platform Dashboard',
+    'المشتركون (المستأجرون)': 'Subscribers (Tenants)',
+    'الفواتير والتحصيل': 'Invoices & Collection',
+    'الباقات والتسعير': 'Plans & Pricing',
+    'نظرة عامة': 'Overview',
+    'الأعمال والاعتمادات': 'Work & Approvals',
+    'الموقع والمتابعة': 'Site & Monitoring',
+    'المستندات والنماذج': 'Documents & Models',
+    'التسليم': 'Handover',
+    'الإعدادات': 'Settings',
+    'بصير بزنس': 'Bassir Business'
   });
 
   /* ============ مصنع الصفحات المبوّبة (Tabbed parent screens · §4-1/§5) ============
