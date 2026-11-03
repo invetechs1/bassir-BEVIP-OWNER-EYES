@@ -101,7 +101,10 @@ persist();
  * القنوات غير المهيأة (بلا مفاتيح .env) تُسجَّل كمحاكاة موثّقة.
  */
 function deliverNotification(notif, recipients) {
-  const projectName = db.projects && db.projects[0] ? db.projects[0].name : '';
+  // كان هذا يستخدم دائماً اسم أول مشروع في القاعدة بصرف النظر عن مشروع الإشعار الفعلي —
+  // فيصل بريد/واتساب يذكر مشروعاً مختلفاً تماماً عن الذي صدر عنه الإشعار فعلاً
+  const proj = notif.projectId && db.projects ? db.projects.find(function (p) { return p.id === notif.projectId; }) : null;
+  const projectName = proj ? proj.name : '';
   const subject = 'بصير · إشعار: ' + (notif.kind === 'submit' ? 'تقديم جديد'
     : notif.kind === 'decision' ? 'قرار اعتماد'
     : notif.kind === 'answer' ? 'رد على استفسار'
@@ -134,7 +137,7 @@ function logDelivery(channel, user, notif, status) {
   db.messages.push({
     id: 'MSGN' + Date.now() + Math.floor(Math.random() * 1000),
     channel: channel, to: channel === 'email' ? user.email : user.phone,
-    title: 'إشعار آلي: ' + notif.text.slice(0, 60), auto: true,
+    title: 'إشعار آلي: ' + notif.text.slice(0, 60), auto: true, projectId: notif.projectId || null,
     date: new Date().toISOString().slice(0, 16).replace('T', ' '),
     status: status, by: 'النظام'
   });
@@ -228,18 +231,29 @@ function readBody(req) {
   });
 }
 
-/** قراءة جسم ثنائي (لرفع الملفات ولقطات الكاميرات) بحد 15MB */
+/** قراءة جسم ثنائي (لرفع الملفات ولقطات الكاميرات) بحد 15MB افتراضياً — قابل للتخصيص لكل استدعاء */
 function readRawBody(req, maxBytes) {
   maxBytes = maxBytes || 15e6;
   return new Promise(function (resolve, reject) {
     const chunks = [];
     let size = 0;
+    let rejected = false;
     req.on('data', function (c) {
+      // بعد تجاوز الحد: نتجاهل أي بيانات إضافية (بلا تراكم عبثي بالذاكرة) لكن لا نقطع الاتصال
+      // (req.destroy() كان يُسقِط الاتصال فوراً فلا تصل رسالة الخطأ الودّية للعميل إطلاقاً — يراها
+      // المتصفح كفشل شبكة عام "Failed to fetch" بلا أي تفسير لسبب الرفض الفعلي)
+      if (rejected) return;
       size += c.length;
-      if (size > maxBytes) { req.destroy(); reject(new Error('الملف أكبر من الحد المسموح (15MB)')); return; }
+      if (size > maxBytes) {
+        rejected = true;
+        const err = new Error('الملف أكبر من الحد المسموح (' + Math.round(maxBytes / 1e6) + 'MB)');
+        err.status = 413;
+        reject(err);
+        return;
+      }
       chunks.push(c);
     });
-    req.on('end', function () { resolve(Buffer.concat(chunks)); });
+    req.on('end', function () { if (!rejected) resolve(Buffer.concat(chunks)); });
     req.on('error', reject);
   });
 }
@@ -445,10 +459,14 @@ const server = http.createServer(async function (req, res) {
 
     // رفع الملفات (صور، مخططات، مستندات، نماذج BIM كبيرة) — تخزين فعلي مع فئات ونسخ
     if (u === '/api/upload' && req.method === 'POST') {
-      const buf = await readRawBody(req, 500e6); // يدعم نماذج BIM حتى 500MB
+      // الحد العام للمرفقات العادية (مستخلصات، مخططات، وثائق...) 20MB — نماذج BIM (IFC) وحدها
+      // تحتاج حداً أكبر بكثير (حتى 500MB)، فتُستثنى وفق فئة الملف (x-category) المعروفة سلفاً قبل
+      // قراءة الجسم، دون أن تفتح هذا الحد الأكبر لكل أنواع المرفقات الأخرى
+      const category = decodeURIComponent(req.headers['x-category'] || '') || 'أخرى';
+      const isBimModel = category === 'مخططات IFC';
+      const buf = await readRawBody(req, isBimModel ? 500e6 : 20e6);
       if (!buf.length) return json(res, 400, { error: 'لا يوجد محتوى' });
       const name = decodeURIComponent(req.headers['x-filename'] || 'file');
-      const category = decodeURIComponent(req.headers['x-category'] || '') || 'أخرى';
       const versionOf = req.headers['x-version-of'] || null;
       if (!db.files) db.files = [];
 

@@ -1719,6 +1719,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
         });
       }
 
+      // القيم الفعلية/المخططة الحيّة (تقدّم، تكلفة) تُدمَج في نسخة سطحية من كل مشروع — لا تُخزَّن
+      // ولا تُعدَّل بيانات db.projects الأصلية، فتبقى صحيحة ومحدَّثة في كل طلب تلقائياً
+      s.projects = (s.projects || []).map(function (p) { return Object.assign({}, p, liveActuals(p.id)); });
+
       // مؤشر صحة كل مشروع في نطاق المستخدم (يُحسب بعد تقييد النطاق)
       s.projectHealth = {};
       (s.projects || []).forEach(function (p) { s.projectHealth[p.id] = computeProjectHealth(p.id); });
@@ -1759,10 +1763,19 @@ textarea.inp { resize: vertical; min-height: 80px; }
      */
     function pushNotification(target, kind, text, refCollection, refId) {
       if (!db.notifications) db.notifications = [];
+      // مشروع هذا الإشعار — يُشتق من العنصر المُشار إليه (refCollection/refId) ليُستخدم عند
+      // التسليم الخارجي (بريد/واتساب) بدل افتراض أول مشروع في القاعدة دائماً، وهو ما كان يجعل كل
+      // إشعار صادر عن أي مشروع يُظهر اسم مشروع آخر تماماً في نص البريد/الواتساب المُرسَل
+      let projectId = null;
+      if (refCollection === 'projects') projectId = refId;
+      else if (refCollection && refId) {
+        const refItem = (db[refCollection] || []).find(function (x) { return x.id === refId; });
+        projectId = (refItem && refItem.projectId) || null;
+      }
       const notif = {
         id: nextId('NT'), time: nowStr(), kind: kind, text: text,
         role: target.role || null, contractorId: target.contractorId || null,
-        collection: refCollection || null, refId: refId || null, readBy: []
+        collection: refCollection || null, refId: refId || null, projectId: projectId, readBy: []
       };
       db.notifications.unshift(notif);
       if (db.notifications.length > 200) db.notifications.length = 200;
@@ -2280,7 +2293,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
       const msg = {
         id: nextId('MSG'), channel: payload.channel === 'whatsapp' ? 'whatsapp' : 'email',
-        to: payload.to, title: payload.title || 'تقرير المشروع',
+        to: payload.to, title: payload.title || 'تقرير المشروع', projectId: payload.projectId || null,
         date: nowStr(), status: payload.status === 'sent_demo' ? 'sent_demo' : 'sent', by: user.name
       };
       db.messages.push(msg);
@@ -2306,8 +2319,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         id: c.id, name: c.name, type: c.type,
         contractValue: c.contractValue, amountReceived: c.amountReceived,
         startDate: c.startDate, endDate: c.endDate,
-        progress: progress, plannedProgress: c.plannedProgress || 0,
-        delayed: progress < (c.plannedProgress || 0) - delayPct,
+        progress: progress, plannedProgress: contractorPlannedProgress(c),
+        delayed: progress < contractorPlannedProgress(c) - delayPct,
         overpaid: c.amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
@@ -2344,15 +2357,61 @@ textarea.inp { resize: vertical; min-height: 80px; }
     ];
     function gradeOf(score) { return HEALTH_GRADES.find(function (g) { return score >= g.min; }); }
 
+    /**
+     * القيم «الفعلية والمخططة» الحيّة لمشروع — تُحسَب من البيانات الحقيقية في كل استدعاء، لا تُقرأ
+     * من حقول ثابتة على المشروع (كانت المشكلة: progressActual/costActual لا يحدّثهما شيء أبداً بعد
+     * الإنشاء، فتبقى صفراً للأبد لأي مشروع حقيقي رغم وجود تقدّم ومستخلصات معتمدة فعلية).
+     * الفعلي: الإنجاز = متوسط تقدّم بنود الكميات مُرجَّحاً بقيمتها · التكلفة = مجموع المستخلصات المعتمدة.
+     * المخطط: توزيع خطي بسيط حسب نسبة الوقت المنقضي من مدة المشروع المخطط (نفس منطق taskPlanned
+     * بالواجهة) — أساس معقول حتى يُحدَّد جدول تفصيلي معتمد.
+     */
+    /** نسبة الوقت المنقضي بين تاريخين (0-100) — أساس «المخطط» الزمني حين لا يوجد جدول تفصيلي معتمد */
+    function timeElapsedPct(startDate, endDate) {
+      const s = new Date(startDate).getTime(), e = new Date(endDate).getTime();
+      if (!isFinite(s) || !isFinite(e) || e <= s) return 0;
+      const now = Date.now();
+      return now <= s ? 0 : now >= e ? 100 : Math.round(((now - s) / (e - s)) * 1000) / 10;
+    }
+
+    function liveActuals(projectId) {
+      const P = db.projects.find(function (p) { return p.id === projectId; });
+      if (!P) return { progressActual: 0, progressPlanned: 0, costActual: 0, costPlannedToDate: 0 };
+      const items = (db.boqItems || []).filter(function (b) { return b.projectId === projectId; });
+      let earned = 0, total = 0;
+      items.forEach(function (b) {
+        const v = (Number(b.qty) || 0) * (Number(b.unitPrice) || 0);
+        total += v; earned += v * ((Number(b.progress) || 0) / 100);
+      });
+      const progressActual = total ? Math.round((earned / total) * 1000) / 10 : 0;
+      const costActual = (db.payments || []).filter(function (p) { return p.projectId === projectId && p.status === 'approved'; })
+        .reduce(function (a, p) { return a + (Number(p.amount) || 0); }, 0);
+      const tPct = timeElapsedPct(P.startPlanned, P.endPlanned);
+      return {
+        progressActual: progressActual, progressPlanned: tPct,
+        costActual: costActual, costPlannedToDate: Math.round((P.budgetPlanned || 0) * tPct) / 100
+      };
+    }
+
+    /**
+     * نسبة الإنجاز المخططة الحيّة لمقاول — كانت تُقرأ من الحقل الثابت plannedProgress الذي لا يحدّثه
+     * شيء أبداً بعد إنشاء المقاول (يبقى 0 للأبد)، فلا يظهر أي مقاول "متأخراً" مهما تأخر فعلياً، ويظهر
+     * العمود دائماً 0% في شاشة المقاولين. نفس منطق توزيع الوقت الخطي المستخدم لمستوى المشروع، لكن على
+     * مدة عقد هذا المقاول تحديداً (startDate ← endDate) بدل مدة المشروع كاملاً.
+     */
+    function contractorPlannedProgress(c) {
+      return timeElapsedPct(c.startDate, c.endDate);
+    }
+
     /** يحسب صحة مشروع من بياناته الحالية (نفس صيغة الواجهة تماماً) */
     function computeProjectHealth(projectId) {
       const P = db.projects.find(function (p) { return p.id === projectId; });
       if (!P) return null;
       const inP = function (x) { return !x.projectId || x.projectId === projectId; };
       const th = thresholdsOf(projectId);
-      const progVar = Math.round(((P.progressActual || 0) - (P.progressPlanned || 0)) * 10) / 10;
-      const costVar = (P.costActual || 0) - (P.costPlannedToDate || 0);
-      const costVarPct = P.costPlannedToDate ? Math.round(costVar / P.costPlannedToDate * 100) : 0;
+      const live = liveActuals(projectId);
+      const progVar = Math.round((live.progressActual - live.progressPlanned) * 10) / 10;
+      const costVar = live.costActual - live.costPlannedToDate;
+      const costVarPct = live.costPlannedToDate ? Math.round(costVar / live.costPlannedToDate * 100) : 0;
       const openNcr = (db.ncrs || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
       const failedTests = (db.materialTests || []).filter(function (x) { return inP(x) && x.result === 'fail'; }).length;
       const openPunch = (db.punchList || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
@@ -2365,7 +2424,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         let earned = 0, total = 0;
         items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
         const progress = total ? earned / total * 100 : 0;
-        if (progress < (c.plannedProgress || 0) - th.contractorDelayPct) delayed++;
+        if (progress < contractorPlannedProgress(c) - th.contractorDelayPct) delayed++;
         if (c.amountReceived > (c.contractValue * progress / 100) * 1.05) overpaid++;
       });
       const schedule = clampScore(100 + progVar * 3);
@@ -2389,6 +2448,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     function recordHealthSnapshot(user, opts) {
       opts = opts || {};
       const projectId = opts.projectId || (db.projects[0] && db.projects[0].id);
+      const P = db.projects.find(function (p) { return p.id === projectId; });
       const h = computeProjectHealth(projectId);
       if (!h) return { recorded: false };
       if (!db.healthHistory) db.healthHistory = [];
@@ -2397,11 +2457,47 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (existing) { existing.score = h.score; existing.grade = h.grade; }
       else db.healthHistory.push({ projectId: projectId, month: month, score: h.score, grade: h.grade });
 
+      // نفس اللقطة الشهرية لمنحنيي الجدول والتكلفة والتدفق النقدي (S-Curve) — كانت تبقى فارغة للأبد
+      // لأي مشروع حقيقي لعدم وجود آلية تسجّلها؛ تُستخدم نفس القيم الحيّة المحسوبة أعلاه لمؤشر الصحة.
+      // نقطة الأساس (بداية المشروع = 0%/0) تُضاف مرة واحدة فقط عند أول تسجيل لمشروع، بما أنها حقيقة
+      // مؤكدة (لا بيانات مخترَعة) — وإلا فمنحنى بنقطة واحدة فقط لا يمكن رسمه كخط ويبقى يظهر فارغاً
+      // لشهر كامل بعد كل نشر حتى تتراكم نقطة ثانية طبيعياً.
+      const live = liveActuals(projectId);
+      db.scheduleCurve = db.scheduleCurve || [];
+      db.costCurve = db.costCurve || [];
+      db.cashFlow = db.cashFlow || [];
+      const anchorMonth = String((P && P.startPlanned) || '').slice(0, 7);
+      function ensureAnchor(curveArr, zeroPoint) {
+        if (!anchorMonth || anchorMonth >= month) return; // المشروع يبدأ هذا الشهر أو لاحقاً — لا حاجة لنقطة أساس منفصلة
+        // يتحقق من وجود نقطة عند شهر البداية تحديداً لا أي نقطة للمشروع — وإلا فمشروع له نقطة
+        // واحدة فقط مُسجَّلة قبل إضافة منطق نقطة الأساس هذا يبقى عالقاً بنقطة وحيدة للأبد، لأن أي
+        // نقطة أخرى (مهما كان شهرها) كانت تمنع إضافة نقطة الأساس حتى لو ظل المخطط فارغاً بصرياً
+        if (curveArr.some(function (x) { return x.projectId === projectId && x.month === anchorMonth; })) return;
+        curveArr.push(Object.assign({ projectId: projectId, month: anchorMonth }, zeroPoint));
+      }
+      ensureAnchor(db.scheduleCurve, { planned: 0, actual: 0 });
+      ensureAnchor(db.costCurve, { planned: 0, actual: 0 });
+      ensureAnchor(db.cashFlow, { inflow: 0, outflow: 0, progress: 0 });
+
+      const schedExisting = db.scheduleCurve.find(function (x) { return x.projectId === projectId && x.month === month; });
+      if (schedExisting) { schedExisting.planned = live.progressPlanned; schedExisting.actual = live.progressActual; }
+      else db.scheduleCurve.push({ projectId: projectId, month: month, planned: live.progressPlanned, actual: live.progressActual });
+      const costPlannedM = Math.round(live.costPlannedToDate / 1e5) / 10, costActualM = Math.round(live.costActual / 1e5) / 10;
+      const costExisting = db.costCurve.find(function (x) { return x.projectId === projectId && x.month === month; });
+      if (costExisting) { costExisting.planned = costPlannedM; costExisting.actual = costActualM; }
+      else db.costCurve.push({ projectId: projectId, month: month, planned: costPlannedM, actual: costActualM });
+
+      // التدفق النقدي: لا توجد في النظام آلية لتسجيل ودائع/تحويلات المالك الفعلية (ميزة غير متوفرة
+      // حالياً) — فأفضل تقريب حقيقي متاح للوارد هو الالتزام المتوقع حسب نسق الميزانية المعتمدة
+      // (نفس costPlannedToDate)، مقابل المنصرف الفعلي الموثّق فعلاً للمقاولين (مستخلصات معتمدة)
+      const cfExisting = db.cashFlow.find(function (x) { return x.projectId === projectId && x.month === month; });
+      if (cfExisting) { cfExisting.inflow = costPlannedM; cfExisting.outflow = costActualM; cfExisting.progress = live.progressActual; }
+      else db.cashFlow.push({ projectId: projectId, month: month, inflow: costPlannedM, outflow: costActualM, progress: live.progressActual });
+
       if (!db.meta.lastHealthGrade) db.meta.lastHealthGrade = {};
       const prev = db.meta.lastHealthGrade[projectId];
       const tierOf = { A: 4, B: 3, C: 2, D: 1 };
       const alertTier = tierOf[thresholdsOf(projectId).healthAlertGrade] || 2; // العتبة القابلة للضبط
-      const P = db.projects.find(function (p) { return p.id === projectId; });
       const pname = P ? P.name : projectId;
       const prevTier = prev ? tierOf[prev] : null;
       let dropped = false, improved = false;
@@ -2493,6 +2589,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       updateProfile: updateProfile,
       myProfile: myProfile,
       computeProjectHealth: computeProjectHealth,
+      liveActuals: liveActuals,
       recordHealthSnapshot: recordHealthSnapshot,
       addContractor: addContractor,
       deleteContractor: deleteContractor,
@@ -5433,8 +5530,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'لا بيانات جدول زمني لهذا المشروع بعد — يرفعها الاستشاري': 'No schedule data for this project yet — uploaded by the consultant',
     'لا بيانات تكلفة لهذا المشروع بعد': 'No cost data for this project yet',
     'التدفق النقدي مقابل الإنجاز': 'Cash Flow vs. Progress',
-    'الوارد من المالك مقابل المنصرف للمقاولين (مليون ر.س)': 'Inflow from owner vs. outflow to contractors (million SAR)',
-    'الوارد': 'Inflow',
+    'الالتزام حسب الميزانية مقابل المنصرف الفعلي للمقاولين (مليون ر.س) — لا تتوفر حالياً ميزة تسجيل ودائع المالك الفعلية':
+      'Budgeted commitment vs. actual disbursed to contractors (million SAR) — actual owner deposits aren\'t tracked as a feature yet',
+    'الالتزام المخطط': 'Budgeted',
     'المنصرف': 'Outflow',
     'الإنجاز المرتبط بآخر فترة ': 'Progress linked to the latest period ',
     'صافي التدفق ': 'Net cash flow ',
@@ -5581,17 +5679,27 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return 'rgb(' + r.join(',') + ')';
   }
 
+  // نسبة الوقت المنقضي من مدة عقد مقاول (startDate ← endDate) — أساس "المخطط" الحي بدل الحقل الثابت
+  // plannedProgress الذي لا يحدّثه شيء أبداً بعد إنشاء المقاول (كان يبقى 0% للأبد لكل مقاول حقيقي)
+  function contractorPlannedProgress(c) {
+    const s = new Date(c.startDate).getTime(), e = new Date(c.endDate).getTime();
+    if (!isFinite(s) || !isFinite(e) || e <= s) return 0;
+    const now = Date.now();
+    return now <= s ? 0 : now >= e ? 100 : Math.round(((now - s) / (e - s)) * 1000) / 10;
+  }
+
   function summarize(ctx) {
     // ملخصات المقاولين محلياً (تطابق منطق الخادم)
     return ctx.S.contractors.map(function (c) {
       const items = ctx.S.boqItems.filter(function (b) { return b.contractorId === c.id; });
       const progress = weightedProgress(items) || 0;
       const earnedValue = c.contractValue * progress / 100;
+      const planned = contractorPlannedProgress(c);
       return {
         id: c.id, name: c.name, type: c.type, contractValue: c.contractValue,
         amountReceived: c.amountReceived, startDate: c.startDate, endDate: c.endDate,
-        progress: progress, plannedProgress: c.plannedProgress || 0,
-        delayed: progress < (c.plannedProgress || 0) - 3,
+        progress: progress, plannedProgress: planned,
+        delayed: progress < planned - 3,
         overpaid: c.amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
@@ -6162,10 +6270,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '</div>' +
 
       '<div class="grid g2 mb">' +
-      '<div class="card"><h3>💵 ' + I18n.t('التدفق النقدي مقابل الإنجاز') + ' <span class="hint">' + I18n.t('الوارد من المالك مقابل المنصرف للمقاولين (مليون ر.س)') + '</span></h3>' +
+      '<div class="card"><h3>💵 ' + I18n.t('التدفق النقدي مقابل الإنجاز') + ' <span class="hint">' + I18n.t('الالتزام حسب الميزانية مقابل المنصرف الفعلي للمقاولين (مليون ر.س) — لا تتوفر حالياً ميزة تسجيل ودائع المالك الفعلية') + '</span></h3>' +
       ((ctx.S.cashFlow || []).length > 1
         ? Charts.sCurve((ctx.S.cashFlow || []).map(function (c) { return { month: c.month, planned: c.inflow, actual: c.outflow }; }),
-            { maxY: 55, unit: 'م', plannedLabel: I18n.t('الوارد'), actualLabel: I18n.t('المنصرف') }) +
+            { maxY: 55, unit: 'م', plannedLabel: I18n.t('الالتزام المخطط'), actualLabel: I18n.t('المنصرف') }) +
           (function () {
             const last = ctx.S.cashFlow[ctx.S.cashFlow.length - 1];
             const net = Math.round((last.inflow - last.outflow) * 10) / 10;
@@ -6190,8 +6298,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
     });
     wireProjectsMap(el, ctx);
 
-    // تسجيل لقطة الصحة الشهرية وإطلاق تنبيه تلقائي عند هبوط الدرجة لفئة أدنى
-    if (['consultant', 'project_manager', 'admin', 'owner'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
+    // تسجيل لقطة الصحة الشهرية وإطلاق تنبيه تلقائي عند هبوط الدرجة لفئة أدنى — يشمل ممثل المالك
+    // أيضاً (كان مستثنى سابقاً رغم أنه لا يوجد قيد صلاحية على الخادم لهذا الاستدعاء): بدونه، إن لم
+    // يزر الاستشاري/المدير/الأدمن لوحة التحكم في شهر معيّن تتوقف اللقطات الشهرية عن التسجيل رغم أن
+    // ممثل المالك هو من يستخدم اللوحة فعلياً
+    if (['consultant', 'project_manager', 'admin', 'owner', 'owner_rep'].indexOf(ctx.U.role) !== -1 && ctx.projectId && Api.recordHealth) {
       Api.recordHealth(ctx.projectId).then(function (r) {
         if (r && r.dropped) { toast('📉 ' + I18n.t('تنبيه: تراجعت درجة صحة المشروع — راجع الإشعارات')); ctx.refresh(); }
         else if (r && r.improved) { toast('📈 ' + I18n.t('تحسّنت درجة صحة المشروع — راجع الإشعارات')); ctx.refresh(); }
@@ -7093,7 +7204,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         await Api.sendReport({
           channel: el.querySelector('#rp-channel').value,
           to: el.querySelector('#rp-to').value,
-          title: el.querySelector('#rp-title').value
+          title: el.querySelector('#rp-title').value,
+          projectId: ctx.projectId
         });
         toast(I18n.t('✅ تم إرسال التقرير بنجاح عبر ') + (el.querySelector('#rp-channel').value === 'whatsapp' ? I18n.t('واتساب') : I18n.t('البريد الإلكتروني')));
         ctx.refresh();
@@ -9266,6 +9378,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     m.querySelector('#sb-cancel').addEventListener('click', function () { m.remove(); });
     m.querySelector('#sb-ok').addEventListener('click', async function () {
+      const okBtn = m.querySelector('#sb-ok');
       const data = {
         title: m.querySelector('#sb-title').value
       };
@@ -9276,8 +9389,6 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (tab === 'rfps') data.to = m.querySelector('#sb-to').value;
       if (tab === 'methodStatements' || tab === 'claims') data.kind = m.querySelector('#sb-kind').value;
       if (isWir) data.location = m.querySelector('#sb-loc').value;
-      const files = m.querySelector('#sb-file').files;
-      if (files.length) data.file = await Api.upload(files[0]);
       if (isPayment) {
         data.lines = Array.prototype.map.call(m.querySelector('#sb-lines').children, function (r) {
           return {
@@ -9286,12 +9397,18 @@ textarea.inp { resize: vertical; min-height: 80px; }
           };
         }).filter(function (l) { return l.progress > 0; });
       }
+      // رفع المرفق كان خارج try/catch تماماً — أي فشل فيه (حجم كبير، انقطاع شبكة، رفض الخادم)
+      // كان يسقط كـ unhandled promise rejection بلا أي رسالة للمستخدم، فيبدو الزر وكأنه "لا يعمل"
+      // رغم أن الطلب فعلياً فشل صامتاً عند رفع الملف لا عند الإرسال نفسه
+      okBtn.disabled = true;
       try {
+        const files = m.querySelector('#sb-file').files;
+        if (files.length) data.file = await Api.upload(files[0]);
         await Api.create(tab, data);
         m.remove();
         toast(I18n.t('✅ أُرسل الطلب للاستشاري'));
         ctx.refresh();
-      } catch (e) { toast(e.message, true); }
+      } catch (e) { toast(e.message, true); okBtn.disabled = false; }
     });
   }
 
@@ -9548,6 +9665,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     );
     m.querySelector('#tf-cancel').addEventListener('click', function () { m.remove(); });
     m.querySelector('#tf-ok').addEventListener('click', async function () {
+      const okBtn = m.querySelector('#tf-ok');
       const data = {};
       tabDef.fields.forEach(function (f) {
         if (f.k === 'ref') return; // لا حقل DOM له — يُولَّد المرجع من الخادم
@@ -9559,13 +9677,17 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (!data.title) { toast(I18n.t('أدخل العنوان'), true); return; }
       if (tabDef.col === 'meetings') data.by = ctx.U.name;
       if (tabDef.col === 'correspondence' && data.direction === 'out') data.by = ctx.U.name;
-      if (tabDef.hasFile) {
-        const files = m.querySelector('#tf-file').files;
-        if (files.length) data.file = await Api.upload(files[0], { category: 'وثائق فنية' });
-      }
-      Api.create(tabDef.col, data)
-        .then(function () { m.remove(); toast(I18n.t('✅ تمت الإضافة')); ctx.refresh(); })
-        .catch(function (e) { toast(e.message, true); });
+      // رفع المرفق كان خارج معالجة الخطأ تماماً (لا try/catch ولا .catch) — أي فشل فيه كان يسقط
+      // صامتاً كـ unhandled promise rejection بلا أي رسالة للمستخدم، فيبدو الزر "لا يعمل"
+      okBtn.disabled = true;
+      try {
+        if (tabDef.hasFile) {
+          const files = m.querySelector('#tf-file').files;
+          if (files.length) data.file = await Api.upload(files[0], { category: 'وثائق فنية' });
+        }
+        await Api.create(tabDef.col, data);
+        m.remove(); toast(I18n.t('✅ تمت الإضافة')); ctx.refresh();
+      } catch (e) { toast(e.message, true); okBtn.disabled = false; }
     });
   }
 
@@ -10584,8 +10706,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         if (cs) data.contractorId = cs.value;
         if (isRfp) data.to = m.querySelector('#rx-to').value;
         const rf = m.querySelector('#rx-file').files[0];
-        if (rf) data.file = await Api.upload(rf);
         try {
+          if (rf) data.file = await Api.upload(rf);
           await Api.create(tab, data);
           m.remove(); toast(I18n.t('✅ أُرسل وسُجّل بانتظار الرد')); ctx.refresh();
         } catch (e) { toast(e.message, true); }
@@ -12514,7 +12636,149 @@ textarea.inp { resize: vertical; min-height: 80px; }
       "Your current spreadsheet not matching? Download the empty template, copy your items into it, then upload it — that guarantees it reads correctly.",
     'تعذّر التعرف على أعمدة الكمية أو السعر في هذا الملف (كل القيم ظهرت صفراً) — على الأغلب تنسيق الملف مختلف عمّا يتوقعه النظام. نزّل النموذج الفارغ أعلاه وانسخ بياناتك فيه بدل رفع ملفك كما هو.':
       "Couldn't recognize the quantity or price columns in this file (every value came out zero) — the file format most likely doesn't match what the system expects. Download the empty template above and copy your data into it instead of uploading your file as-is.",
-    'يشمل أعمالاً تمهيدية/تعبئة موقع — يُنصح بمراجعة عاجلة': 'Includes preliminary/mobilization work — priority review recommended'
+    'يشمل أعمالاً تمهيدية/تعبئة موقع — يُنصح بمراجعة عاجلة': 'Includes preliminary/mobilization work — priority review recommended',
+
+    // ===== توزيع يدوي على الأدوار =====
+    'توزيع يدوي على الأدوار': 'Manual distribution across floors',
+    'الإجمالي المطلوب توزيعه:': 'Total to distribute:',
+    'أدخل نسبة كل دور — يجب أن يكون المجموع 100% (تُطبَّق على كل بنود الملف)': "Enter each floor's percentage — the total must equal 100% (applies to all items in the file)",
+    'النسبة %': 'Percentage %',
+    'بالتساوي': 'Equally',
+    'حسب المساحة': 'By area',
+    'المُدخل:': 'Entered:',
+    'المتبقّي:': 'Remaining:',
+    'يجب أن يكون مجموع النسب 100%': 'The percentages must add up to 100%',
+    'يجب أن يساوي مجموع الكميات الإجمالي': 'The quantities must add up to the total',
+    'أدخل التوزيع أولاً': 'Enter the distribution first',
+
+    // ===== جدول كميات المقاول =====
+    'كامل المشروع': 'Whole project',
+    'طلب تعديل جدول الكميات': 'BOQ amendment request',
+    'رفع جدول الكميات للاعتماد': 'Upload Bill of Quantities for approval',
+    'الأعمدة: الوصف/الوحدة/الكمية/السعر/الدور': 'Columns: Description/Unit/Quantity/Price/Floor',
+    'جدول الكميات معتمد ومقفل': 'Bill of Quantities approved and locked',
+    'أي تعديل يتطلب موافقة الاستشاري وممثل المالك معاً.': "Any change requires approval from both the consultant and the owner's representative.",
+    'ارفع جدول كمياتك ليُراجعه الاستشاري ويعتمده، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.':
+      "Upload your Bill of Quantities for the consultant to review and approve; once approved it locks and can only be changed with approval from the consultant and the owner's representative.",
+    'لديك جدول كميات قيد المراجعة': 'You have a Bill of Quantities under review',
+    'بانتظار قرار الاستشاري': "Awaiting the consultant's decision",
+    'يمكنك إضافة البنود يدوياً بنداً بنداً، أو رفع ملف — رفع الملف اختياري.': 'You can add items manually one by one, or upload a file — uploading a file is optional.',
+    'خرسانة مسلحة للأعمدة...': 'Reinforced concrete for columns...',
+    'التوزيع': 'Distribution',
+    'دور واحد (المحدد)': 'Single floor (selected)',
+    'وزّع بالتساوي على الأدوار': 'Distribute equally across floors',
+    'وزّع حسب مساحة الأدوار': 'Distribute by floor area',
+    'وزّع يدوياً (كمية لكل دور)': 'Distribute manually (quantity per floor)',
+    'كامل المشروع (دون دور)': 'Whole project (no specific floor)',
+    'أضف بند': 'Add item',
+    'أو': 'or',
+    'رفع ملف (اختياري)': 'Upload file (optional)',
+    'خط أساس': 'Baseline',
+    'إجمالي بنودي': 'My total items',
+    'بند في عقدي': 'item(s) in my contract',
+    'قيمة عقدي': 'My contract value',
+    'بنود ستتأخر': 'Items at risk of slipping',
+    'سرّع العمل بها': 'Speed up work on these',
+    'بنود متأخرة': 'Items behind schedule',
+    'خلف الجدول الزمني': 'Behind the schedule',
+    'جدول كمياتي': 'My Bill of Quantities',
+    'المنجز والجاري والمتبقي لكل بند، ومؤشر التأخير حسب الجدول الزمني': 'Completed, in-progress and remaining for each item, plus a delay indicator based on the schedule',
+    'لا بنود في عقدك بعد': 'No items in your contract yet',
+    'جارٍ قراءة الملف…': 'Reading the file…',
+    'لم تُستخرج بنود. استخدم CSV/Excel بعناوين: الوصف/الوحدة/الكمية/السعر.': 'No items were extracted. Use CSV/Excel with headers: Description/Unit/Quantity/Price.',
+    'توزيع كميات الملف على الأدوار:': "Distribute the file's quantities across floors:",
+    'كما في الملف (دون توزيع)': 'As in the file (no distribution)',
+    'بالتساوي على كل الأدوار': 'Equally across all floors',
+    'حسب مساحة كل دور': "By each floor's area",
+    '(أدخل المساحات في إعدادات المشروع)': '(enter the areas in project settings)',
+    'يدوياً (نسبة لكل دور تُطبَّق على الكل)': 'Manually (a percentage per floor applied to all)',
+    'اترك كل بند كاملاً للمشروع': 'Leave each item whole, for the project',
+    'تطبيق التوزيع': 'Apply distribution',
+    'مثال: بند «دهان داخلي 10,000 م²» يُقسَّم على الأدوار حسب الطريقة المختارة.': 'Example: an item "Interior paint 10,000 m²" gets split across floors according to the chosen method.',
+    'إرسال طلب التعديل للاعتماد': 'Send the amendment request for approval',
+    'إرسال للاستشاري للاعتماد': 'Send to the consultant for approval',
+    'نسبة توزيع كل بند على الأدوار': 'Percentage distribution of each item across floors',
+    'وُزّعت الكميات بالنِّسب — راجع الجدول ثم أرسل للاعتماد': 'Quantities distributed by percentage — review the table then submit for approval',
+    'وُزّعت الكميات — راجع الجدول ثم أرسل للاعتماد': 'Quantities distributed — review the table then submit for approval',
+    'تعذّرت قراءة الملف:': "Couldn't read the file:",
+    'لم تُضف بنوداً بعد — أضف بنداً أو ارفع ملفاً.': 'No items added yet — add an item or upload a file.',
+    'أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك': "The amendment request was sent — it requires approval from the consultant and the owner's representative",
+    'أُرسل جدول الكميات للاستشاري للاعتماد': 'The Bill of Quantities was sent to the consultant for approval',
+    'تعديل جدول الكميات —': 'BOQ amendment —',
+    'جدول الكميات —': 'Bill of Quantities —',
+    'تعديل جدول الكميات (إدخال يدوي) —': 'BOQ amendment (manual entry) —',
+    'جدول الكميات (إدخال يدوي) —': 'Bill of Quantities (manual entry) —',
+    'أدخل وصف البند': 'Enter the item description',
+    'أدخل كمية صحيحة': 'Enter a valid quantity',
+    'تعذّر التوزيع — تحقق من الأدوار': "Couldn't distribute — check the floors",
+    'وُزّع': 'Distributed',
+    'على': 'across',
+    'دور': 'floor(s)',
+    'توزيع': 'Distribution',
+    'على الأدوار': 'across floors',
+    'يدوياً على': 'manually across',
+
+    // ===== الجدول الزمني =====
+    'مراحل الجدول': 'Schedule stages',
+    'مرحلة/نشاط': 'stage/activity',
+    'ستتأخر': 'Will slip',
+    'تحتاج تسريعاً': 'Needs speeding up',
+    'متأخرة': 'Behind',
+    'خلف الجدول': 'Behind schedule',
+    'اليوم': 'Today',
+    'تاريخ المقارنة': 'Comparison date',
+    'طلب تعديل الجدول الزمني': 'Schedule amendment request',
+    'رفع برنامجك الزمني للاعتماد': 'Upload your schedule for approval',
+    'قراءة الملف': 'Read file',
+    'الجدول الزمني معتمد ومقفل': 'Schedule approved and locked',
+    'ارفع برنامجك الزمني — يُقرأ آلياً ويُرسَل للاستشاري للاعتماد، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.':
+      "Upload your schedule — it's read automatically and sent to the consultant for approval; once approved it locks and can only be changed with approval from the consultant and the owner's representative.",
+    'ارفع الجدول الزمني وتعتمده مباشرةً كخط أساس، أو اعتمد برامج المقاولين المقدَّمة أدناه.': "Upload the schedule and approve it directly as a baseline, or approve the contractors' submitted schedules below.",
+    'لديك جدول زمني قيد المراجعة — بانتظار القرار': 'You have a schedule under review — awaiting a decision',
+    'اختر الملف ثم «قراءة الملف» — سيُستخرج منه المهام والتواريخ ونِسَب الإنجاز.': 'Choose the file then "Read file" — tasks, dates and progress percentages will be extracted from it.',
+    'برامجي الزمنية المقدَّمة': 'My submitted schedules',
+    'مهام': 'tasks',
+    'المرحلة / النشاط': 'Stage / Activity',
+    'المخطط (من ← إلى)': 'Planned (from ← to)',
+    'الفعلي': 'Actual',
+    'المخطط مقابل الفعلي ومؤشر التأخير حسب تاريخ اليوم': "Planned vs. actual and a delay indicator based on today's date",
+    'لا جدول زمني بعد': 'No schedule yet',
+    'ارفع ملفاً أعلاه': 'Upload a file above',
+    'يرفعه الاستشاري': 'The consultant uploads it',
+    'اختر ملف الجدول الزمني أولاً': 'Choose the schedule file first',
+    'لم يتم استخراج مهام من الملف. تأكد من الصيغة (يُفضّل CSV/XER/XML/XLSX).': 'No tasks were extracted from the file. Check the format (CSV/XER/XML/XLSX preferred).',
+    'اعتماد كجدول زمني للمشروع': "Approve as the project's schedule",
+    'استُخرجت': 'Extracted',
+    'مهمة من': 'task(s) from',
+    'المهمة': 'Task',
+    'أُرسل برنامجك الزمني للاستشاري للاعتماد': 'Your schedule was sent to the consultant for approval',
+    'اعتُمد الجدول الزمني الرسمي للمشروع': "The project's official schedule has been approved",
+    "وقّعت كاستشاري — تعديل خط الأساس بانتظار توقيع ممثل المالك": "You signed as the consultant — the baseline amendment awaits the owner representative's signature",
+    'تعديل الجدول الزمني —': 'Schedule amendment —',
+    'برنامج زمني —': 'Schedule —',
+
+    // ===== اعتماد خط الأساس (جداول الكميات/الجداول الزمنية المقدَّمة) =====
+    'جداول الكميات المقدَّمة': 'Submitted Bills of Quantities',
+    'الجداول الزمنية المقدَّمة': 'Submitted schedules',
+    'اعتماد خط الأساس من الاستشاري؛ تعديله لاحقاً يتطلب توقيع الاستشاري وممثل المالك معاً': "Baseline approval by the consultant; any later change requires both the consultant's and the owner representative's signature",
+    'التوقيعات': 'Signatures',
+    'الإجراء': 'Action',
+    'استشاري': 'Consultant',
+    'توقيع الاستشاري': "Consultant's signature",
+    'توقيع ممثل المالك': "Owner representative's signature",
+    'رفض': 'Reject',
+    'إرجاع': 'Return',
+    'بانتظار الطرف الآخر': 'Awaiting the other party',
+    'سُجّل قرارك': 'Your decision was recorded',
+    'سبب الإرجاع (اختياري):': 'Reason for returning it (optional):',
+    'تطبيق': 'Apply',
+    'البنود': 'Items',
+    'ر.س': 'SAR',
+    'قيمة': 'value',
+    'السعر': 'Price',
+    'مهمة': 'task(s)',
+    'الدور (اختياري)': 'Floor (optional)',
+    'كل المبنى / المشروع بالكامل': 'Whole building / entire project'
   });
 
   const todayMs = () => Date.now();
@@ -12536,15 +12800,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
     amberTh = amberTh == null ? 10 : amberTh;
     redTh = redTh == null ? amberTh * 2 : redTh;
     const a = Number(actual) || 0;
-    if (a >= 100) return { cls: 'p-ok', icon: '✓', label: 'منجز', expected: 100 };
+    if (a >= 100) return { cls: 'p-ok', icon: '✓', label: t('منجز'), expected: 100 };
     const exp = expectedPct(start, end);
-    if (exp == null) return { cls: 'p-none', icon: '—', label: a > 0 ? 'ضمن الجدول' : 'لم يبدأ', expected: null };
+    if (exp == null) return { cls: 'p-none', icon: '—', label: a > 0 ? t('ضمن الجدول') : t('لم يبدأ'), expected: null };
     const overdueEnd = new Date(end).getTime() < todayMs();
     const gap = exp - a;
-    if (overdueEnd && a < 100) return { cls: 'p-danger', icon: '✕', label: 'متأخر', expected: exp };
-    if (gap <= amberTh) return { cls: 'p-ok', icon: '✓', label: a > 0 ? 'ضمن الجدول' : 'لم يبدأ', expected: exp };
-    if (gap <= redTh) return { cls: 'p-warn', icon: '⚠', label: 'سيتأخر — سرّع العمل', expected: exp };
-    return { cls: 'p-danger', icon: '✕', label: 'متأخر', expected: exp };
+    if (overdueEnd && a < 100) return { cls: 'p-danger', icon: '✕', label: t('متأخر'), expected: exp };
+    if (gap <= amberTh) return { cls: 'p-ok', icon: '✓', label: a > 0 ? t('ضمن الجدول') : t('لم يبدأ'), expected: exp };
+    if (gap <= redTh) return { cls: 'p-warn', icon: '⚠', label: t('سيتأخر — سرّع العمل'), expected: exp };
+    return { cls: 'p-danger', icon: '✕', label: t('متأخر'), expected: exp };
   }
 
   /** نافذة المقاول الزمنية: من عقده، وإلا من مدى مراحل الجدول الزمني للمشروع */
@@ -12595,24 +12859,24 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const target = mode === 'percent' ? 100 : total;
     const areasMap = (ctx.S.projects[0] || {}).floorAreas || {};
     const m = modal(
-      '<h3>🏢 ' + esc(opts.title || 'توزيع يدوي على الأدوار') + '</h3>' +
+      '<h3>🏢 ' + esc(opts.title || t('توزيع يدوي على الأدوار')) + '</h3>' +
       (mode === 'qty'
-        ? '<div class="m-sub">الإجمالي المطلوب توزيعه: <b class="num">' + total + '</b> ' + esc(opts.unit || '') + '</div>'
-        : '<div class="m-sub">أدخل نسبة كل دور — يجب أن يكون المجموع 100% (تُطبَّق على كل بنود الملف)</div>') +
-      '<div class="tbl-wrap" style="max-height:48vh;overflow:auto"><table class="tbl"><thead><tr><th>الدور</th><th>' + (mode === 'percent' ? 'النسبة %' : 'الكمية') + '</th></tr></thead><tbody>' +
+        ? '<div class="m-sub">' + t('الإجمالي المطلوب توزيعه:') + ' <b class="num">' + total + '</b> ' + esc(opts.unit || '') + '</div>'
+        : '<div class="m-sub">' + t('أدخل نسبة كل دور — يجب أن يكون المجموع 100% (تُطبَّق على كل بنود الملف)') + '</div>') +
+      '<div class="tbl-wrap" style="max-height:48vh;overflow:auto"><table class="tbl"><thead><tr><th>' + t('الدور') + '</th><th>' + (mode === 'percent' ? t('النسبة %') : t('الكمية')) + '</th></tr></thead><tbody>' +
       floors.map(function (f) { return '<tr><td class="small">' + esc(f.name) + '</td><td><input class="inp num dm-in" data-f="' + esc(f.id) + '" type="number" min="0" step="any" style="max-width:130px" dir="ltr"></td></tr>'; }).join('') +
       '</tbody></table></div>' +
       '<div class="flex mt" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b class="small" id="dm-sum"></b>' +
-      '<div class="flex" style="gap:6px"><button class="btn ghost sm" id="dm-equal">بالتساوي</button>' +
-      (floors.some(function (f) { return (Number(areasMap[f.id]) || 0) > 0; }) ? '<button class="btn ghost sm" id="dm-area">حسب المساحة</button>' : '') +
-      '<button class="btn sm" id="dm-apply">تطبيق</button><button class="btn mutedb sm" id="dm-cancel">إلغاء</button></div></div>'
+      '<div class="flex" style="gap:6px"><button class="btn ghost sm" id="dm-equal">' + t('بالتساوي') + '</button>' +
+      (floors.some(function (f) { return (Number(areasMap[f.id]) || 0) > 0; }) ? '<button class="btn ghost sm" id="dm-area">' + t('حسب المساحة') + '</button>' : '') +
+      '<button class="btn sm" id="dm-apply">' + t('تطبيق') + '</button><button class="btn mutedb sm" id="dm-cancel">' + t('إلغاء') + '</button></div></div>'
     );
     function recalc() {
       let sum = 0; m.querySelectorAll('.dm-in').forEach(function (i) { sum += Number(i.value) || 0; });
       sum = Math.round(sum * 100) / 100;
       const rem = Math.round((target - sum) * 100) / 100;
       const bal = Math.abs(rem) < 0.01;
-      m.querySelector('#dm-sum').innerHTML = 'المُدخل: <b class="num">' + sum + (mode === 'percent' ? '%' : '') + '</b> · المتبقّي: ' +
+      m.querySelector('#dm-sum').innerHTML = t('المُدخل:') + ' <b class="num">' + sum + (mode === 'percent' ? '%' : '') + '</b> · ' + t('المتبقّي:') + ' ' +
         '<b class="num" style="color:' + (bal ? 'var(--ok)' : 'var(--warn)') + '">' + rem + (mode === 'percent' ? '%' : '') + '</b>';
       return { sum: sum, rem: rem, bal: bal };
     }
@@ -12631,10 +12895,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
     m.querySelector('#dm-cancel').addEventListener('click', function () { m.remove(); });
     m.querySelector('#dm-apply').addEventListener('click', function () {
       const r = recalc();
-      if (!r.bal) { toast(mode === 'percent' ? 'يجب أن يكون مجموع النسب 100%' : 'يجب أن يساوي مجموع الكميات الإجمالي (' + total + ')', true); return; }
+      if (!r.bal) { toast(mode === 'percent' ? t('يجب أن يكون مجموع النسب 100%') : t('يجب أن يساوي مجموع الكميات الإجمالي') + ' (' + total + ')', true); return; }
       const shares = [];
       m.querySelectorAll('.dm-in').forEach(function (i) { const v = Number(i.value) || 0; if (v > 0) shares.push({ floor: i.getAttribute('data-f'), val: v }); });
-      if (!shares.length) { toast('أدخل التوزيع أولاً', true); return; }
+      if (!shares.length) { toast(t('أدخل التوزيع أولاً'), true); return; }
       m.remove();
       onApply(shares);
     });
@@ -12671,7 +12935,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
       return '<tr>' +
         '<td class="num small">' + esc(b.code) + '</td>' +
-        '<td>' + d.icon + ' ' + esc(b.description) + '<div class="small muted">' + esc(b.floor === 'ALL' ? 'كامل المشروع' : floorName(ctx, b.floor)) + '</div></td>' +
+        '<td>' + d.icon + ' ' + esc(b.description) + '<div class="small muted">' + esc(b.floor === 'ALL' ? t('كامل المشروع') : floorName(ctx, b.floor)) + '</div></td>' +
         '<td class="num small">' + b.unitPrice.toLocaleString('en-US') + '<div class="muted">' + esc(b.unit) + '</div></td>' +
         '<td class="num small">' + b.qty + '</td>' +
         '<td class="num small" style="color:var(--status-ok)">' + fmt(doneQty) + '<div class="muted">' + approved + '%</div></td>' +
@@ -12688,57 +12952,58 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const hasBaseline = items.length > 0 || subs.some(function (s) { return s.status === 'approved'; });
     const uploadCard =
       '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap;gap:10px">' +
-      '<h3 style="margin:0">📤 ' + (hasBaseline ? 'طلب تعديل جدول الكميات' : 'رفع جدول الكميات للاعتماد') + ' <span class="hint">CSV / Excel — الأعمدة: الوصف/الوحدة/الكمية/السعر/الدور</span></h3></div>' +
-      (hasBaseline ? '<div class="small" style="margin:8px 0"><span class="pill p-ok">🔒 جدول الكميات معتمد ومقفل</span> أي تعديل يتطلب موافقة الاستشاري وممثل المالك معاً.</div>' : '<div class="small muted" style="margin:8px 0">ارفع جدول كمياتك ليُراجعه الاستشاري ويعتمده، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.</div>') +
+      '<h3 style="margin:0">📤 ' + (hasBaseline ? t('طلب تعديل جدول الكميات') : t('رفع جدول الكميات للاعتماد')) + ' <span class="hint">CSV / Excel — ' + t('الأعمدة: الوصف/الوحدة/الكمية/السعر/الدور') + '</span></h3></div>' +
+      (hasBaseline ? '<div class="small" style="margin:8px 0"><span class="pill p-ok">🔒 ' + t('جدول الكميات معتمد ومقفل') + '</span> ' + t('أي تعديل يتطلب موافقة الاستشاري وممثل المالك معاً.') + '</div>' : '<div class="small muted" style="margin:8px 0">' + t('ارفع جدول كمياتك ليُراجعه الاستشاري ويعتمده، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.') + '</div>') +
       (pendingSub
-        ? '<div class="pill p-warn">⏳ لديك جدول كميات قيد المراجعة (' + esc(pendingSub.docCode || pendingSub.ref || '') + ') — بانتظار قرار الاستشاري</div>'
-        : '<div class="small muted" style="margin:2px 0 6px">يمكنك إضافة البنود يدوياً بنداً بنداً، أو رفع ملف — رفع الملف اختياري.</div>' +
+        ? '<div class="pill p-warn">⏳ ' + t('لديك جدول كميات قيد المراجعة') + ' (' + esc(pendingSub.docCode || pendingSub.ref || '') + ') — ' + t('بانتظار قرار الاستشاري') + '</div>'
+        : '<div class="small muted" style="margin:2px 0 6px">' + t('يمكنك إضافة البنود يدوياً بنداً بنداً، أو رفع ملف — رفع الملف اختياري.') + '</div>' +
           '<div class="flex" style="align-items:flex-end;gap:6px;flex-wrap:wrap">' +
-          '<div><label class="fl">وصف البند</label><input class="inp" id="mb-desc" placeholder="خرسانة مسلحة للأعمدة..." style="min-width:220px"></div>' +
-          '<div><label class="fl">الوحدة</label><input class="inp" id="mb-unit" placeholder="م³ / م² / عدد" style="max-width:90px"></div>' +
-          '<div><label class="fl">الكمية</label><input class="inp num" id="mb-qty" type="number" min="0" step="any" style="max-width:90px"></div>' +
-          '<div><label class="fl">سعر الوحدة</label><input class="inp num" id="mb-price" type="number" min="0" step="any" style="max-width:110px"></div>' +
-          '<div><label class="fl">الدور</label><select class="inp" id="mb-floor">' +
+          '<div><label class="fl">' + t('وصف البند') + '</label><input class="inp" id="mb-desc" placeholder="' + t('خرسانة مسلحة للأعمدة...') + '" style="min-width:220px"></div>' +
+          '<div><label class="fl">' + t('الوحدة') + '</label><input class="inp" id="mb-unit" placeholder="م³ / م² / عدد" style="max-width:90px"></div>' +
+          '<div><label class="fl">' + t('الكمية') + '</label><input class="inp num" id="mb-qty" type="number" min="0" step="any" style="max-width:90px"></div>' +
+          '<div><label class="fl">' + t('سعر الوحدة') + '</label><input class="inp num" id="mb-price" type="number" min="0" step="any" style="max-width:110px"></div>' +
+          '<div><label class="fl">' + t('الدور (اختياري)') + '</label><select class="inp" id="mb-floor">' +
+          '<option value="ALL">' + t('كل المبنى / المشروع بالكامل') + '</option>' +
           ((ctx.S.projects[0] || {}).floors || []).map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select></div>' +
-          '<div><label class="fl">المنطقة</label><select class="inp" id="mb-zone">' +
+          '<div><label class="fl">' + t('المنطقة') + '</label><select class="inp" id="mb-zone">' +
           ((VS.ZONE_NAMES || []).map(function (zn, zi) { return '<option value="' + zi + '">' + esc(t(zn)) + '</option>'; }).join('')) + '</select></div>' +
-          '<div><label class="fl">التوزيع</label><select class="inp" id="mb-dist">' +
-          '<option value="single">دور واحد (المحدد)</option>' +
-          '<option value="equal">وزّع بالتساوي على الأدوار</option>' +
-          '<option value="area">وزّع حسب مساحة الأدوار</option>' +
-          '<option value="manual">وزّع يدوياً (كمية لكل دور)</option>' +
-          '<option value="whole">كامل المشروع (دون دور)</option>' +
+          '<div><label class="fl">' + t('التوزيع') + '</label><select class="inp" id="mb-dist">' +
+          '<option value="single">' + t('دور واحد (المحدد)') + '</option>' +
+          '<option value="equal">' + t('وزّع بالتساوي على الأدوار') + '</option>' +
+          '<option value="area">' + t('وزّع حسب مساحة الأدوار') + '</option>' +
+          '<option value="manual">' + t('وزّع يدوياً (كمية لكل دور)') + '</option>' +
+          '<option value="whole">' + t('كامل المشروع (دون دور)') + '</option>' +
           '</select></div>' +
-          '<button class="btn sm" id="mb-add">➕ أضف بند</button>' +
+          '<button class="btn sm" id="mb-add">➕ ' + t('أضف بند') + '</button>' +
           '</div>' +
           '<div id="cboq-draft"></div>' +
-          '<div class="flex" style="margin:10px 0;gap:8px;align-items:center;flex-wrap:wrap"><span class="small muted">— أو —</span>' +
-          '<input class="inp" id="cboq-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" style="max-width:240px"><button class="btn ghost sm" id="cboq-read">📖 رفع ملف (اختياري)</button><button class="btn ghost sm" id="cboq-template">' + t('📥 تنزيل نموذج فارغ') + '</button></div>' +
+          '<div class="flex" style="margin:10px 0;gap:8px;align-items:center;flex-wrap:wrap"><span class="small muted">— ' + t('أو') + ' —</span>' +
+          '<input class="inp" id="cboq-file" type="file" accept=".csv,.tsv,.txt,.xlsx,.xlsm" style="max-width:240px"><button class="btn ghost sm" id="cboq-read">📖 ' + t('رفع ملف (اختياري)') + '</button><button class="btn ghost sm" id="cboq-template">' + t('📥 تنزيل نموذج فارغ') + '</button></div>' +
           '<div id="cboq-prev" class="small muted">' + t('جدولك الحالي غير مطابق؟ نزّل النموذج الفارغ، انسخ بنودك فيه، ثم ارفعه — يضمن ذلك قراءته بشكل صحيح.') + '</div>') +
-      (subs.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>المرجع</th><th>النوع</th><th>البنود</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
-        subs.map(function (s) { return '<tr><td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td>' + (s.kind === 'revision' ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + ((s.parsedItems || []).length || '—') + '</td><td class="small muted num">' + esc(s.date || '') + '</td><td>' + VS.pill(s.status) + '</td></tr>'; }).join('') +
+      (subs.length ? '<div class="tbl-wrap mt"><table class="tbl"><thead><tr><th>' + t('المرجع') + '</th><th>' + t('النوع') + '</th><th>' + t('البنود') + '</th><th>' + t('التاريخ') + '</th><th>' + t('الحالة') + '</th></tr></thead><tbody>' +
+        subs.map(function (s) { return '<tr><td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td>' + (s.kind === 'revision' ? '<span class="pill p-warn">' + t('تعديل') + '</span>' : '<span class="pill p-info">' + t('خط أساس') + '</span>') + '</td><td class="num small">' + ((s.parsedItems || []).length || '—') + '</td><td class="small muted num">' + esc(s.date || '') + '</td><td>' + VS.pill(s.status) + '</td></tr>'; }).join('') +
         '</tbody></table></div>' : '') +
       '</div>';
 
     el.innerHTML = uploadCard +
       '<div class="grid g4 mb">' +
-      '<div class="card kpi"><div class="lbl">إجمالي بنودي</div><div class="val num">' + items.length + '</div><div class="sub">بند في عقدي</div></div>' +
-      '<div class="card kpi k-info"><div class="lbl">قيمة عقدي</div><div class="val num">' + Math.round(totVal / 1e6 * 10) / 10 + 'M</div><div class="sub">ر.س</div></div>' +
-      '<div class="card kpi ' + (nSlip ? 'k-warn' : 'k-ok') + '"><div class="lbl">بنود ستتأخر</div><div class="val num ' + (nSlip ? '' : 'zero') + '">' + nSlip + '</div><div class="sub">سرّع العمل بها</div></div>' +
-      '<div class="card kpi ' + (nLate ? 'k-danger' : 'k-ok') + '"><div class="lbl">بنود متأخرة</div><div class="val num ' + (nLate ? '' : 'zero') + '">' + nLate + '</div><div class="sub">خلف الجدول الزمني</div></div>' +
+      '<div class="card kpi"><div class="lbl">' + t('إجمالي بنودي') + '</div><div class="val num">' + items.length + '</div><div class="sub">' + t('بند في عقدي') + '</div></div>' +
+      '<div class="card kpi k-info"><div class="lbl">' + t('قيمة عقدي') + '</div><div class="val num">' + Math.round(totVal / 1e6 * 10) / 10 + 'M</div><div class="sub">' + t('ر.س') + '</div></div>' +
+      '<div class="card kpi ' + (nSlip ? 'k-warn' : 'k-ok') + '"><div class="lbl">' + t('بنود ستتأخر') + '</div><div class="val num ' + (nSlip ? '' : 'zero') + '">' + nSlip + '</div><div class="sub">' + t('سرّع العمل بها') + '</div></div>' +
+      '<div class="card kpi ' + (nLate ? 'k-danger' : 'k-ok') + '"><div class="lbl">' + t('بنود متأخرة') + '</div><div class="val num ' + (nLate ? '' : 'zero') + '">' + nLate + '</div><div class="sub">' + t('خلف الجدول الزمني') + '</div></div>' +
       '</div>' +
       '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
-      '<h3 style="margin:0">📐 جدول كمياتي <span class="hint">المنجز والجاري والمتبقي لكل بند، ومؤشر التأخير حسب الجدول الزمني</span></h3>' +
+      '<h3 style="margin:0">📐 ' + t('جدول كمياتي') + ' <span class="hint">' + t('المنجز والجاري والمتبقي لكل بند، ومؤشر التأخير حسب الجدول الزمني') + '</span></h3>' +
       '<span class="pill p-ok">' + t('المنفذ: ') + money(Math.round(totEarned)) + ' (' + (totVal ? Math.round(totEarned / totVal * 100) : 0) + '%)</span></div>' +
       (items.length ?
         '<div class="tbl-wrap" style="max-height:64vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-        '<th>الكود</th><th>البند</th><th>سعر الوحدة</th><th>الكمية</th><th>' + t('الكمية المنجزة') + '</th><th>' + t('الكمية الجاري العمل فيها') + '</th><th>' + t('الكمية المتبقية') + '</th><th>' + t('التأخير') + '</th>' +
+        '<th>' + t('الكود') + '</th><th>' + t('البند') + '</th><th>' + t('سعر الوحدة') + '</th><th>' + t('الكمية') + '</th><th>' + t('الكمية المنجزة') + '</th><th>' + t('الكمية الجاري العمل فيها') + '</th><th>' + t('الكمية المتبقية') + '</th><th>' + t('التأخير') + '</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '<div class="legend" style="margin-top:12px">' +
-        '<span>' + VS.statusPill('p-ok', 'ضمن الجدول', '✓') + '</span>' +
-        '<span>' + VS.statusPill('p-warn', 'سيتأخر — سرّع العمل', '⚠') + '</span>' +
-        '<span>' + VS.statusPill('p-danger', 'متأخر', '✕') + '</span></div>'
-        : '<div class="empty"><div class="e-ico">📐</div>لا بنود في عقدك بعد</div>') +
+        '<span>' + VS.statusPill('p-ok', t('ضمن الجدول'), '✓') + '</span>' +
+        '<span>' + VS.statusPill('p-warn', t('سيتأخر — سرّع العمل'), '⚠') + '</span>' +
+        '<span>' + VS.statusPill('p-danger', t('متأخر'), '✕') + '</span></div>'
+        : '<div class="empty"><div class="e-ico">📐</div>' + t('لا بنود في عقدك بعد') + '</div>') +
       '</div>';
 
     const cTemplate = el.querySelector('#cboq-template');
@@ -12759,13 +13024,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
     if (cRead) cRead.addEventListener('click', async function () {
       const f = el.querySelector('#cboq-file').files[0];
       const prev = el.querySelector('#cboq-prev');
-      if (!f) { toast('اختر ملف جدول الكميات أولاً', true); return; }
-      prev.innerHTML = '⏳ جارٍ قراءة الملف…';
+      if (!f) { toast(t('اختر ملف جدول الكميات أولاً'), true); return; }
+      prev.innerHTML = '⏳ ' + t('جارٍ قراءة الملف…');
       try {
         const floors = (ctx.S.projects[0] || {}).floors || [];
         const areasMap = (ctx.S.projects[0] || {}).floorAreas || {};
         const parsed = await parseBoqFile(f, floors);
-        if (!parsed.length) { prev.innerHTML = '⚠️ لم تُستخرج بنود. استخدم CSV/Excel بعناوين: الوصف/الوحدة/الكمية/السعر.'; return; }
+        if (!parsed.length) { prev.innerHTML = '⚠️ ' + t('لم تُستخرج بنود. استخدم CSV/Excel بعناوين: الوصف/الوحدة/الكمية/السعر.'); return; }
         // فحص سلامة: إن كانت كل الكميات والأسعار صفراً فهذا يعني غالباً أن أعمدة الملف لم تُطابَق
         // (تنسيق مختلف تماماً، أو ملف غير جدول كميات أصلاً) — لا نعرضه كنجاح فيُرسَل خطأً فارغاً
         const allZero = parsed.every(function (p) { return !p.qty && !p.unitPrice; });
@@ -12787,30 +13052,30 @@ textarea.inp { resize: vertical; min-height: 80px; }
           });
           return out;
         }
-        function fname(fid) { return fid === 'ALL' ? 'كامل المشروع' : floorName(ctx, fid); }
+        function fname(fid) { return fid === 'ALL' ? t('كامل المشروع') : floorName(ctx, fid); }
 
         function renderPrev() {
           const totalVal = working.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
           prev.innerHTML =
             '<div class="card" style="padding:10px 12px;margin:8px 0;background:var(--bg2)">' +
-            '<b class="small">🏢 توزيع كميات الملف على الأدوار:</b> ' +
+            '<b class="small">🏢 ' + t('توزيع كميات الملف على الأدوار:') + '</b> ' +
             '<select class="inp" id="cboq-dist" style="max-width:220px;display:inline-block">' +
-            '<option value="keep">كما في الملف (دون توزيع)</option>' +
-            '<option value="equal">بالتساوي على كل الأدوار</option>' +
-            '<option value="area"' + (hasAreas ? '' : ' disabled') + '>حسب مساحة كل دور' + (hasAreas ? '' : ' (أدخل المساحات في إعدادات المشروع)') + '</option>' +
-            '<option value="manual">يدوياً (نسبة لكل دور تُطبَّق على الكل)</option>' +
-            '<option value="whole">اترك كل بند كاملاً للمشروع</option>' +
-            '</select> <button class="btn ghost sm" id="cboq-apply-dist">تطبيق التوزيع</button>' +
-            '<div class="small muted mt">مثال: بند «دهان داخلي 10,000 م²» يُقسَّم على الأدوار حسب الطريقة المختارة.</div></div>' +
-            '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ ' + working.length + ' بند (قيمة ' + money(Math.round(totalVal)) + ')</b>' +
-            '<button class="btn sm" id="cboq-send">📤 ' + (hasBaseline ? 'إرسال طلب التعديل للاعتماد' : 'إرسال للاستشاري للاعتماد') + '</button></div>' +
-            '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr><th>الوصف</th><th>الدور</th><th>الوحدة</th><th>الكمية</th><th>السعر</th></tr></thead><tbody>' +
+            '<option value="keep">' + t('كما في الملف (دون توزيع)') + '</option>' +
+            '<option value="equal">' + t('بالتساوي على كل الأدوار') + '</option>' +
+            '<option value="area"' + (hasAreas ? '' : ' disabled') + '>' + t('حسب مساحة كل دور') + (hasAreas ? '' : ' ' + t('(أدخل المساحات في إعدادات المشروع)')) + '</option>' +
+            '<option value="manual">' + t('يدوياً (نسبة لكل دور تُطبَّق على الكل)') + '</option>' +
+            '<option value="whole">' + t('اترك كل بند كاملاً للمشروع') + '</option>' +
+            '</select> <button class="btn ghost sm" id="cboq-apply-dist">' + t('تطبيق التوزيع') + '</button>' +
+            '<div class="small muted mt">' + t('مثال: بند «دهان داخلي 10,000 م²» يُقسَّم على الأدوار حسب الطريقة المختارة.') + '</div></div>' +
+            '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ ' + working.length + ' ' + t('بند') + ' (' + t('قيمة') + ' ' + money(Math.round(totalVal)) + ')</b>' +
+            '<button class="btn sm" id="cboq-send">📤 ' + (hasBaseline ? t('إرسال طلب التعديل للاعتماد') : t('إرسال للاستشاري للاعتماد')) + '</button></div>' +
+            '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr><th>' + t('الوصف') + '</th><th>' + t('الدور') + '</th><th>' + t('الوحدة') + '</th><th>' + t('الكمية') + '</th><th>' + t('السعر') + '</th></tr></thead><tbody>' +
             working.slice(0, 300).map(function (p) { return '<tr><td class="small">' + esc(p.description) + '</td><td class="small">' + esc(fname(p.floor)) + '</td><td class="small">' + esc(p.unit) + '</td><td class="num small">' + p.qty + '</td><td class="num small">' + p.unitPrice.toLocaleString('en-US') + '</td></tr>'; }).join('') +
             '</tbody></table></div>';
           el.querySelector('#cboq-apply-dist').addEventListener('click', function () {
             const method = el.querySelector('#cboq-dist').value;
             if (method === 'manual') {
-              openDistributeModal(ctx, { mode: 'percent', title: 'نسبة توزيع كل بند على الأدوار' }, function (shares) {
+              openDistributeModal(ctx, { mode: 'percent', title: t('نسبة توزيع كل بند على الأدوار') }, function (shares) {
                 const out = [];
                 parsed.forEach(function (p) {
                   shares.forEach(function (s) {
@@ -12819,47 +13084,47 @@ textarea.inp { resize: vertical; min-height: 80px; }
                 });
                 working = out;
                 renderPrev();
-                toast('✅ وُزّعت الكميات بالنِّسب — راجع الجدول ثم أرسل للاعتماد');
+                toast('✅ ' + t('وُزّعت الكميات بالنِّسب — راجع الجدول ثم أرسل للاعتماد'));
               });
               return;
             }
             working = expand(method);
             renderPrev();
-            toast('✅ وُزّعت الكميات — راجع الجدول ثم أرسل للاعتماد');
+            toast('✅ ' + t('وُزّعت الكميات — راجع الجدول ثم أرسل للاعتماد'));
           });
           el.querySelector('#cboq-send').addEventListener('click', async function () {
             const sendBtn = el.querySelector('#cboq-send');
             sendBtn.disabled = true;
             try {
               const fileObj = await Api.upload(f, { category: 'جداول الكميات BOQ' });
-              await Api.create('boqSubmittals', { title: (hasBaseline ? 'تعديل جدول الكميات — ' : 'جدول الكميات — ') + f.name, file: fileObj, parsedItems: working, kind: hasBaseline ? 'revision' : 'baseline' });
-              toast(hasBaseline ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل جدول الكميات للاستشاري للاعتماد');
+              await Api.create('boqSubmittals', { title: (hasBaseline ? t('تعديل جدول الكميات —') : t('جدول الكميات —')) + ' ' + f.name, file: fileObj, parsedItems: working, kind: hasBaseline ? 'revision' : 'baseline' });
+              toast(hasBaseline ? '📤 ' + t('أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك') : '📤 ' + t('أُرسل جدول الكميات للاستشاري للاعتماد'));
               ctx.refresh();
             } catch (e) { toast(e.message, true); sendBtn.disabled = false; }
           });
         }
         renderPrev();
-      } catch (e) { prev.innerHTML = '❌ تعذّرت قراءة الملف: ' + esc(e.message); }
+      } catch (e) { prev.innerHTML = '❌ ' + t('تعذّرت قراءة الملف:') + ' ' + esc(e.message); }
     });
 
     // ===== الإدخال اليدوي للبنود (رفع الملف اختياري) =====
     const draftBox = el.querySelector('#cboq-draft');
     function renderDraft() {
       if (!draftBox) return;
-      if (!boqDraft.length) { draftBox.innerHTML = '<div class="small muted mt">لم تُضف بنوداً بعد — أضف بنداً أو ارفع ملفاً.</div>'; return; }
+      if (!boqDraft.length) { draftBox.innerHTML = '<div class="small muted mt">' + t('لم تُضف بنوداً بعد — أضف بنداً أو ارفع ملفاً.') + '</div>'; return; }
       const total = boqDraft.reduce(function (a, b) { return a + b.qty * b.unitPrice; }, 0);
       draftBox.innerHTML =
         '<div class="tbl-wrap mt" style="max-height:32vh;overflow:auto"><table class="tbl"><thead><tr>' +
-        '<th>الوصف</th><th>الوحدة</th><th>الكمية</th><th>السعر</th><th>الدور</th><th>المنطقة</th><th></th></tr></thead><tbody>' +
+        '<th>' + t('الوصف') + '</th><th>' + t('الوحدة') + '</th><th>' + t('الكمية') + '</th><th>' + t('السعر') + '</th><th>' + t('الدور') + '</th><th>' + t('المنطقة') + '</th><th></th></tr></thead><tbody>' +
         boqDraft.map(function (it, i) {
           return '<tr><td class="small">' + esc(it.description) + '</td><td class="small">' + esc(it.unit) + '</td>' +
             '<td class="num small">' + it.qty + '</td><td class="num small">' + it.unitPrice.toLocaleString('en-US') + '</td>' +
-            '<td class="small">' + esc(it.floor === 'ALL' ? 'كامل المشروع' : floorName(ctx, it.floor)) + '</td>' +
+            '<td class="small">' + esc(it.floor === 'ALL' ? t('كامل المشروع') : floorName(ctx, it.floor)) + '</td>' +
             '<td class="small">' + esc(t((VS.ZONE_NAMES || [])[Number(it.zone)] || '')) + '</td>' +
             '<td><button class="btn danger sm" data-mbdel="' + i + '">✕</button></td></tr>';
         }).join('') + '</tbody></table></div>' +
-        '<div class="flex mt" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b class="small">' + boqDraft.length + ' بند · القيمة ' + money(Math.round(total)) + '</b>' +
-        '<button class="btn sm" id="mb-send">📤 ' + (hasBaseline ? 'إرسال طلب التعديل للاعتماد' : 'إرسال للاستشاري للاعتماد') + '</button></div>';
+        '<div class="flex mt" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><b class="small">' + boqDraft.length + ' ' + t('بند') + ' · ' + t('القيمة') + ' ' + money(Math.round(total)) + '</b>' +
+        '<button class="btn sm" id="mb-send">📤 ' + (hasBaseline ? t('إرسال طلب التعديل للاعتماد') : t('إرسال للاستشاري للاعتماد')) + '</button></div>';
       draftBox.querySelectorAll('[data-mbdel]').forEach(function (b) {
         b.addEventListener('click', function () { boqDraft.splice(Number(b.getAttribute('data-mbdel')), 1); renderDraft(); });
       });
@@ -12869,11 +13134,11 @@ textarea.inp { resize: vertical; min-height: 80px; }
         mbSend.disabled = true;
         try {
           await Api.create('boqSubmittals', {
-            title: (hasBaseline ? 'تعديل جدول الكميات (إدخال يدوي) — ' : 'جدول الكميات (إدخال يدوي) — ') + boqDraft.length + ' بند',
+            title: (hasBaseline ? t('تعديل جدول الكميات (إدخال يدوي) —') : t('جدول الكميات (إدخال يدوي) —')) + ' ' + boqDraft.length + ' ' + t('بند'),
             parsedItems: boqDraft.slice(), kind: hasBaseline ? 'revision' : 'baseline'
           });
           boqDraft = [];
-          toast(hasBaseline ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل جدول الكميات للاستشاري للاعتماد');
+          toast(hasBaseline ? '📤 ' + t('أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك') : '📤 ' + t('أُرسل جدول الكميات للاستشاري للاعتماد'));
           ctx.refresh();
         } catch (e) { toast(e.message, true); mbSend.disabled = false; }
       });
@@ -12885,8 +13150,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const desc = (el.querySelector('#mb-desc').value || '').trim();
       const qty = Number(el.querySelector('#mb-qty').value);
       const price = Number(el.querySelector('#mb-price').value);
-      if (!desc) { toast('أدخل وصف البند', true); return; }
-      if (!(qty > 0)) { toast('أدخل كمية صحيحة', true); return; }
+      if (!desc) { toast(t('أدخل وصف البند'), true); return; }
+      if (!(qty > 0)) { toast(t('أدخل كمية صحيحة'), true); return; }
       const unit = (el.querySelector('#mb-unit').value || 'وحدة').trim();
       const zone = Number(el.querySelector('#mb-zone').value) || 0;
       const dist = el.querySelector('#mb-dist').value;
@@ -12894,14 +13159,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const areasMap = (ctx.S.projects[0] || {}).floorAreas || {};
       if (dist === 'equal' || dist === 'area') {
         const parts = distributeAcrossFloors(qty, floors, dist, areasMap);
-        if (!parts.length) { toast('تعذّر التوزيع — تحقق من الأدوار', true); return; }
+        if (!parts.length) { toast(t('تعذّر التوزيع — تحقق من الأدوار'), true); return; }
         parts.forEach(function (d) { boqDraft.push({ description: desc, unit: unit, qty: d.qty, unitPrice: price > 0 ? price : 0, floor: d.floor, zone: zone }); });
-        toast('✅ وُزّع «' + desc + '» على ' + parts.length + ' دور');
+        toast('✅ ' + t('وُزّع') + ' «' + desc + '» ' + t('على') + ' ' + parts.length + ' ' + t('دور'));
         clearInputs();
       } else if (dist === 'manual') {
-        openDistributeModal(ctx, { mode: 'qty', total: qty, unit: unit, title: 'توزيع «' + desc + '» على الأدوار' }, function (shares) {
+        openDistributeModal(ctx, { mode: 'qty', total: qty, unit: unit, title: t('توزيع') + ' «' + desc + '» ' + t('على الأدوار') }, function (shares) {
           shares.forEach(function (s) { boqDraft.push({ description: desc, unit: unit, qty: s.val, unitPrice: price > 0 ? price : 0, floor: s.floor, zone: zone }); });
-          toast('✅ وُزّع «' + desc + '» يدوياً على ' + shares.length + ' دور');
+          toast('✅ ' + t('وُزّع') + ' «' + desc + '» ' + t('يدوياً على') + ' ' + shares.length + ' ' + t('دور'));
           clearInputs(); renderDraft();
         });
         return;
@@ -13103,6 +13368,39 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return csvRows(await decodeFileText(file));
   }
 
+  /**
+   * ينظّف اسم مهمة مستخرَج من PDF من فضلات أعمدة الجدول المجاورة (رمز النشاط/WBS، المدة الصريحة،
+   * معامل التعويم، رمز حالة بحرف واحد) التي تلتصق بالاسم لأن استخراج نص PDF يجمع كل نص السطر الواحد
+   * في فقرة واحدة دون تمييز أعمدة الجدول فعلياً — فكان الاسم المستخرَج يصبح مثلاً
+   * "Mobilization Mobilization   4    A    A" أو "A1000   بداية اﻻعمال   0    A" بدل الاسم الصافي
+   * بعد أن يُزال منه التاريخ/النسبة فقط. مُعايَر مباشرة على هذه الأمثلة الحقيقية من جدول مستورَد فعلياً.
+   */
+  function cleanTaskName(raw) {
+    let s = String(raw || '').trim();
+    s = s.replace(/^[A-Za-z]{1,3}\d{3,6}[A-Za-z]?\s+(?=\S)/, ''); // رمز نشاط/WBS بادئ مثل A1000/A3260/A3920R
+    const beforeDur = s;
+    s = s.replace(/\b\d+\s*(days?|أيام?|يوم)\b/gi, ' ').trim(); // مدة صريحة "4 Days"
+    // إن طابقت "مدة صريحة" (مثل "8 Days") فذلك دليل كافٍ على عمود المدة — لا نكمل بتجريد أرقام
+    // لاحقة أخرى، فقد تكون جزءاً حقيقياً من الاسم (مثال واقعي: "VO No. 12, 13 & 14   8 Days" كان
+    // يفقد الرقم "14" الحقيقي من الاسم لو استمر التجريد العام بعد إزالة "8 Days" بنجاح)
+    if (s === beforeDur) {
+      let prev;
+      do { // أرقام/رموز قصيرة معزولة بنهاية الاسم (مدة خام، تعويم، رمز حالة حرف واحد) — بالتكرار
+        prev = s;
+        s = s.replace(/\s+(-?\d+\.?\d*|[A-Za-z])\s*$/, '');
+      } while (s !== prev && s.trim());
+    }
+    s = s.trim();
+    const words = s.split(/\s+/).filter(Boolean);
+    if (words.length >= 2 && words.length % 2 === 0) { // عمودان متجاوران يكرران نفس الاسم (نفس النص مرتين)
+      const half = words.length / 2;
+      const a = words.slice(0, half).join(' '), b = words.slice(half).join(' ');
+      if (a && a === b) s = a;
+    }
+    s = s.replace(/\s+/g, ' ').trim();
+    return /[A-Za-z؀-ۿ]/.test(s) ? s : ''; // لا حروف متبقية = لا اسم فعلي قابل للاسترجاع من هذا السطر
+  }
+
   async function parsePdf(url) {
     const lib = await import('/vendor/pdfjs/pdf.min.mjs');
     lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.mjs';
@@ -13115,9 +13413,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return lines.map(function (l) {
       const dates = l.match(/(\d{4}-\d{2}-\d{2}|\d{1,2}[- ][A-Za-z]{3}[- ]\d{2,4}|\d{1,2}\/\d{1,2}\/\d{4})/g) || [];
       const prog = (l.match(/(\d{1,3})\s*%/) || [])[1];
-      const name = l.replace(/(\d{4}-\d{2}-\d{2}|\d{1,2}[- ][A-Za-z]{3}[- ]\d{2,4}|\d{1,2}\/\d{1,2}\/\d{4})/g, '').replace(/\d{1,3}\s*%/, '').trim();
-      return { name: name || 'مهمة', start: normDate(dates[0]), end: normDate(dates[1] || dates[0]), progress: pct(prog) };
-    }).filter(function (x) { return x.start; });
+      const rawName = l.replace(/(\d{4}-\d{2}-\d{2}|\d{1,2}[- ][A-Za-z]{3}[- ]\d{2,4}|\d{1,2}\/\d{1,2}\/\d{4})/g, '').replace(/\d{1,3}\s*%/, '').trim();
+      return { name: cleanTaskName(rawName), start: normDate(dates[0]), end: normDate(dates[1] || dates[0]), progress: pct(prog) };
+    }).filter(function (x) { return x.start && x.name; }); // أسقِط صفوفاً لم يتبقَّ منها اسم حقيقي (فضلات أعمدة فقط) بدل اسم عام مضلِّل "مهمة"
   }
 
   /** يقرأ ملف جدول زمني بأي صيغة مدعومة ويعيد قائمة المهام */
@@ -13162,61 +13460,61 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     el.innerHTML =
       '<div class="grid g4 mb">' +
-      '<div class="card kpi"><div class="lbl">مراحل الجدول</div><div class="val num">' + tasks.length + '</div><div class="sub">مرحلة/نشاط</div></div>' +
-      '<div class="card kpi ' + (nSlip ? 'k-warn' : 'k-ok') + '"><div class="lbl">ستتأخر</div><div class="val num ' + (nSlip ? '' : 'zero') + '">' + nSlip + '</div><div class="sub">تحتاج تسريعاً</div></div>' +
-      '<div class="card kpi ' + (nLate ? 'k-danger' : 'k-ok') + '"><div class="lbl">متأخرة</div><div class="val num ' + (nLate ? '' : 'zero') + '">' + nLate + '</div><div class="sub">خلف الجدول</div></div>' +
-      '<div class="card kpi k-info"><div class="lbl">اليوم</div><div class="val num" style="font-size:18px">' + new Date().toISOString().slice(0, 10) + '</div><div class="sub">تاريخ المقارنة</div></div>' +
+      '<div class="card kpi"><div class="lbl">' + t('مراحل الجدول') + '</div><div class="val num">' + tasks.length + '</div><div class="sub">' + t('مرحلة/نشاط') + '</div></div>' +
+      '<div class="card kpi ' + (nSlip ? 'k-warn' : 'k-ok') + '"><div class="lbl">' + t('ستتأخر') + '</div><div class="val num ' + (nSlip ? '' : 'zero') + '">' + nSlip + '</div><div class="sub">' + t('تحتاج تسريعاً') + '</div></div>' +
+      '<div class="card kpi ' + (nLate ? 'k-danger' : 'k-ok') + '"><div class="lbl">' + t('متأخرة') + '</div><div class="val num ' + (nLate ? '' : 'zero') + '">' + nLate + '</div><div class="sub">' + t('خلف الجدول') + '</div></div>' +
+      '<div class="card kpi k-info"><div class="lbl">' + t('اليوم') + '</div><div class="val num" style="font-size:18px">' + new Date().toISOString().slice(0, 10) + '</div><div class="sub">' + t('تاريخ المقارنة') + '</div></div>' +
       '</div>' +
       (canUpload ?
         '<div class="card mb"><div class="flex" style="justify-content:space-between;flex-wrap:wrap;gap:10px">' +
-        '<h3 style="margin:0">📅 ' + (isContractor ? (hasSchedBaseline ? 'طلب تعديل الجدول الزمني' : 'رفع برنامجك الزمني للاعتماد') : t('رفع ملف الجدول الزمني')) + ' <span class="hint">' + t('يقرأ CSV / Primavera XER / P6 XML / Excel / PDF') + '</span></h3>' +
+        '<h3 style="margin:0">📅 ' + (isContractor ? (hasSchedBaseline ? t('طلب تعديل الجدول الزمني') : t('رفع برنامجك الزمني للاعتماد')) : t('رفع ملف الجدول الزمني')) + ' <span class="hint">' + t('يقرأ CSV / Primavera XER / P6 XML / Excel / PDF') + '</span></h3>' +
         '<div class="flex"><input class="inp" id="sch-file" type="file" accept=".csv,.txt,.tsv,.xer,.xml,.xlsx,.xlsm,.pdf" style="max-width:260px">' +
-        '<button class="btn sm" id="sch-read">📖 قراءة الملف</button></div></div>' +
+        '<button class="btn sm" id="sch-read">📖 ' + t('قراءة الملف') + '</button></div></div>' +
         '<div class="small mb">' + (isContractor
           ? (hasSchedBaseline
-            ? '<span class="pill p-ok">🔒 الجدول الزمني معتمد ومقفل</span> أي تعديل يتطلب موافقة الاستشاري وممثل المالك معاً.'
-            : '<span class="muted">ارفع برنامجك الزمني — يُقرأ آلياً ويُرسَل للاستشاري للاعتماد، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.</span>')
-          : '<span class="muted">ارفع الجدول الزمني وتعتمده مباشرةً كخط أساس، أو اعتمد برامج المقاولين المقدَّمة أدناه.</span>') + '</div>' +
-        (isContractor && schedPending ? '<div class="pill p-warn">⏳ لديك جدول زمني قيد المراجعة — بانتظار القرار</div>' : '') +
-        '<div id="sch-preview" class="small muted">اختر الملف ثم «قراءة الملف» — سيُستخرج منه المهام والتواريخ ونِسَب الإنجاز.</div></div>'
+            ? '<span class="pill p-ok">🔒 ' + t('الجدول الزمني معتمد ومقفل') + '</span> ' + t('أي تعديل يتطلب موافقة الاستشاري وممثل المالك معاً.')
+            : '<span class="muted">' + t('ارفع برنامجك الزمني — يُقرأ آلياً ويُرسَل للاستشاري للاعتماد، وبعد الاعتماد يُقفل ولا يُعدَّل إلا بموافقة الاستشاري وممثل المالك.') + '</span>')
+          : '<span class="muted">' + t('ارفع الجدول الزمني وتعتمده مباشرةً كخط أساس، أو اعتمد برامج المقاولين المقدَّمة أدناه.') + '</span>') + '</div>' +
+        (isContractor && schedPending ? '<div class="pill p-warn">⏳ ' + t('لديك جدول زمني قيد المراجعة — بانتظار القرار') + '</div>' : '') +
+        '<div id="sch-preview" class="small muted">' + t('اختر الملف ثم «قراءة الملف» — سيُستخرج منه المهام والتواريخ ونِسَب الإنجاز.') + '</div></div>'
         : '') +
       // لوحة اعتماد خط الأساس (للاستشاري وممثل المالك)
       baselineReviewHtml(ctx, 'scheduleSubmittals') +
       // حالة البرامج الزمنية المقدَّمة (عرض للمقاول)
       (isContractor && subs.length ?
-        '<div class="card mb"><h3 style="margin:0 0 10px">📤 برامجي الزمنية المقدَّمة</h3>' +
-        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المرجع</th><th>النوع</th><th>مهام</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>' +
+        '<div class="card mb"><h3 style="margin:0 0 10px">📤 ' + t('برامجي الزمنية المقدَّمة') + '</h3>' +
+        '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + t('المرجع') + '</th><th>' + t('النوع') + '</th><th>' + t('مهام') + '</th><th>' + t('التاريخ') + '</th><th>' + t('الحالة') + '</th></tr></thead><tbody>' +
         subs.map(function (s) {
           return '<tr><td class="num small">' + esc(s.docCode || s.ref || '—') + '</td>' +
-            '<td>' + (s.kind === 'revision' ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td>' +
+            '<td>' + (s.kind === 'revision' ? '<span class="pill p-warn">' + t('تعديل') + '</span>' : '<span class="pill p-info">' + t('خط أساس') + '</span>') + '</td>' +
             '<td class="num small">' + ((s.parsedTasks || []).length || '—') + '</td>' +
             '<td class="small muted num">' + esc(s.date || '') + '</td>' +
             '<td>' + VS.pill(s.status) + '</td></tr>';
         }).join('') + '</tbody></table></div></div>'
         : '') +
       '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
-      '<h3 style="margin:0">📅 الجدول الزمني <span class="hint">المخطط مقابل الفعلي ومؤشر التأخير حسب تاريخ اليوم</span></h3></div>' +
+      '<h3 style="margin:0">📅 ' + t('الجدول الزمني') + ' <span class="hint">' + t('المخطط مقابل الفعلي ومؤشر التأخير حسب تاريخ اليوم') + '</span></h3></div>' +
       (tasks.length ?
         '<div class="tbl-wrap" style="max-height:60vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-        '<th>المرحلة / النشاط</th><th>المخطط (من ← إلى)</th><th>الفعلي</th><th>الإنجاز</th><th>' + t('التأخير') + '</th>' +
+        '<th>' + t('المرحلة / النشاط') + '</th><th>' + t('المخطط (من ← إلى)') + '</th><th>' + t('الفعلي') + '</th><th>' + t('الإنجاز') + '</th><th>' + t('التأخير') + '</th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table></div>'
-        : '<div class="empty"><div class="e-ico">📅</div>لا جدول زمني بعد' + (canUpload ? ' — ارفع ملفاً أعلاه' : ' — يرفعه الاستشاري') + '</div>') +
+        : '<div class="empty"><div class="e-ico">📅</div>' + t('لا جدول زمني بعد') + (canUpload ? ' — ' + t('ارفع ملفاً أعلاه') : ' — ' + t('يرفعه الاستشاري')) + '</div>') +
       '</div>';
 
     const readBtn = el.querySelector('#sch-read');
     if (readBtn) readBtn.addEventListener('click', async function () {
       const f = el.querySelector('#sch-file').files[0];
       const prev = el.querySelector('#sch-preview');
-      if (!f) { toast('اختر ملف الجدول الزمني أولاً', true); return; }
-      prev.innerHTML = '⏳ جارٍ قراءة الملف…';
+      if (!f) { toast(t('اختر ملف الجدول الزمني أولاً'), true); return; }
+      prev.innerHTML = '⏳ ' + t('جارٍ قراءة الملف…');
       try {
         const parsed = await parseScheduleFile(f);
-        if (!parsed.length) { prev.innerHTML = '⚠️ لم يتم استخراج مهام من الملف. تأكد من الصيغة (يُفضّل CSV/XER/XML/XLSX).'; return; }
-        const applyLabel = isContractor ? '📤 إرسال للاستشاري للاعتماد' : '💾 اعتماد كجدول زمني للمشروع';
+        if (!parsed.length) { prev.innerHTML = '⚠️ ' + t('لم يتم استخراج مهام من الملف. تأكد من الصيغة (يُفضّل CSV/XER/XML/XLSX).'); return; }
+        const applyLabel = isContractor ? '📤 ' + t('إرسال للاستشاري للاعتماد') : '💾 ' + t('اعتماد كجدول زمني للمشروع');
         prev.innerHTML =
-          '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ استُخرجت ' + parsed.length + ' مهمة من ' + esc(f.name) + '</b>' +
+          '<div class="flex" style="justify-content:space-between;flex-wrap:wrap"><b class="small">✅ ' + t('استُخرجت') + ' ' + parsed.length + ' ' + t('مهمة من') + ' ' + esc(f.name) + '</b>' +
           '<button class="btn sm" id="sch-apply">' + applyLabel + '</button></div>' +
-          '<div class="tbl-wrap" style="max-height:34vh;overflow-y:auto;margin-top:10px"><table class="tbl"><thead><tr><th>المهمة</th><th>من</th><th>إلى</th><th>الإنجاز</th><th>التأخير</th></tr></thead><tbody>' +
+          '<div class="tbl-wrap" style="max-height:34vh;overflow-y:auto;margin-top:10px"><table class="tbl"><thead><tr><th>' + t('المهمة') + '</th><th>' + t('من') + '</th><th>' + t('إلى') + '</th><th>' + t('الإنجاز') + '</th><th>' + t('التأخير') + '</th></tr></thead><tbody>' +
           parsed.slice(0, 200).map(function (p) { const ds = delayStatus(p.progress, p.start, p.end, th.progressAmberPct, th.progressAmberPct * 2); return '<tr><td>' + esc(p.name) + '</td><td class="small muted num">' + esc(p.start || '—') + '</td><td class="small muted num">' + esc(p.end || '—') + '</td><td class="num small">' + p.progress + '%</td><td>' + VS.statusPill(ds.cls, ds.label, ds.icon) + '</td></tr>'; }).join('') +
           '</tbody></table></div>';
         const applyBtn = el.querySelector('#sch-apply');
@@ -13225,21 +13523,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
           try {
             const fileObj = await Api.upload(f, { category: 'الجدول الزمني' });
             const kind = hasSchedBaseline ? 'revision' : 'baseline';
-            const title = (kind === 'revision' ? 'تعديل الجدول الزمني — ' : 'برنامج زمني — ') + f.name;
+            const title = (kind === 'revision' ? t('تعديل الجدول الزمني —') : t('برنامج زمني —')) + ' ' + f.name;
             // دورة الاعتماد الموحّدة: يُنشأ تقديم جدول زمني يحمل المهام المستخرَجة والملف
             const created = await Api.create('scheduleSubmittals', { title: title, file: fileObj, parsedTasks: parsed, kind: kind });
             if (isContractor) {
-              toast(kind === 'revision' ? '📤 أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك' : '📤 أُرسل برنامجك الزمني للاستشاري للاعتماد (' + parsed.length + ' مهمة)');
+              toast(kind === 'revision' ? '📤 ' + t('أُرسل طلب التعديل — يتطلب موافقة الاستشاري وممثل المالك') : '📤 ' + t('أُرسل برنامجك الزمني للاستشاري للاعتماد') + ' (' + parsed.length + ' ' + t('مهمة') + ')');
             } else {
               // الاستشاري/الأدمن: توقيع مباشر — خط الأساس الأول يُعتمد فوراً، والتعديل ينتظر توقيع ممثل المالك
               const res = await Api.review({ collection: 'scheduleSubmittals', id: created.id, status: 'approved', notes: 'اعتماد مباشر' });
-              if (res && res.status === 'approved') toast('✅ اعتُمد الجدول الزمني الرسمي للمشروع (' + parsed.length + ' مرحلة)');
-              else toast('🖊 وقّعت كاستشاري — تعديل خط الأساس بانتظار توقيع ممثل المالك');
+              if (res && res.status === 'approved') toast('✅ ' + t('اعتُمد الجدول الزمني الرسمي للمشروع') + ' (' + parsed.length + ' ' + t('مرحلة') + ')');
+              else toast('🖊 ' + t('وقّعت كاستشاري — تعديل خط الأساس بانتظار توقيع ممثل المالك'));
             }
             ctx.refresh();
           } catch (e) { toast(e.message, true); applyBtn.disabled = false; }
         });
-      } catch (e) { prev.innerHTML = '❌ تعذّرت قراءة الملف: ' + esc(e.message); }
+      } catch (e) { prev.innerHTML = '❌ ' + t('تعذّرت قراءة الملف:') + ' ' + esc(e.message); }
     });
 
     el.querySelectorAll('[data-nav]').forEach(function (b) {
@@ -13291,38 +13589,38 @@ textarea.inp { resize: vertical; min-height: 80px; }
         return (hasPreliminaryTask(b.parsedTasks) ? 1 : 0) - (hasPreliminaryTask(a.parsedTasks) ? 1 : 0);
       });
     }
-    const title = collection === 'boqSubmittals' ? 'جداول الكميات المقدَّمة' : 'الجداول الزمنية المقدَّمة';
-    return '<div class="card mb"><h3 style="margin:0 0 10px">🖊 اعتماد ' + title + ' <span class="hint">اعتماد خط الأساس من الاستشاري؛ تعديله لاحقاً يتطلب توقيع الاستشاري وممثل المالك معاً</span></h3>' +
-      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>المرجع</th><th>العنوان</th><th>النوع</th><th>البنود</th><th>التوقيعات</th><th>الإجراء</th></tr></thead><tbody>' +
+    const title = collection === 'boqSubmittals' ? t('جداول الكميات المقدَّمة') : t('الجداول الزمنية المقدَّمة');
+    return '<div class="card mb"><h3 style="margin:0 0 10px">🖊 ' + t('اعتماد') + ' ' + title + ' <span class="hint">' + t('اعتماد خط الأساس من الاستشاري؛ تعديله لاحقاً يتطلب توقيع الاستشاري وممثل المالك معاً') + '</span></h3>' +
+      '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + t('المرجع') + '</th><th>' + t('العنوان') + '</th><th>' + t('النوع') + '</th><th>' + t('البنود') + '</th><th>' + t('التوقيعات') + '</th><th>' + t('الإجراء') + '</th></tr></thead><tbody>' +
       subs.map(function (s) {
         const rev = s.kind === 'revision'; const sig = s.sig || {};
         const n = ((s.parsedItems || s.parsedTasks || []).length) || '—';
         const prelim = isSchedule && hasPreliminaryTask(s.parsedTasks);
-        const sigCell = rev ? ('استشاري ' + (sig.consultant ? '✓' : '—') + ' · ممثل المالك ' + (sig.ownerRep ? '✓' : '—')) : '—';
+        const sigCell = rev ? (t('استشاري') + ' ' + (sig.consultant ? '✓' : '—') + ' · ' + t('ممثل المالك') + ' ' + (sig.ownerRep ? '✓' : '—')) : '—';
         let act = '';
         if (rev) {
-          if (canConsult && !sig.consultant) act += '<button class="btn sm" data-sign="' + s.id + '" data-col="' + collection + '">🖊 توقيع الاستشاري</button> ';
-          if (canRep && !sig.ownerRep) act += '<button class="btn sm" data-sign="' + s.id + '" data-col="' + collection + '">🖊 توقيع ممثل المالك</button> ';
-          act += '<button class="btn danger sm" data-rej="' + s.id + '" data-col="' + collection + '">↩ رفض</button>';
+          if (canConsult && !sig.consultant) act += '<button class="btn sm" data-sign="' + s.id + '" data-col="' + collection + '">🖊 ' + t('توقيع الاستشاري') + '</button> ';
+          if (canRep && !sig.ownerRep) act += '<button class="btn sm" data-sign="' + s.id + '" data-col="' + collection + '">🖊 ' + t('توقيع ممثل المالك') + '</button> ';
+          act += '<button class="btn danger sm" data-rej="' + s.id + '" data-col="' + collection + '">↩ ' + t('رفض') + '</button>';
         } else if (canConsult) {
-          act += '<button class="btn sm" data-sign="' + s.id + '" data-col="' + collection + '">✅ اعتماد</button> <button class="btn danger sm" data-rej="' + s.id + '" data-col="' + collection + '">↩ إرجاع</button>';
+          act += '<button class="btn sm" data-sign="' + s.id + '" data-col="' + collection + '">✅ ' + t('اعتماد') + '</button> <button class="btn danger sm" data-rej="' + s.id + '" data-col="' + collection + '">↩ ' + t('إرجاع') + '</button>';
         }
         return '<tr' + (prelim ? ' style="background:rgba(245,165,36,.08);border-right:3px solid var(--warn,#f5a524)"' : '') + '>' +
           '<td class="num small">' + esc(s.docCode || s.ref || '—') + '</td><td class="small">' + esc(s.title || '—') +
           (prelim ? '<div class="small mt" style="color:var(--warn,#f5a524)">⚡ ' + I18n.t('يشمل أعمالاً تمهيدية/تعبئة موقع — يُنصح بمراجعة عاجلة') + '</div>' : '') + '</td>' +
-          '<td>' + (rev ? '<span class="pill p-warn">تعديل</span>' : '<span class="pill p-info">خط أساس</span>') + '</td><td class="num small">' + n + '</td><td class="small">' + sigCell + '</td><td>' + (act || '<span class="muted small">بانتظار الطرف الآخر</span>') + '</td></tr>';
+          '<td>' + (rev ? '<span class="pill p-warn">' + t('تعديل') + '</span>' : '<span class="pill p-info">' + t('خط أساس') + '</span>') + '</td><td class="num small">' + n + '</td><td class="small">' + sigCell + '</td><td>' + (act || '<span class="muted small">' + t('بانتظار الطرف الآخر') + '</span>') + '</td></tr>';
       }).join('') + '</tbody></table></div></div>';
   }
   function wireBaselineReview(el, ctx) {
     el.querySelectorAll('[data-sign]').forEach(function (b) {
       b.addEventListener('click', async function () {
-        try { await Api.review({ collection: b.getAttribute('data-col'), id: b.getAttribute('data-sign'), status: 'approved' }); toast('✅ سُجّل قرارك'); ctx.refresh(); } catch (e) { toast(e.message, true); }
+        try { await Api.review({ collection: b.getAttribute('data-col'), id: b.getAttribute('data-sign'), status: 'approved' }); toast('✅ ' + t('سُجّل قرارك')); ctx.refresh(); } catch (e) { toast(e.message, true); }
       });
     });
     el.querySelectorAll('[data-rej]').forEach(function (b) {
       b.addEventListener('click', async function () {
-        const notes = (window.prompt && window.prompt('سبب الإرجاع (اختياري):')) || '';
-        try { await Api.review({ collection: b.getAttribute('data-col'), id: b.getAttribute('data-rej'), status: 'rejected', notes: notes }); toast('↩ أُرجع للمقاول'); ctx.refresh(); } catch (e) { toast(e.message, true); }
+        const notes = (window.prompt && window.prompt(t('سبب الإرجاع (اختياري):'))) || '';
+        try { await Api.review({ collection: b.getAttribute('data-col'), id: b.getAttribute('data-rej'), status: 'rejected', notes: notes }); toast('↩ ' + t('أُرجع للمقاول')); ctx.refresh(); } catch (e) { toast(e.message, true); }
       });
     });
   }
@@ -13656,7 +13954,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'إدارة BIM': 'BIM Management',
     'قاعدة بيانات المقاولين': 'Contractor Database',
     'محفظة المشاريع': 'Projects Portfolio',
-    'خادم الملفات المركزي': 'Central File Server'
+    'خادم الملفات المركزي': 'Central File Server',
+    'التقارير': 'Reports',
+    'تقديماتي': 'My Submissions',
+    'مستنداتي': 'My Documents',
+    'لوحة المنصّة': 'Platform Dashboard',
+    'المشتركون (المستأجرون)': 'Subscribers (Tenants)',
+    'الفواتير والتحصيل': 'Invoices & Collection',
+    'الباقات والتسعير': 'Plans & Pricing',
+    'نظرة عامة': 'Overview',
+    'الأعمال والاعتمادات': 'Work & Approvals',
+    'الموقع والمتابعة': 'Site & Monitoring',
+    'المستندات والنماذج': 'Documents & Models',
+    'التسليم': 'Handover',
+    'الإعدادات': 'Settings',
+    'بصير بزنس': 'Bassir Business'
   });
 
   /* ============ مصنع الصفحات المبوّبة (Tabbed parent screens · §4-1/§5) ============

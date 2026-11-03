@@ -336,6 +336,10 @@
         });
       }
 
+      // القيم الفعلية/المخططة الحيّة (تقدّم، تكلفة) تُدمَج في نسخة سطحية من كل مشروع — لا تُخزَّن
+      // ولا تُعدَّل بيانات db.projects الأصلية، فتبقى صحيحة ومحدَّثة في كل طلب تلقائياً
+      s.projects = (s.projects || []).map(function (p) { return Object.assign({}, p, liveActuals(p.id)); });
+
       // مؤشر صحة كل مشروع في نطاق المستخدم (يُحسب بعد تقييد النطاق)
       s.projectHealth = {};
       (s.projects || []).forEach(function (p) { s.projectHealth[p.id] = computeProjectHealth(p.id); });
@@ -376,10 +380,19 @@
      */
     function pushNotification(target, kind, text, refCollection, refId) {
       if (!db.notifications) db.notifications = [];
+      // مشروع هذا الإشعار — يُشتق من العنصر المُشار إليه (refCollection/refId) ليُستخدم عند
+      // التسليم الخارجي (بريد/واتساب) بدل افتراض أول مشروع في القاعدة دائماً، وهو ما كان يجعل كل
+      // إشعار صادر عن أي مشروع يُظهر اسم مشروع آخر تماماً في نص البريد/الواتساب المُرسَل
+      let projectId = null;
+      if (refCollection === 'projects') projectId = refId;
+      else if (refCollection && refId) {
+        const refItem = (db[refCollection] || []).find(function (x) { return x.id === refId; });
+        projectId = (refItem && refItem.projectId) || null;
+      }
       const notif = {
         id: nextId('NT'), time: nowStr(), kind: kind, text: text,
         role: target.role || null, contractorId: target.contractorId || null,
-        collection: refCollection || null, refId: refId || null, readBy: []
+        collection: refCollection || null, refId: refId || null, projectId: projectId, readBy: []
       };
       db.notifications.unshift(notif);
       if (db.notifications.length > 200) db.notifications.length = 200;
@@ -897,7 +910,7 @@
       if (['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
       const msg = {
         id: nextId('MSG'), channel: payload.channel === 'whatsapp' ? 'whatsapp' : 'email',
-        to: payload.to, title: payload.title || 'تقرير المشروع',
+        to: payload.to, title: payload.title || 'تقرير المشروع', projectId: payload.projectId || null,
         date: nowStr(), status: payload.status === 'sent_demo' ? 'sent_demo' : 'sent', by: user.name
       };
       db.messages.push(msg);
@@ -923,8 +936,8 @@
         id: c.id, name: c.name, type: c.type,
         contractValue: c.contractValue, amountReceived: c.amountReceived,
         startDate: c.startDate, endDate: c.endDate,
-        progress: progress, plannedProgress: c.plannedProgress || 0,
-        delayed: progress < (c.plannedProgress || 0) - delayPct,
+        progress: progress, plannedProgress: contractorPlannedProgress(c),
+        delayed: progress < contractorPlannedProgress(c) - delayPct,
         overpaid: c.amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
@@ -961,15 +974,61 @@
     ];
     function gradeOf(score) { return HEALTH_GRADES.find(function (g) { return score >= g.min; }); }
 
+    /**
+     * القيم «الفعلية والمخططة» الحيّة لمشروع — تُحسَب من البيانات الحقيقية في كل استدعاء، لا تُقرأ
+     * من حقول ثابتة على المشروع (كانت المشكلة: progressActual/costActual لا يحدّثهما شيء أبداً بعد
+     * الإنشاء، فتبقى صفراً للأبد لأي مشروع حقيقي رغم وجود تقدّم ومستخلصات معتمدة فعلية).
+     * الفعلي: الإنجاز = متوسط تقدّم بنود الكميات مُرجَّحاً بقيمتها · التكلفة = مجموع المستخلصات المعتمدة.
+     * المخطط: توزيع خطي بسيط حسب نسبة الوقت المنقضي من مدة المشروع المخطط (نفس منطق taskPlanned
+     * بالواجهة) — أساس معقول حتى يُحدَّد جدول تفصيلي معتمد.
+     */
+    /** نسبة الوقت المنقضي بين تاريخين (0-100) — أساس «المخطط» الزمني حين لا يوجد جدول تفصيلي معتمد */
+    function timeElapsedPct(startDate, endDate) {
+      const s = new Date(startDate).getTime(), e = new Date(endDate).getTime();
+      if (!isFinite(s) || !isFinite(e) || e <= s) return 0;
+      const now = Date.now();
+      return now <= s ? 0 : now >= e ? 100 : Math.round(((now - s) / (e - s)) * 1000) / 10;
+    }
+
+    function liveActuals(projectId) {
+      const P = db.projects.find(function (p) { return p.id === projectId; });
+      if (!P) return { progressActual: 0, progressPlanned: 0, costActual: 0, costPlannedToDate: 0 };
+      const items = (db.boqItems || []).filter(function (b) { return b.projectId === projectId; });
+      let earned = 0, total = 0;
+      items.forEach(function (b) {
+        const v = (Number(b.qty) || 0) * (Number(b.unitPrice) || 0);
+        total += v; earned += v * ((Number(b.progress) || 0) / 100);
+      });
+      const progressActual = total ? Math.round((earned / total) * 1000) / 10 : 0;
+      const costActual = (db.payments || []).filter(function (p) { return p.projectId === projectId && p.status === 'approved'; })
+        .reduce(function (a, p) { return a + (Number(p.amount) || 0); }, 0);
+      const tPct = timeElapsedPct(P.startPlanned, P.endPlanned);
+      return {
+        progressActual: progressActual, progressPlanned: tPct,
+        costActual: costActual, costPlannedToDate: Math.round((P.budgetPlanned || 0) * tPct) / 100
+      };
+    }
+
+    /**
+     * نسبة الإنجاز المخططة الحيّة لمقاول — كانت تُقرأ من الحقل الثابت plannedProgress الذي لا يحدّثه
+     * شيء أبداً بعد إنشاء المقاول (يبقى 0 للأبد)، فلا يظهر أي مقاول "متأخراً" مهما تأخر فعلياً، ويظهر
+     * العمود دائماً 0% في شاشة المقاولين. نفس منطق توزيع الوقت الخطي المستخدم لمستوى المشروع، لكن على
+     * مدة عقد هذا المقاول تحديداً (startDate ← endDate) بدل مدة المشروع كاملاً.
+     */
+    function contractorPlannedProgress(c) {
+      return timeElapsedPct(c.startDate, c.endDate);
+    }
+
     /** يحسب صحة مشروع من بياناته الحالية (نفس صيغة الواجهة تماماً) */
     function computeProjectHealth(projectId) {
       const P = db.projects.find(function (p) { return p.id === projectId; });
       if (!P) return null;
       const inP = function (x) { return !x.projectId || x.projectId === projectId; };
       const th = thresholdsOf(projectId);
-      const progVar = Math.round(((P.progressActual || 0) - (P.progressPlanned || 0)) * 10) / 10;
-      const costVar = (P.costActual || 0) - (P.costPlannedToDate || 0);
-      const costVarPct = P.costPlannedToDate ? Math.round(costVar / P.costPlannedToDate * 100) : 0;
+      const live = liveActuals(projectId);
+      const progVar = Math.round((live.progressActual - live.progressPlanned) * 10) / 10;
+      const costVar = live.costActual - live.costPlannedToDate;
+      const costVarPct = live.costPlannedToDate ? Math.round(costVar / live.costPlannedToDate * 100) : 0;
       const openNcr = (db.ncrs || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
       const failedTests = (db.materialTests || []).filter(function (x) { return inP(x) && x.result === 'fail'; }).length;
       const openPunch = (db.punchList || []).filter(function (x) { return inP(x) && x.status === 'open'; }).length;
@@ -982,7 +1041,7 @@
         let earned = 0, total = 0;
         items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
         const progress = total ? earned / total * 100 : 0;
-        if (progress < (c.plannedProgress || 0) - th.contractorDelayPct) delayed++;
+        if (progress < contractorPlannedProgress(c) - th.contractorDelayPct) delayed++;
         if (c.amountReceived > (c.contractValue * progress / 100) * 1.05) overpaid++;
       });
       const schedule = clampScore(100 + progVar * 3);
@@ -1006,6 +1065,7 @@
     function recordHealthSnapshot(user, opts) {
       opts = opts || {};
       const projectId = opts.projectId || (db.projects[0] && db.projects[0].id);
+      const P = db.projects.find(function (p) { return p.id === projectId; });
       const h = computeProjectHealth(projectId);
       if (!h) return { recorded: false };
       if (!db.healthHistory) db.healthHistory = [];
@@ -1014,11 +1074,47 @@
       if (existing) { existing.score = h.score; existing.grade = h.grade; }
       else db.healthHistory.push({ projectId: projectId, month: month, score: h.score, grade: h.grade });
 
+      // نفس اللقطة الشهرية لمنحنيي الجدول والتكلفة والتدفق النقدي (S-Curve) — كانت تبقى فارغة للأبد
+      // لأي مشروع حقيقي لعدم وجود آلية تسجّلها؛ تُستخدم نفس القيم الحيّة المحسوبة أعلاه لمؤشر الصحة.
+      // نقطة الأساس (بداية المشروع = 0%/0) تُضاف مرة واحدة فقط عند أول تسجيل لمشروع، بما أنها حقيقة
+      // مؤكدة (لا بيانات مخترَعة) — وإلا فمنحنى بنقطة واحدة فقط لا يمكن رسمه كخط ويبقى يظهر فارغاً
+      // لشهر كامل بعد كل نشر حتى تتراكم نقطة ثانية طبيعياً.
+      const live = liveActuals(projectId);
+      db.scheduleCurve = db.scheduleCurve || [];
+      db.costCurve = db.costCurve || [];
+      db.cashFlow = db.cashFlow || [];
+      const anchorMonth = String((P && P.startPlanned) || '').slice(0, 7);
+      function ensureAnchor(curveArr, zeroPoint) {
+        if (!anchorMonth || anchorMonth >= month) return; // المشروع يبدأ هذا الشهر أو لاحقاً — لا حاجة لنقطة أساس منفصلة
+        // يتحقق من وجود نقطة عند شهر البداية تحديداً لا أي نقطة للمشروع — وإلا فمشروع له نقطة
+        // واحدة فقط مُسجَّلة قبل إضافة منطق نقطة الأساس هذا يبقى عالقاً بنقطة وحيدة للأبد، لأن أي
+        // نقطة أخرى (مهما كان شهرها) كانت تمنع إضافة نقطة الأساس حتى لو ظل المخطط فارغاً بصرياً
+        if (curveArr.some(function (x) { return x.projectId === projectId && x.month === anchorMonth; })) return;
+        curveArr.push(Object.assign({ projectId: projectId, month: anchorMonth }, zeroPoint));
+      }
+      ensureAnchor(db.scheduleCurve, { planned: 0, actual: 0 });
+      ensureAnchor(db.costCurve, { planned: 0, actual: 0 });
+      ensureAnchor(db.cashFlow, { inflow: 0, outflow: 0, progress: 0 });
+
+      const schedExisting = db.scheduleCurve.find(function (x) { return x.projectId === projectId && x.month === month; });
+      if (schedExisting) { schedExisting.planned = live.progressPlanned; schedExisting.actual = live.progressActual; }
+      else db.scheduleCurve.push({ projectId: projectId, month: month, planned: live.progressPlanned, actual: live.progressActual });
+      const costPlannedM = Math.round(live.costPlannedToDate / 1e5) / 10, costActualM = Math.round(live.costActual / 1e5) / 10;
+      const costExisting = db.costCurve.find(function (x) { return x.projectId === projectId && x.month === month; });
+      if (costExisting) { costExisting.planned = costPlannedM; costExisting.actual = costActualM; }
+      else db.costCurve.push({ projectId: projectId, month: month, planned: costPlannedM, actual: costActualM });
+
+      // التدفق النقدي: لا توجد في النظام آلية لتسجيل ودائع/تحويلات المالك الفعلية (ميزة غير متوفرة
+      // حالياً) — فأفضل تقريب حقيقي متاح للوارد هو الالتزام المتوقع حسب نسق الميزانية المعتمدة
+      // (نفس costPlannedToDate)، مقابل المنصرف الفعلي الموثّق فعلاً للمقاولين (مستخلصات معتمدة)
+      const cfExisting = db.cashFlow.find(function (x) { return x.projectId === projectId && x.month === month; });
+      if (cfExisting) { cfExisting.inflow = costPlannedM; cfExisting.outflow = costActualM; cfExisting.progress = live.progressActual; }
+      else db.cashFlow.push({ projectId: projectId, month: month, inflow: costPlannedM, outflow: costActualM, progress: live.progressActual });
+
       if (!db.meta.lastHealthGrade) db.meta.lastHealthGrade = {};
       const prev = db.meta.lastHealthGrade[projectId];
       const tierOf = { A: 4, B: 3, C: 2, D: 1 };
       const alertTier = tierOf[thresholdsOf(projectId).healthAlertGrade] || 2; // العتبة القابلة للضبط
-      const P = db.projects.find(function (p) { return p.id === projectId; });
       const pname = P ? P.name : projectId;
       const prevTier = prev ? tierOf[prev] : null;
       let dropped = false, improved = false;
@@ -1110,6 +1206,7 @@
       updateProfile: updateProfile,
       myProfile: myProfile,
       computeProjectHealth: computeProjectHealth,
+      liveActuals: liveActuals,
       recordHealthSnapshot: recordHealthSnapshot,
       addContractor: addContractor,
       deleteContractor: deleteContractor,
