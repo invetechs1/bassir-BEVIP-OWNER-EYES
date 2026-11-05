@@ -1717,6 +1717,15 @@ textarea.inp { resize: vertical; min-height: 80px; }
       // ولا تُعدَّل بيانات db.projects الأصلية، فتبقى صحيحة ومحدَّثة في كل طلب تلقائياً
       s.projects = (s.projects || []).map(function (p) { return Object.assign({}, p, liveActuals(p.id)); });
 
+      // عدادات خط أنابيب اعتماد الكميات الحيّة (منفَّذ/معتمَد/مُطالَب به/متاح للمطالبة) — تُدمَج في
+      // نسخة سطحية من كل بند، بنفس أسلوب liveActuals أعلاه تماماً، فلا تحتاج الواجهة إعادة اشتقاقها
+      s.boqItems = (s.boqItems || []).map(function (b) {
+        return Object.assign({}, b, {
+          executedQty: boqExecutedQty(b), approvedQty: boqApprovedQty(b),
+          claimedQty: boqClaimedQty(b), availableToClaim: boqAvailableToClaim(b)
+        });
+      });
+
       // مؤشر صحة كل مشروع في نطاق المستخدم (يُحسب بعد تقييد النطاق)
       s.projectHealth = {};
       (s.projects || []).forEach(function (p) { s.projectHealth[p.id] = computeProjectHealth(p.id); });
@@ -1909,6 +1918,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
         persist();
         return Object.assign(stripPassword(item), { password: plain }); // تُعرض مرة واحدة فقط
       }
+      // لا يجوز تقديم مستخلص يطالب ببند بأكثر مما اعتمده الاستشاري وتم تنفيذه فعلياً — السقف
+      // availableToClaim (= min(approvedQty, executedQty) - المُطالَب به سابقاً) هو ما يحكم كل بند
+      if (collection === 'payments') {
+        (item.lines || []).forEach(function (line) {
+          if (typeof line.progress !== 'number') return;
+          const bq = db.boqItems.find(function (b) { return b.id === line.boqItemId; });
+          if (!bq) return;
+          const ceilingPct = (Number(bq.qty) || 0) ? Math.min(boqApprovedQty(bq), boqExecutedQty(bq)) / bq.qty * 100 : 0;
+          if (line.progress > ceilingPct + 1e-6) {
+            throw err('بند «' + (bq.description || bq.code) + '» — المطلوب ' + Math.round(line.progress) +
+              '% يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً (' + Math.round(ceilingPct * 10) / 10 + '%)', 400);
+          }
+        });
+      }
       db[collection] = db[collection] || []; // احتياط لأي مجموعة جديدة لم تُهيَّأ صراحةً في seed-data.js
       db[collection].push(item);
       // إشعار المكتب الفني بكل تقديم جديد من مقاول
@@ -1951,6 +1974,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (item.status && ['approved', 'approved_notes', 'rejected', 'fail'].indexOf(item.status) !== -1) {
         if ('amount' in patch || 'days' in patch) {
           throw err('لا يمكن تعديل القيمة المالية أو الأثر الزمني بعد اعتماد/رفض الطلب — أنشئ أمر تغيير جديداً لأي تعديل لاحق', 403);
+        }
+      }
+      if (collection === 'boqItems') {
+        // منع التعديل المباشر لحقول الإنجاز عبر هذا المسار العام — كانت (progress خصوصاً) تُعدَّل
+        // بحرية هنا عبر شريط تمرير في شاشة الاستشاري (renderBoq) دون أي تحقق أو دليل موثَّق، فيتجاوز
+        // أي مستخدم ذو صلاحية كامل آلية الإنجاز المُنفَّذ/المعتمد/المُطالَب به الجديدة بالكامل. التعديل
+        // الوحيد المسموح لهذه الحقول الآن هو عبر reportExecutedQty / approveExecutedQty المخصَّصتين
+        const lockedBoqFields = ['progress', 'status', 'executedQty', 'approvedQty', 'executedLog', 'approvals'];
+        if (lockedBoqFields.some(function (k) { return k in patch; })) {
+          throw err('إنجاز البند يُحدَّث فقط عبر تسجيل التنفيذ أو اعتماد الاستشاري — لا عبر تعديل مباشر', 403);
         }
       }
       if (collection === 'users') {
@@ -2062,6 +2095,21 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
       // ===== المسار الفردي: بقية الطلبات + الاعتماد الأول لخط الأساس (الاستشاري/الأدمن) =====
       if (!isReviewer) throw err('اعتماد التعديل يتطلب توقيع الاستشاري أولاً', 403);
+      // تحقق دفاعي ثانٍ عند الاعتماد الفعلي، لا عند التقديم فقط — لو تغيّر إنجاز البند (نقصت كمية
+      // معتمَدة سابقاً مثلاً) بين تقديم المستخلص واعتماده، يُرفض الاعتماد بدل السماح بمطالبة تتجاوز
+      // سقف "المنفَّذ والمعتمَد فعلياً حالياً" لأي بند — نفس مبدأ "التحقق عند كل كتابة لا عند التحقق فقط"
+      if (collection === 'payments' && (status === 'approved' || status === 'approved_notes')) {
+        (item.lines || []).forEach(function (line) {
+          if (typeof line.progress !== 'number') return;
+          const bq = db.boqItems.find(function (b) { return b.id === line.boqItemId; });
+          if (!bq) return;
+          const ceilingPct = (Number(bq.qty) || 0) ? Math.min(boqApprovedQty(bq), boqExecutedQty(bq)) / bq.qty * 100 : 0;
+          if (line.progress > ceilingPct + 1e-6) {
+            throw err('تعذّر الاعتماد: بند «' + (bq.description || bq.code) + '» — المطلوب ' + Math.round(line.progress) +
+              '% يتجاوز المعتمَد والمنفَّذ فعلياً حالياً (' + Math.round(ceilingPct * 10) / 10 + '%)', 400);
+          }
+        });
+      }
       item.status = status;
       item.notes = opts.notes || '';
       item.signature = user.name;
@@ -2134,17 +2182,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
       });
     }
 
-    /** أثر اعتماد المستخلص: تحديث نسب البنود + المبالغ المستلمة */
+    /**
+     * أثر اعتماد المستخلص. لم يعد يحرّك progress/status لبنود الكميات — الإنجاز الآن مشتق حصراً من
+     * اعتماد الاستشاري للتنفيذ (المرحلة ٢، recomputeBoqProgress)، لا من اعتماد المستخلص المالي، فلا
+     * تُخلَط "تم تنفيذه فعلياً" بـ"صار قابلاً للمطالبة به". claimedQty لكل بند لا يحتاج أي تحديث هنا
+     * أيضاً لأنه حي دائماً من db.payments مباشرة (boqClaimedQty) — بمجرد صيرورة حالة هذا المستخلص
+     * "معتمد" يعكسه الحساب الحي فوراً من تلقاء نفسه، ولا ينحرف أبداً مهما حُذف أو صُحح مستخلص لاحقاً.
+     */
     function applyPaymentEffects(pc) {
       const contractor = db.contractors.find(function (c) { return c.id === pc.contractorId; });
       if (contractor) contractor.amountReceived = (contractor.amountReceived || 0) + (pc.amount || 0);
-      (pc.lines || []).forEach(function (line) {
-        const bq = db.boqItems.find(function (b) { return b.id === line.boqItemId; });
-        if (bq && typeof line.progress === 'number') {
-          bq.progress = Math.max(bq.progress, Math.min(100, line.progress));
-          bq.status = bq.progress >= 100 ? 'منجز' : bq.progress > 0 ? 'جاري' : 'لم يبدأ';
-        }
-      });
     }
 
     /**
@@ -2309,13 +2356,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const progress = total ? Math.round((earned / total) * 1000) / 10 : 0;
       const earnedValue = c.contractValue * progress / 100;
       const delayPct = thresholdsOf(c.projectId || 'P1').contractorDelayPct;
+      const amountReceived = contractorAmountReceived(c.id);
       return {
         id: c.id, name: c.name, type: c.type,
-        contractValue: c.contractValue, amountReceived: c.amountReceived,
+        contractValue: c.contractValue, amountReceived: amountReceived,
         startDate: c.startDate, endDate: c.endDate,
         progress: progress, plannedProgress: contractorPlannedProgress(c),
         delayed: progress < contractorPlannedProgress(c) - delayPct,
-        overpaid: c.amountReceived > earnedValue * 1.05,
+        overpaid: amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
     }
@@ -2396,6 +2444,119 @@ textarea.inp { resize: vertical; min-height: 80px; }
       return timeElapsedPct(c.startDate, c.endDate);
     }
 
+    /**
+     * المبلغ الفعلي المستلم لمقاول — يُحسَب حياً من مجموع مستخلصاته المعتمدة فعلياً في db.payments،
+     * بدل القراءة من الحقل الثابت c.amountReceived الذي يُحدَّث بالزيادة فقط عند اعتماد كل مستخلص
+     * (في review، أدناه) ولا يُعاد حسابه أبداً — فأي تعديل لاحق على البيانات (حذف/تصحيح مستخلص،
+     * ترحيل بيانات) يترك هذا الحقل عالقاً بقيمة قديمة لا تطابق المستخلصات المعتمدة فعلياً حالياً
+     * (رُصد فرق 7.2 مليون ريال بين الحقل المخزَّن والمجموع الحقيقي لمقاول واحد في بيانات الإنتاج).
+     */
+    function contractorAmountReceived(contractorId) {
+      return (db.payments || []).filter(function (p) { return p.contractorId === contractorId && p.status === 'approved'; })
+        .reduce(function (a, p) { return a + (Number(p.amount) || 0); }, 0);
+    }
+
+    // ============ خط أنابيب اعتماد الكميات على ثلاث مراحل (تنفيذ → اعتماد الاستشاري → مطالبة) ============
+    // المبدأ: كل عداد (منفَّذ/معتمَد/مُطالَب به) يُشتق دائماً من سجله المصدري (executedLog/approvals/
+    // مستخلصات معتمدة) بدل أن يكون عداداً منفصلاً يُزاد يدوياً — نفس درس c.amountReceived أعلاه الذي
+    // انحرف 7.2 مليون ريال عن الواقع لأن شيئاً لم يُعِد حسابه أبداً بعد أي تصحيح لاحق. الاشتقاق من
+    // المصدر لا ينحرف أبداً ولا يحتاج منطق "عكس" عند حذف/إلغاء مستخلص — يُعاد حسابه فوراً من جديد.
+
+    function boqExecutedQty(item) {
+      const sum = (item.executedLog || []).reduce(function (a, e) { return a + (Number(e.qty) || 0); }, 0);
+      return Math.min(Number(item.qty) || 0, Math.round(sum * 1000) / 1000);
+    }
+    function boqApprovedQty(item) {
+      const sum = (item.approvals || []).reduce(function (a, e) { return a + (Number(e.qty) || 0); }, 0);
+      return Math.min(boqExecutedQty(item), Math.round(sum * 1000) / 1000);
+    }
+    /** نفس منطق "أعلى نسبة مستهدفة تراكمية" المستخدم تاريخياً في applyPaymentEffects — وليس مجموعاً،
+     * فكل مستخلص يذكر النسبة الكلية المستهدفة للبند لا كمية إضافية */
+    function boqClaimedQty(item) {
+      let maxPct = 0;
+      (db.payments || []).forEach(function (p) {
+        if (p.status !== 'approved') return;
+        (p.lines || []).forEach(function (l) {
+          if (l.boqItemId === item.id && typeof l.progress === 'number') maxPct = Math.max(maxPct, Math.min(100, l.progress));
+        });
+      });
+      const claimed = (Number(item.qty) || 0) * maxPct / 100;
+      const ceiling = Math.min(boqApprovedQty(item), boqExecutedQty(item));
+      return Math.min(ceiling, Math.round(claimed * 1000) / 1000);
+    }
+    /** الكمية المتاحة للمطالبة بها الآن — السقف الذي تُقيَّد به مستخلصات جديدة */
+    function boqAvailableToClaim(item) {
+      return Math.max(0, Math.min(boqApprovedQty(item), boqExecutedQty(item)) - boqClaimedQty(item));
+    }
+    function findBoqItem(boqItemId) {
+      const item = (db.boqItems || []).find(function (b) { return b.id === boqItemId; });
+      if (!item) throw err('بند الكميات غير موجود', 404);
+      return item;
+    }
+    function recomputeBoqProgress(item) {
+      const approved = boqApprovedQty(item);
+      const qty = Number(item.qty) || 0;
+      item.progress = qty ? Math.round((approved / qty) * 1000) / 10 : 0;
+      item.status = item.progress >= 100 ? 'منجز' : item.progress > 0 ? 'جاري' : 'لم يبدأ';
+    }
+
+    /** المرحلة ١: تسجيل كمية مُنفَّذة فعلياً في الموقع — إنجاز خام غير موثَّق بعد، لا يُحرِّك لوحة
+     * التحكم (progress يبقى كما هو حتى اعتماد الاستشاري في المرحلة ٢) ولا يُتيح أي مطالبة مالية */
+    function reportExecutedQty(user, payload) {
+      const item = findBoqItem(payload.boqItemId);
+      const isOwnContractor = user.role === 'contractor' && item.contractorId === user.contractorId;
+      const isOversight = ['consultant', 'project_manager', 'admin'].indexOf(user.role) !== -1;
+      if (!isOwnContractor && !isOversight) throw err('تسجيل التنفيذ صلاحية المقاول المعني أو الاستشاري/مدير المشروع/الأدمن', 403);
+      const qty = Number(payload.qty);
+      if (!(qty > 0)) throw err('أدخل كمية صحيحة أكبر من صفر', 400);
+      const remaining = (Number(item.qty) || 0) - boqExecutedQty(item);
+      if (qty > remaining + 1e-6) throw err('الكمية تتجاوز المتبقي من إجمالي كمية البند (' + Math.round(remaining * 1000) / 1000 + ')', 400);
+      if (!item.executedLog) item.executedLog = [];
+      item.executedLog.push({
+        id: nextId('EX'), qty: qty, note: payload.note || '',
+        photos: Array.isArray(payload.photos) ? payload.photos : [],
+        by: user.name, role: user.role, date: todayStr()
+      });
+      audit(user, 'create', 'تسجيل تنفيذ ' + qty + ' ' + (item.unit || '') + ' على ' + (item.description || item.code || item.id));
+      persist();
+      return { executedQty: boqExecutedQty(item), item: item };
+    }
+
+    /** المرحلة ٢: اعتماد الاستشاري لكمية مُنفَّذة بدليل موثَّق إلزامي — هذا ما يحرّك progress فعلياً
+     * ويفتح المجال لمطالبة مالية بهذه الكمية لاحقاً (المرحلة ٣ عبر مستخلص قائم) */
+    function approveExecutedQty(user, payload) {
+      if (['consultant', 'project_manager', 'admin'].indexOf(user.role) === -1) {
+        throw err('اعتماد الكميات المنفَّذة صلاحية الاستشاري/مدير المشروع/الأدمن', 403);
+      }
+      const item = findBoqItem(payload.boqItemId);
+      const qty = Number(payload.qty);
+      if (!(qty > 0)) throw err('أدخل كمية صحيحة أكبر من صفر', 400);
+      const pending = boqExecutedQty(item) - boqApprovedQty(item);
+      if (qty > pending + 1e-6) throw err('الكمية تتجاوز المنفَّذ غير المعتمَد بعد (' + Math.round(pending * 1000) / 1000 + ')', 400);
+      const attachments = Array.isArray(payload.attachments) ? payload.attachments.filter(Boolean) : [];
+      if (!attachments.length) throw err('إرفاق مستند استلام موقَّع إلزامي قبل اعتماد أي كمية', 400);
+      if (!item.approvals) item.approvals = [];
+      item.approvals.push({
+        id: nextId('AP'), qty: qty,
+        signedReceiptQty: payload.signedReceiptQty != null ? Number(payload.signedReceiptQty) : null,
+        systemQtyAtSubmission: pending,
+        consultantName: payload.consultantName || user.name,
+        receiptNo: payload.receiptNo || '', attachments: attachments, note: payload.note || '',
+        enteredBy: user.name, role: user.role, date: todayStr(),
+        subcontractorId: payload.subcontractorId || null
+      });
+      recomputeBoqProgress(item);
+      if (item.contractorId) {
+        pushNotification({ contractorId: item.contractorId }, 'decision',
+          '✅ اعتمد الاستشاري ' + qty + ' ' + (item.unit || '') + ' من بند «' + (item.description || item.code) + '»', 'boqItems', item.id);
+      }
+      pushNotification({ role: 'owner' }, 'decision',
+        '✅ اعتماد كمية منفَّذة على بند «' + (item.description || item.code) + '» — الإنجاز الآن ' + item.progress + '%', 'boqItems', item.id);
+      audit(user, 'update', 'اعتماد تنفيذ ' + qty + ' ' + (item.unit || '') + ' على ' + (item.description || item.code || item.id));
+      persist();
+      return { approvedQty: boqApprovedQty(item), progress: item.progress, item: item };
+    }
+
     /** يحسب صحة مشروع من بياناته الحالية (نفس صيغة الواجهة تماماً) */
     function computeProjectHealth(projectId) {
       const P = db.projects.find(function (p) { return p.id === projectId; });
@@ -2419,7 +2580,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
         const progress = total ? earned / total * 100 : 0;
         if (progress < contractorPlannedProgress(c) - th.contractorDelayPct) delayed++;
-        if (c.amountReceived > (c.contractValue * progress / 100) * 1.05) overpaid++;
+        if (contractorAmountReceived(c.id) > (c.contractValue * progress / 100) * 1.05) overpaid++;
       });
       const schedule = clampScore(100 + progVar * 3);
       const cost = clampScore(100 - Math.max(0, costVarPct) * 3);
@@ -2585,6 +2746,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
       computeProjectHealth: computeProjectHealth,
       liveActuals: liveActuals,
       recordHealthSnapshot: recordHealthSnapshot,
+      reportExecutedQty: reportExecutedQty,
+      approveExecutedQty: approveExecutedQty,
+      boqExecutedQty: boqExecutedQty,
+      boqApprovedQty: boqApprovedQty,
+      boqClaimedQty: boqClaimedQty,
+      boqAvailableToClaim: boqAvailableToClaim,
       addContractor: addContractor,
       deleteContractor: deleteContractor,
       repairOrphanedProjectIds: repairOrphanedProjectIds,
@@ -2897,6 +3064,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
     if (path === '/api/actions/notify-read') return c.markNotificationsRead(demoUser);
     if (path === '/api/actions/profile') return c.updateProfile(demoUser, body);
     if (path === '/api/actions/record-health') return c.recordHealthSnapshot(demoUser, body);
+    if (path === '/api/actions/report-executed-qty') return c.reportExecutedQty(demoUser, body);
+    if (path === '/api/actions/approve-executed-qty') return c.approveExecutedQty(demoUser, body);
     if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
     if (path === '/api/actions/delete-contractor') return c.deleteContractor(demoUser, body.id);
     if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
@@ -2998,6 +3167,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
     notifyRead() { return call('/api/actions/notify-read', 'POST', {}); },
     updateProfile(p) { return call('/api/actions/profile', 'POST', p); },
     recordHealth(projectId) { return call('/api/actions/record-health', 'POST', { projectId: projectId }); },
+    reportExecutedQty(p) { return call('/api/actions/report-executed-qty', 'POST', p); },
+    approveExecutedQty(p) { return call('/api/actions/approve-executed-qty', 'POST', p); },
     backup() {
       if (DEMO) return Promise.reject(new Error('النسخ الاحتياطي متاح في نسخة الخادم'));
       return call('/api/actions/backup', 'POST', {});
@@ -5682,6 +5853,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
     return now <= s ? 0 : now >= e ? 100 : Math.round(((now - s) / (e - s)) * 1000) / 10;
   }
 
+  // المبلغ الفعلي المستلم لمقاول — حياً من مستخلصاته المعتمدة، بدل الحقل الثابت c.amountReceived
+  // الذي يُحدَّث بالزيادة فقط عند اعتماد كل مستخلص ولا يُعاد حسابه أبداً، فيبقى عالقاً بقيمة قديمة
+  // بعد أي حذف/تصحيح لاحق على مستخلصات المقاول (رُصد فرق 7.2 مليون ريال في بيانات إنتاج فعلية)
+  function contractorAmountReceived(ctx, c) {
+    return (ctx.S.payments || []).filter(function (p) { return p.contractorId === c.id && p.status === 'approved'; })
+      .reduce(function (a, p) { return a + (Number(p.amount) || 0); }, 0);
+  }
+
   function summarize(ctx) {
     // ملخصات المقاولين محلياً (تطابق منطق الخادم)
     return ctx.S.contractors.map(function (c) {
@@ -5689,12 +5868,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const progress = weightedProgress(items) || 0;
       const earnedValue = c.contractValue * progress / 100;
       const planned = contractorPlannedProgress(c);
+      const amountReceived = contractorAmountReceived(ctx, c);
       return {
         id: c.id, name: c.name, type: c.type, contractValue: c.contractValue,
-        amountReceived: c.amountReceived, startDate: c.startDate, endDate: c.endDate,
+        amountReceived: amountReceived, startDate: c.startDate, endDate: c.endDate,
         progress: progress, plannedProgress: planned,
         delayed: progress < planned - 3,
-        overpaid: c.amountReceived > earnedValue * 1.05,
+        overpaid: amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
     });
@@ -5732,7 +5912,9 @@ textarea.inp { resize: vertical; min-height: 80px; }
     items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
     const progress = total ? earned / total * 100 : 0;
     const earnedValue = c.contractValue * progress / 100;
-    return { delayed: progress < (c.plannedProgress || 0) - (delayPct == null ? 3 : delayPct), overpaid: c.amountReceived > earnedValue * 1.05 };
+    const amountReceived = (A.payments || []).filter(function (p) { return p.contractorId === c.id && p.status === 'approved'; })
+      .reduce(function (a, p) { return a + (Number(p.amount) || 0); }, 0);
+    return { delayed: progress < contractorPlannedProgress(c) - (delayPct == null ? 3 : delayPct), overpaid: amountReceived > earnedValue * 1.05 };
   }
 
   /**
@@ -7973,7 +8155,32 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'كود المستند': 'Document Code',
     'فتح': 'Open',
     'يعرض أول 400 نتيجة — ضيّق البحث للوصول لبقية المستندات': 'Showing the first 400 results — narrow your search to see the rest of the documents',
-    'لا مستندات مطابقة للبحث': 'No documents match your search'
+    'لا مستندات مطابقة للبحث': 'No documents match your search',
+
+    // ============ خط أنابيب اعتماد الكميات (المرحلة ٢ — اعتماد الاستشاري) ============
+    'اعتماد كمية منفَّذة بدليل موثَّق هو ما يُحرِّك نسبة الإنجاز وسطوع المخططات': "Approving an executed quantity with documented evidence is what drives the progress % and drawing brightness",
+    'بانتظار الاعتماد': 'Awaiting approval',
+    'اعتماد كمية منفَّذة': 'Approve Executed Quantity',
+    'المنفَّذ غير المعتمَد بعد (حسب النظام):': "Executed but not yet approved (per system):",
+    'الكمية المذكورة في مستند الاستلام الموقَّع': 'Quantity stated on the signed receipt',
+    'الكمية المُعتمَدة الآن': 'Quantity being approved now',
+    'تنبيه: الكمية في النظام': 'Warning: the system quantity',
+    'والموقَّعة': 'and the signed quantity',
+    'والمُعتمَدة الآن': 'and the quantity being approved now',
+    'غير متطابقة — تحقَّق قبل المتابعة (لا يمنع الاعتماد، لكن وثِّق السبب في الملاحظة).': "don't match — check before proceeding (this doesn't block approval, but document the reason in the note).",
+    'اسم المهندس/الاستشاري': "Engineer/consultant's name",
+    'رقم المرجع/الإيصال (اختياري)': 'Reference/receipt number (optional)',
+    'مستند الاستلام الموقَّع': 'Signed receipt document',
+    'أدخل كمية صحيحة أكبر من صفر': 'Enter a valid quantity greater than zero',
+    'إرفاق مستند استلام موقَّع إلزامي قبل اعتماد أي كمية': 'Attaching a signed receipt document is mandatory before approving any quantity',
+    'اعتُمدت الكمية — انعكس ذلك على سطوع المخططات': 'Quantity approved — reflected in the drawing brightness',
+    'الكمية:': 'Quantity:',
+    'المعتمَد والمنفَّذ حالياً:': 'Currently approved & executed:',
+    'يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً — سيُرفض الاعتماد': "Exceeds what the consultant has approved and what's actually been executed — approval will be rejected",
+    'الحد الأقصى القابل للمطالبة به الآن:': 'Maximum claimable right now:',
+    'لا يوجد إنجاز معتمَد لهذا البند بعد': 'No approved progress on this item yet',
+    'المطلوب': 'Requested',
+    'يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً': "exceeds what the consultant has approved and what's actually been executed"
   });
 
   const APPROVAL_TABS = [
@@ -8155,7 +8362,16 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<div class="card" style="padding:12px;margin-bottom:10px"><b class="small">' + I18n.t('بنود جدول الكميات في هذا المستخلص:') + '</b>' +
         it.lines.map(function (l) {
           const bq = ctx.S.boqItems.find(function (b) { return b.id === l.boqItemId; });
-          return '<div class="small muted" style="margin-top:6px">• ' + (bq ? esc(bq.description) + ' (' + esc(bq.floor) + ')' : l.boqItemId) + I18n.t(' ← إنجاز ') + '<b class="num" style="color:var(--ok)">' + l.progress + '%</b></div>';
+          // سياق كمّي للمراجع: الكمية الإجمالية والمعتمَد والمنفَّذ فعلياً حالياً لهذا البند — كان
+          // المراجع يرى النسبة المطلوبة فقط بلا أي سياق عن سقف "المعتمَد والمنفَّذ" المسموح بالمطالبة به
+          const ceiling = bq ? Math.min(Number(bq.approvedQty) || 0, Number(bq.executedQty) || 0) : 0;
+          const ceilingPct = bq && bq.qty ? Math.round(ceiling / bq.qty * 1000) / 10 : 0;
+          const overCeiling = bq && l.progress > ceilingPct + 1e-6;
+          return '<div class="small muted" style="margin-top:6px">• ' + (bq ? esc(bq.description) + ' (' + esc(bq.floor) + ')' : l.boqItemId) + I18n.t(' ← إنجاز ') +
+            '<b class="num" style="color:var(--ok)">' + l.progress + '%</b>' +
+            (bq ? ' <span class="small muted">(' + I18n.t('الكمية:') + ' ' + bq.qty + ' ' + esc(bq.unit) + ' · ' + I18n.t('المعتمَد والمنفَّذ حالياً:') + ' ' + ceilingPct + '%)</span>' : '') +
+            (overCeiling ? '<div style="color:var(--danger)">⚠ ' + I18n.t('يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً — سيُرفض الاعتماد') + '</div>' : '') +
+            '</div>';
         }).join('') +
         '<div class="small mt" style="color:var(--accent2)">' + I18n.t('💡 عند الاعتماد ستتحدث نسب هذه البنود تلقائياً وتتحول مناطقها في المخططات من داكنة إلى ساطعة.') + '</div></div>' : '') +
       '<div class="card" id="thread-box" style="padding:12px 16px;margin-bottom:14px"></div>' +
@@ -8313,7 +8529,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
     el.innerHTML =
       baselinePanel +
       '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
-      '<h3 style="margin:0">' + I18n.t('📊 جدول الكميات BOQ ') + '<span class="hint">' + I18n.t('تحديث نسب الإنجاز هنا يغيّر سطوع المخططات مباشرة') + '</span></h3>' +
+      '<h3 style="margin:0">' + I18n.t('📊 جدول الكميات BOQ ') + '<span class="hint">' + I18n.t('اعتماد كمية منفَّذة بدليل موثَّق هو ما يُحرِّك نسبة الإنجاز وسطوع المخططات') + '</span></h3>' +
       (canEdit ? '<div class="flex"><input class="inp" id="bq-file" type="file" accept=".xlsx,.xls,.csv,.pdf" style="max-width:220px">' +
         '<button class="btn sm" id="bq-upload">⬆ ' + I18n.t('رفع جدول كميات') + '</button></div>' : '') + '</div>' +
       (boqFiles.length ? '<div class="small muted mb">📎 ' + I18n.t('جداول مرفوعة: ') + boqFiles.map(function (f) { return (f.url ? '<a href="' + esc(f.url) + '" target="_blank">' + esc(f.name) + '</a>' : esc(f.name)) + ' <span class="muted num">(' + esc(f.docCode || '') + ')</span>'; }).join(' · ') + '</div>' : '') +
@@ -8323,20 +8539,22 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<span class="pill p-info">' + I18n.t('القيمة: ') + money(Math.round(total)) + '</span>' +
       '<span class="pill p-ok">' + I18n.t('المنفذ: ') + money(Math.round(earned)) + ' (' + (total ? Math.round(earned / total * 100) : 0) + '%)</span></div>' +
       '<div class="tbl-wrap" style="max-height:60vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th><th>' + I18n.t('بانتظار الاعتماد') + '</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       items.map(function (b) {
         const d = discOf(ctx, b.discipline);
+        const executedQty = Number(b.executedQty) || 0, approvedQty = Number(b.approvedQty) || 0;
+        const pending = Math.max(0, executedQty - approvedQty);
         return '<tr><td class="num small">' + esc(b.code) + '</td>' +
           '<td>' + d.icon + ' ' + esc(b.description) + '</td>' +
           '<td class="small">' + esc(VS.floorName(ctx, b.floor)) + '</td>' +
           '<td class="small">' + esc(b.unit) + '</td><td class="num">' + b.qty + '</td>' +
           '<td class="num">' + b.unitPrice.toLocaleString('en-US') + '</td>' +
           '<td class="num">' + (b.qty * b.unitPrice).toLocaleString('en-US') + '</td>' +
-          '<td><div class="flex">' +
-          (canEdit ? '<input type="range" min="0" max="100" value="' + b.progress + '" data-bq="' + b.id + '" style="flex:1;accent-color:' + d.color + '">' :
-            '<div class="bar" style="flex:1"><i style="width:' + b.progress + '%"></i></div>') +
-          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td>' +
+          '<td><div class="flex"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%"></i></div>' +
+          '<b class="num small">' + b.progress + '%</b></div></td>' +
+          '<td class="num small">' + (pending ? '<span class="pill p-warn">' + pending + ' ' + esc(b.unit) + '</span>' : '—') + '</td>' +
           (canEdit ? '<td><div class="flex" style="gap:6px;flex-wrap:nowrap">' +
+            (pending ? '<button class="btn sm" data-approve-exec="' + b.id + '">✅ ' + I18n.t('اعتماد') + '</button>' : '') +
             '<button class="btn ghost sm" data-bqedit="' + b.id + '">✏️</button>' +
             (VS.canDelete(ctx, 'boqItems') ? '<button class="btn danger sm" data-bqdel="' + b.id + '">🗑️</button>' : '') +
             '</div></td>' : '') + '</tr>';
@@ -8391,19 +8609,59 @@ textarea.inp { resize: vertical; min-height: 80px; }
         ctx.refresh();
       } catch (e) { toast(e.message, true); bqUp.disabled = false; }
     });
-    el.querySelectorAll('[data-bq]').forEach(function (r) {
-      r.addEventListener('input', function () {
-        el.querySelector('#bqv-' + r.getAttribute('data-bq')).textContent = r.value + '%';
-      });
-      r.addEventListener('change', async function () {
-        try {
-          const v = Number(r.value);
-          await Api.update('boqItems', r.getAttribute('data-bq'), {
-            progress: v, status: v >= 100 ? 'منجز' : v > 0 ? 'جاري' : 'لم يبدأ'
-          });
-          toast(I18n.t('✅ حُدّث البند — انعكس ذلك على سطوع المخططات'));
-          ctx.refreshSilent();
-        } catch (e) { toast(e.message, true); }
+    // المرحلة ٢ من خط أنابيب اعتماد الكميات: اعتماد الاستشاري لكمية مُنفَّذة بدليل موثَّق إلزامي —
+    // هذا وحده ما يُحرِّك progress ويفتح المجال لمطالبة مالية به لاحقاً، لا تعديل مباشر كما كان سابقاً
+    el.querySelectorAll('[data-approve-exec]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const id = btn.getAttribute('data-approve-exec');
+        const b = items.find(function (x) { return x.id === id; });
+        if (!b) return;
+        const pending = Math.max(0, (Number(b.executedQty) || 0) - (Number(b.approvedQty) || 0));
+        const m = modal(
+          '<h3>✅ ' + I18n.t('اعتماد كمية منفَّذة') + ' — ' + esc(b.description) + '</h3>' +
+          '<div class="m-sub">' + I18n.t('المنفَّذ غير المعتمَد بعد (حسب النظام):') + ' <b class="num">' + pending + '</b> ' + esc(b.unit) + '</div>' +
+          '<label class="fl">' + I18n.t('الكمية المذكورة في مستند الاستلام الموقَّع') + '</label><input class="inp num" id="av-signed" type="number" min="0" max="' + pending + '" step="any" value="' + pending + '" dir="ltr">' +
+          '<label class="fl">' + I18n.t('الكمية المُعتمَدة الآن') + '</label><input class="inp num" id="av-qty" type="number" min="0" max="' + pending + '" step="any" value="' + pending + '" dir="ltr">' +
+          '<div id="av-warn" class="small mt" style="color:var(--warn,#f5a524);display:none"></div>' +
+          '<label class="fl">' + I18n.t('اسم المهندس/الاستشاري') + '</label><input class="inp" id="av-name" value="' + esc(ctx.U.name) + '">' +
+          '<label class="fl">' + I18n.t('رقم المرجع/الإيصال (اختياري)') + '</label><input class="inp" id="av-receipt">' +
+          '<label class="fl">' + I18n.t('مستند الاستلام الموقَّع') + ' <span style="color:var(--danger)">*</span></label><input class="inp" id="av-file" type="file" multiple>' +
+          '<label class="fl">' + I18n.t('ملاحظة (اختياري)') + '</label><textarea class="inp" id="av-note" rows="2"></textarea>' +
+          '<div class="m-actions"><button class="btn" id="av-ok">' + I18n.t('اعتماد') + '</button><button class="btn mutedb" id="av-cancel">' + I18n.t('إلغاء') + '</button></div>'
+        );
+        function checkMismatch() {
+          const signed = Number(m.querySelector('#av-signed').value) || 0;
+          const approving = Number(m.querySelector('#av-qty').value) || 0;
+          const warn = m.querySelector('#av-warn');
+          if (signed !== approving || signed !== pending) {
+            warn.style.display = '';
+            warn.textContent = '⚠ ' + I18n.t('تنبيه: الكمية في النظام') + ' (' + pending + ') ' + I18n.t('والموقَّعة') + ' (' + signed + ') ' + I18n.t('والمُعتمَدة الآن') + ' (' + approving + ') ' + I18n.t('غير متطابقة — تحقَّق قبل المتابعة (لا يمنع الاعتماد، لكن وثِّق السبب في الملاحظة).');
+          } else warn.style.display = 'none';
+        }
+        m.querySelector('#av-signed').addEventListener('input', checkMismatch);
+        m.querySelector('#av-qty').addEventListener('input', checkMismatch);
+        m.querySelector('#av-cancel').addEventListener('click', function () { m.remove(); });
+        m.querySelector('#av-ok').addEventListener('click', async function () {
+          const okBtn = m.querySelector('#av-ok');
+          const qty = Number(m.querySelector('#av-qty').value);
+          if (!(qty > 0)) { toast(I18n.t('أدخل كمية صحيحة أكبر من صفر'), true); return; }
+          const files = m.querySelector('#av-file').files;
+          if (!files.length) { toast(I18n.t('إرفاق مستند استلام موقَّع إلزامي قبل اعتماد أي كمية'), true); return; }
+          okBtn.disabled = true;
+          try {
+            const attachments = [];
+            for (let i = 0; i < files.length; i++) attachments.push(await Api.upload(files[i]));
+            await Api.approveExecutedQty({
+              boqItemId: b.id, qty: qty,
+              signedReceiptQty: Number(m.querySelector('#av-signed').value) || qty,
+              consultantName: m.querySelector('#av-name').value, receiptNo: m.querySelector('#av-receipt').value,
+              attachments: attachments, note: m.querySelector('#av-note').value
+            });
+            m.remove();
+            toast('✅ ' + I18n.t('اعتُمدت الكمية — انعكس ذلك على سطوع المخططات'));
+            ctx.refresh();
+          } catch (e) { toast(e.message, true); okBtn.disabled = false; }
+        });
       });
     });
     if (window.ViewsExtra && window.ViewsExtra.wireBaselineReview) window.ViewsExtra.wireBaselineReview(el, ctx);
@@ -9213,8 +9471,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="sub num">' + esc(c.startDate) + ' ← ' + esc(c.endDate) + '</div></div>' +
       '<div class="card kpi ' + (sums.delayed ? 'k-danger' : 'k-ok') + '"><div class="lbl">' + I18n.t('نسبة الإنجاز') + '</div><div class="val num">' + sums.progress + '%</div>' +
       '<div class="sub">' + I18n.t('المخطط ') + '<b class="num">' + sums.plannedProgress + '%</b>' + (sums.delayed ? ' · <span class="trend-down">' + I18n.t('متأخر') + '</span>' : ' · <span class="trend-up">' + I18n.t('ضمن الجدول') + '</span>') + '</div></div>' +
-      '<div class="card kpi k-info"><div class="lbl">' + I18n.t('المبالغ المستلمة') + '</div><div class="val">' + VS.millions(c.amountReceived) + '</div>' +
-      '<div class="sub num">' + Math.round(c.amountReceived / c.contractValue * 100) + I18n.t('% من قيمة العقد') + '</div></div>' +
+      '<div class="card kpi k-info"><div class="lbl">' + I18n.t('المبالغ المستلمة') + '</div><div class="val">' + VS.millions(sums.amountReceived) + '</div>' +
+      '<div class="sub num">' + Math.round(sums.amountReceived / c.contractValue * 100) + I18n.t('% من قيمة العقد') + '</div></div>' +
       '<div class="card kpi k-warn"><div class="lbl">' + I18n.t('طلبات قيد المراجعة') + '</div><div class="val num">' + pendingAll + '</div><div class="sub">' + I18n.t('لدى الاستشاري') + '</div></div>' +
       '</div>' +
 
@@ -9358,13 +9616,32 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     if (isPayment) {
       const wrap = m.querySelector('#sb-lines');
+      // السقف الأقصى لنسبة أي بند = المعتمَد والمنفَّذ فعلياً حالياً (min(approvedQty,executedQty))، لا
+      // 100% بلا قيد كما كان سابقاً — فلا يمكن المطالبة بأكثر مما اعتمده الاستشاري بدليل موثَّق فعلاً
+      function ceilingPctOf(b) {
+        const ceiling = Math.min(Number(b.approvedQty) || 0, Number(b.executedQty) || 0);
+        return b.qty ? Math.round(ceiling / b.qty * 1000) / 10 : 0;
+      }
       function addLine() {
         const r = document.createElement('div');
-        r.className = 'grid'; r.style.cssText = 'grid-template-columns:2.2fr 1fr;gap:6px;margin-bottom:6px';
+        r.className = 'grid'; r.style.cssText = 'grid-template-columns:2.2fr 1fr;gap:6px;margin-bottom:2px';
         r.innerHTML = '<select class="inp" data-lf="boqItemId">' +
           myBoq.map(function (b) { return '<option value="' + b.id + '">' + esc(b.description) + ' — ' + esc(b.floor) + I18n.t(' (حالياً ') + b.progress + '%)</option>'; }).join('') +
           '</select><input class="inp num" data-lf="progress" type="number" min="0" max="100" placeholder="' + I18n.t('% الجديدة') + '">';
+        const hint = document.createElement('div');
+        hint.className = 'small muted'; hint.style.cssText = 'grid-column:1/-1;margin-bottom:6px';
+        r.appendChild(hint); // ابن للصف نفسه لا شقيقاً له — القارئ أدناه يُعامل كل عنصر في wrap كصف مستقل
         wrap.appendChild(r);
+        const sel = r.querySelector('[data-lf="boqItemId"]'), inp = r.querySelector('[data-lf="progress"]');
+        function syncCeiling() {
+          const b = myBoq.find(function (x) { return x.id === sel.value; });
+          const ceilingPct = b ? ceilingPctOf(b) : 0;
+          inp.max = ceilingPct;
+          hint.textContent = I18n.t('الحد الأقصى القابل للمطالبة به الآن:') + ' ' + ceilingPct + '%' +
+            (ceilingPct <= 0 ? ' — ' + I18n.t('لا يوجد إنجاز معتمَد لهذا البند بعد') : '');
+        }
+        sel.addEventListener('change', syncCeiling);
+        syncCeiling();
       }
       addLine();
       m.querySelector('#sb-addline').addEventListener('click', addLine);
@@ -9390,6 +9667,18 @@ textarea.inp { resize: vertical; min-height: 80px; }
             progress: Number(r.querySelector('[data-lf="progress"]').value) || 0
           };
         }).filter(function (l) { return l.progress > 0; });
+        // تحقق فوري بالواجهة قبل الإرسال — رسالة واضحة بدل انتظار رفض الخادم العام؛ الخادم يتحقق مرة
+        // أخرى بصرامة دائماً (هذا لتحسين تجربة الاستخدام فقط، لا بديلاً عن التحقق الفعلي)
+        for (const l of data.lines) {
+          const bq = myBoq.find(function (b) { return b.id === l.boqItemId; });
+          if (!bq) continue;
+          const ceiling = Math.min(Number(bq.approvedQty) || 0, Number(bq.executedQty) || 0);
+          const ceilingPct = bq.qty ? Math.round(ceiling / bq.qty * 1000) / 10 : 0;
+          if (l.progress > ceilingPct + 1e-6) {
+            toast(I18n.t('بند') + ' «' + bq.description + '» — ' + I18n.t('المطلوب') + ' ' + l.progress + '% ' + I18n.t('يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً') + ' (' + ceilingPct + '%)', true);
+            return;
+          }
+        }
       }
       // رفع المرفق كان خارج try/catch تماماً — أي فشل فيه (حجم كبير، انقطاع شبكة، رفض الخادم)
       // كان يسقط كـ unhandled promise rejection بلا أي رسالة للمستخدم، فيبدو الزر وكأنه "لا يعمل"
@@ -12772,7 +13061,18 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'السعر': 'Price',
     'مهمة': 'task(s)',
     'الدور (اختياري)': 'Floor (optional)',
-    'كل المبنى / المشروع بالكامل': 'Whole building / entire project'
+    'كل المبنى / المشروع بالكامل': 'Whole building / entire project',
+    'تسجيل تنفيذ': 'Report Executed',
+    'المتبقي من إجمالي كمية البند:': 'Remaining of the item\'s total quantity:',
+    'الكمية المُنفَّذة الآن': 'Quantity executed now',
+    'ملاحظة (اختياري)': 'Note (optional)',
+    'صور الموقع (اختياري)': 'Site photos (optional)',
+    'هذا تسجيل أولي فقط — لا يظهر في نسبة الإنجاز ولا يُتيح أي مطالبة مالية حتى يعتمده الاستشاري بدليل موثَّق.':
+      "This is a preliminary record only — it won't show in the progress % or allow any billing claim until the consultant approves it with documented evidence.",
+    'سُجِّل التنفيذ — بانتظار اعتماد الاستشاري': 'Execution recorded — awaiting consultant approval',
+    'بانتظار اعتماد الاستشاري': 'Awaiting consultant approval',
+    'المتاح للمطالبة:': 'Available to claim:',
+    'المُطالَب به': 'Claimed'
   });
 
   const todayMs = () => Date.now();
@@ -12904,39 +13204,37 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const th = VS.thresholds(ctx.S.projects[0]);
     const win = contractorWindow(ctx);
 
-    // الكميات الجاري العمل فيها = مطالَب بها في مستخلصات معلّقة لم تُعتمد بعد
-    const pendingByItem = {};
-    (ctx.S.payments || []).filter(function (p) { return p.status === 'pending'; }).forEach(function (p) {
-      (p.lines || []).forEach(function (ln) {
-        pendingByItem[ln.boqItemId] = Math.max(pendingByItem[ln.boqItemId] || 0, Number(ln.progress) || 0);
-      });
-    });
-
     let totVal = 0, totEarned = 0, nLate = 0, nSlip = 0;
     const rows = items.map(function (b) {
       const d = discOf(ctx, b.discipline);
+      // منجز = approvedQty (معتمَد من الاستشاري بدليل موثَّق)، جارٍ = executedQty-approvedQty (منفَّذ
+      // فعلياً بانتظار اعتماد الاستشاري)، متبقٍ = qty-executedQty — بدل الاعتماد على نِسَب مستخلصات
+      // معلَّقة لم تُعتمَد بعد كما كان سابقاً، فالتنفيذ والاعتماد الآن مرحلتان منفصلتان حقاً
+      const executedQty = Number(b.executedQty) || 0, approvedQty = Number(b.approvedQty) || 0;
+      const claimedQty = Number(b.claimedQty) || 0, availableToClaim = Number(b.availableToClaim) || 0;
       const approved = Number(b.progress) || 0;
-      const pendTarget = pendingByItem[b.id] || 0;
-      const inProgPct = Math.max(0, Math.min(100 - approved, pendTarget - approved));
-      const doneQty = b.qty * approved / 100;
-      const progQty = b.qty * inProgPct / 100;
-      const remQty = Math.max(0, b.qty - doneQty - progQty);
-      const line = b.qty * b.unitPrice;
+      const qty = Number(b.qty) || 0;
+      const pendingVerifyQty = Math.max(0, executedQty - approvedQty);
+      const remQty = Math.max(0, qty - executedQty);
+      const line = qty * b.unitPrice;
       totVal += line; totEarned += line * approved / 100;
       const ds = delayStatus(approved, win.start, win.end, th.progressAmberPct, th.progressAmberPct * 2);
       if (ds.cls === 'p-danger' && approved < 100) nLate++;
       if (ds.cls === 'p-warn') nSlip++;
       const fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
+      const pendPct = qty ? Math.round(pendingVerifyQty / qty * 1000) / 10 : 0;
       return '<tr>' +
         '<td class="num small">' + esc(b.code) + '</td>' +
         '<td>' + d.icon + ' ' + esc(b.description) + '<div class="small muted">' + esc(b.floor === 'ALL' ? t('كامل المشروع') : floorName(ctx, b.floor)) + '</div></td>' +
         '<td class="num small">' + b.unitPrice.toLocaleString('en-US') + '<div class="muted">' + esc(b.unit) + '</div></td>' +
-        '<td class="num small">' + b.qty + '</td>' +
-        '<td class="num small" style="color:var(--status-ok)">' + fmt(doneQty) + '<div class="muted">' + approved + '%</div></td>' +
-        '<td class="num small" style="color:var(--status-info)">' + fmt(progQty) + (inProgPct ? '<div class="muted">+' + inProgPct + '%</div>' : '') + '</td>' +
+        '<td class="num small">' + qty + '</td>' +
+        '<td class="num small" style="color:var(--status-ok)">' + fmt(approvedQty) + '<div class="muted">' + approved + '%</div></td>' +
+        '<td class="num small" style="color:var(--status-info)">' + fmt(pendingVerifyQty) + (pendPct ? '<div class="muted">' + t('بانتظار اعتماد الاستشاري') + ' +' + pendPct + '%</div>' : '') + '</td>' +
         '<td class="num small" style="color:var(--status-warning)">' + fmt(remQty) + '</td>' +
+        '<td class="num small">' + fmt(claimedQty) + '<div class="muted">' + t('المتاح للمطالبة:') + ' ' + fmt(availableToClaim) + '</div></td>' +
         '<td>' + VS.statusPill(ds.cls, ds.label, ds.icon) +
           (ds.expected != null && ds.cls !== 'p-ok' ? '<div class="small muted num">' + t('المتوقع حسب الجدول') + ' ' + ds.expected + '%</div>' : '') + '</td>' +
+        '<td><button class="btn ghost sm" data-report-exec="' + esc(b.id) + '">➕ ' + t('تسجيل تنفيذ') + '</button></td>' +
         '</tr>';
     }).join('');
 
@@ -12991,7 +13289,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<span class="pill p-ok">' + t('المنفذ: ') + money(Math.round(totEarned)) + ' (' + (totVal ? Math.round(totEarned / totVal * 100) : 0) + '%)</span></div>' +
       (items.length ?
         '<div class="tbl-wrap" style="max-height:64vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-        '<th>' + t('الكود') + '</th><th>' + t('البند') + '</th><th>' + t('سعر الوحدة') + '</th><th>' + t('الكمية') + '</th><th>' + t('الكمية المنجزة') + '</th><th>' + t('الكمية الجاري العمل فيها') + '</th><th>' + t('الكمية المتبقية') + '</th><th>' + t('التأخير') + '</th>' +
+        '<th>' + t('الكود') + '</th><th>' + t('البند') + '</th><th>' + t('سعر الوحدة') + '</th><th>' + t('الكمية') + '</th><th>' + t('الكمية المنجزة') + '</th><th>' + t('الكمية الجاري العمل فيها') + '</th><th>' + t('الكمية المتبقية') + '</th><th>' + t('المُطالَب به') + '</th><th>' + t('التأخير') + '</th><th></th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '<div class="legend" style="margin-top:12px">' +
         '<span>' + VS.statusPill('p-ok', t('ضمن الجدول'), '✓') + '</span>' +
@@ -12999,6 +13297,42 @@ textarea.inp { resize: vertical; min-height: 80px; }
         '<span>' + VS.statusPill('p-danger', t('متأخر'), '✕') + '</span></div>'
         : '<div class="empty"><div class="e-ico">📐</div>' + t('لا بنود في عقدك بعد') + '</div>') +
       '</div>';
+
+    // المرحلة ١ من خط أنابيب اعتماد الكميات: تسجيل كمية مُنفَّذة فعلياً في الموقع — إنجاز خام غير
+    // موثَّق بعد، لا يُحرِّك progress ولا يُتيح مطالبة مالية حتى يعتمده الاستشاري بدليل (المرحلة ٢)
+    el.querySelectorAll('[data-report-exec]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const id = btn.getAttribute('data-report-exec');
+        const b = items.find(function (x) { return x.id === id; });
+        if (!b) return;
+        const remaining = Math.max(0, (Number(b.qty) || 0) - (Number(b.executedQty) || 0));
+        const m = VS.modal(
+          '<h3>➕ ' + t('تسجيل تنفيذ') + ' — ' + esc(b.description) + '</h3>' +
+          '<div class="m-sub">' + t('المتبقي من إجمالي كمية البند:') + ' <b class="num">' + remaining + '</b> ' + esc(b.unit) + '</div>' +
+          '<label class="fl">' + t('الكمية المُنفَّذة الآن') + '</label><input class="inp num" id="rx-qty" type="number" min="0" max="' + remaining + '" step="any" dir="ltr">' +
+          '<label class="fl">' + t('ملاحظة (اختياري)') + '</label><textarea class="inp" id="rx-note" rows="2"></textarea>' +
+          '<label class="fl">' + t('صور الموقع (اختياري)') + '</label><input class="inp" id="rx-photos" type="file" multiple accept="image/*">' +
+          '<div class="small muted mt">' + t('هذا تسجيل أولي فقط — لا يظهر في نسبة الإنجاز ولا يُتيح أي مطالبة مالية حتى يعتمده الاستشاري بدليل موثَّق.') + '</div>' +
+          '<div class="m-actions"><button class="btn" id="rx-ok">' + t('حفظ') + '</button><button class="btn mutedb" id="rx-cancel">' + t('إلغاء') + '</button></div>'
+        );
+        m.querySelector('#rx-cancel').addEventListener('click', function () { m.remove(); });
+        m.querySelector('#rx-ok').addEventListener('click', async function () {
+          const okBtn = m.querySelector('#rx-ok');
+          const qty = Number(m.querySelector('#rx-qty').value);
+          if (!(qty > 0)) { toast(t('أدخل كمية صحيحة أكبر من صفر'), true); return; }
+          okBtn.disabled = true;
+          try {
+            const files = m.querySelector('#rx-photos').files;
+            const photos = [];
+            for (let i = 0; i < files.length; i++) photos.push(await Api.upload(files[i]));
+            await Api.reportExecutedQty({ boqItemId: b.id, qty: qty, note: m.querySelector('#rx-note').value, photos: photos });
+            m.remove();
+            toast('✅ ' + t('سُجِّل التنفيذ — بانتظار اعتماد الاستشاري'));
+            ctx.refresh();
+          } catch (e) { toast(e.message, true); okBtn.disabled = false; }
+        });
+      });
+    });
 
     const cTemplate = el.querySelector('#cboq-template');
     if (cTemplate) cTemplate.addEventListener('click', function () {

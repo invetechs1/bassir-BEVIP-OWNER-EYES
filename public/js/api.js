@@ -73,6 +73,8 @@
     if (path === '/api/actions/notify-read') return c.markNotificationsRead(demoUser);
     if (path === '/api/actions/profile') return c.updateProfile(demoUser, body);
     if (path === '/api/actions/record-health') return c.recordHealthSnapshot(demoUser, body);
+    if (path === '/api/actions/report-executed-qty') return c.reportExecutedQty(demoUser, body);
+    if (path === '/api/actions/approve-executed-qty') return c.approveExecutedQty(demoUser, body);
     if (path === '/api/actions/add-contractor') return c.addContractor(demoUser, body);
     if (path === '/api/actions/delete-contractor') return c.deleteContractor(demoUser, body.id);
     if (path === '/api/actions/add-project') return c.addProject(demoUser, body);
@@ -174,6 +176,8 @@
     notifyRead() { return call('/api/actions/notify-read', 'POST', {}); },
     updateProfile(p) { return call('/api/actions/profile', 'POST', p); },
     recordHealth(projectId) { return call('/api/actions/record-health', 'POST', { projectId: projectId }); },
+    reportExecutedQty(p) { return call('/api/actions/report-executed-qty', 'POST', p); },
+    approveExecutedQty(p) { return call('/api/actions/approve-executed-qty', 'POST', p); },
     backup() {
       if (DEMO) return Promise.reject(new Error('النسخ الاحتياطي متاح في نسخة الخادم'));
       return call('/api/actions/backup', 'POST', {});
