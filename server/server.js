@@ -264,7 +264,11 @@ function storeUpload(buffer, originalName, mime, byUser) {
   const sub = isImage ? 'images' : 'documents';
   const dir = isImage ? UPLOADS_IMAGES_DIR : UPLOADS_DOCS_DIR;
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  const safe = path.basename(String(originalName || 'file')).replace(/[^\w.\-؀-ۿ]+/g, '_').slice(0, 80) || 'file';
+  const cleaned = path.basename(String(originalName || 'file')).replace(/[^\w.\-؀-ۿ]+/g, '_');
+  const extMatch = cleaned.match(/\.[^.\s]{1,10}$/);
+  const ext = extMatch ? extMatch[0] : '';
+  const base = ext ? cleaned.slice(0, cleaned.length - ext.length) : cleaned;
+  const safe = (base.slice(0, Math.max(1, 80 - ext.length)) + ext) || 'file';
   const stored = crypto.randomBytes(9).toString('hex') + '-' + safe;
   fs.writeFileSync(path.join(dir, stored), buffer);
   const rec = {
@@ -572,6 +576,12 @@ const server = http.createServer(async function (req, res) {
     }
     if (u === '/api/actions/record-health' && req.method === 'POST') {
       return json(res, 200, core.recordHealthSnapshot(user, await readBody(req)));
+    }
+    if (u === '/api/actions/report-executed-qty' && req.method === 'POST') {
+      return json(res, 201, core.reportExecutedQty(user, await readBody(req)));
+    }
+    if (u === '/api/actions/approve-executed-qty' && req.method === 'POST') {
+      return json(res, 201, core.approveExecutedQty(user, await readBody(req)));
     }
 
     // النسخ الاحتياطي (أدمن): نسخة مؤرخة من قاعدة البيانات في data/backups

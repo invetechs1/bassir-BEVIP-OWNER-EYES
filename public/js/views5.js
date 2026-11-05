@@ -175,7 +175,25 @@
     'السعر': 'Price',
     'مهمة': 'task(s)',
     'الدور (اختياري)': 'Floor (optional)',
-    'كل المبنى / المشروع بالكامل': 'Whole building / entire project'
+    'كل المبنى / المشروع بالكامل': 'Whole building / entire project',
+    'تسجيل تنفيذ': 'Report Executed',
+    'المتبقي من إجمالي كمية البند:': 'Remaining of the item\'s total quantity:',
+    'الكمية المُنفَّذة الآن': 'Quantity executed now',
+    'ملاحظة (اختياري)': 'Note (optional)',
+    'صور الموقع (اختياري)': 'Site photos (optional)',
+    'هذا تسجيل أولي فقط — لا يظهر في نسبة الإنجاز ولا يُتيح أي مطالبة مالية حتى يعتمده الاستشاري بدليل موثَّق.':
+      "This is a preliminary record only — it won't show in the progress % or allow any billing claim until the consultant approves it with documented evidence.",
+    'سُجِّل التنفيذ — بانتظار اعتماد الاستشاري': 'Execution recorded — awaiting consultant approval',
+    'بانتظار اعتماد الاستشاري': 'Awaiting consultant approval',
+    'المتاح للمطالبة:': 'Available to claim:',
+    'المُطالَب به': 'Claimed',
+
+    // ===== تسجيل التنفيذ: كمية أو نسبة أو مبلغ — حقول مترابطة =====
+    'أدخل الكمية المُنفَّذة بأي من الطرق الثلاث التالية — القيم الثلاث مرتبطة تلقائياً وتتحدّث معاً':
+      'Enter the executed amount using any of the three fields below — all three stay in sync automatically',
+    'المبلغ (ر.س)': 'Amount (SAR)',
+    'سعر الوحدة غير محدَّد لهذا البند — استخدم الكمية أو النسبة': "This item's unit price isn't set — use quantity or percentage instead",
+    'لا كمية إجمالية محدَّدة لهذا البند — استخدم الكمية أو المبلغ': "This item has no total quantity set — use quantity or amount instead"
   });
 
   const todayMs = () => Date.now();
@@ -307,39 +325,37 @@
     const th = VS.thresholds(ctx.S.projects[0]);
     const win = contractorWindow(ctx);
 
-    // الكميات الجاري العمل فيها = مطالَب بها في مستخلصات معلّقة لم تُعتمد بعد
-    const pendingByItem = {};
-    (ctx.S.payments || []).filter(function (p) { return p.status === 'pending'; }).forEach(function (p) {
-      (p.lines || []).forEach(function (ln) {
-        pendingByItem[ln.boqItemId] = Math.max(pendingByItem[ln.boqItemId] || 0, Number(ln.progress) || 0);
-      });
-    });
-
     let totVal = 0, totEarned = 0, nLate = 0, nSlip = 0;
     const rows = items.map(function (b) {
       const d = discOf(ctx, b.discipline);
+      // منجز = approvedQty (معتمَد من الاستشاري بدليل موثَّق)، جارٍ = executedQty-approvedQty (منفَّذ
+      // فعلياً بانتظار اعتماد الاستشاري)، متبقٍ = qty-executedQty — بدل الاعتماد على نِسَب مستخلصات
+      // معلَّقة لم تُعتمَد بعد كما كان سابقاً، فالتنفيذ والاعتماد الآن مرحلتان منفصلتان حقاً
+      const executedQty = Number(b.executedQty) || 0, approvedQty = Number(b.approvedQty) || 0;
+      const claimedQty = Number(b.claimedQty) || 0, availableToClaim = Number(b.availableToClaim) || 0;
       const approved = Number(b.progress) || 0;
-      const pendTarget = pendingByItem[b.id] || 0;
-      const inProgPct = Math.max(0, Math.min(100 - approved, pendTarget - approved));
-      const doneQty = b.qty * approved / 100;
-      const progQty = b.qty * inProgPct / 100;
-      const remQty = Math.max(0, b.qty - doneQty - progQty);
-      const line = b.qty * b.unitPrice;
+      const qty = Number(b.qty) || 0;
+      const pendingVerifyQty = Math.max(0, executedQty - approvedQty);
+      const remQty = Math.max(0, qty - executedQty);
+      const line = qty * b.unitPrice;
       totVal += line; totEarned += line * approved / 100;
       const ds = delayStatus(approved, win.start, win.end, th.progressAmberPct, th.progressAmberPct * 2);
       if (ds.cls === 'p-danger' && approved < 100) nLate++;
       if (ds.cls === 'p-warn') nSlip++;
       const fmt = function (n) { return Math.round(n).toLocaleString('en-US'); };
+      const pendPct = qty ? Math.round(pendingVerifyQty / qty * 1000) / 10 : 0;
       return '<tr>' +
         '<td class="num small">' + esc(b.code) + '</td>' +
         '<td>' + d.icon + ' ' + esc(b.description) + '<div class="small muted">' + esc(b.floor === 'ALL' ? t('كامل المشروع') : floorName(ctx, b.floor)) + '</div></td>' +
         '<td class="num small">' + b.unitPrice.toLocaleString('en-US') + '<div class="muted">' + esc(b.unit) + '</div></td>' +
-        '<td class="num small">' + b.qty + '</td>' +
-        '<td class="num small" style="color:var(--status-ok)">' + fmt(doneQty) + '<div class="muted">' + approved + '%</div></td>' +
-        '<td class="num small" style="color:var(--status-info)">' + fmt(progQty) + (inProgPct ? '<div class="muted">+' + inProgPct + '%</div>' : '') + '</td>' +
+        '<td class="num small">' + qty + '</td>' +
+        '<td class="num small" style="color:var(--status-ok)">' + fmt(approvedQty) + '<div class="muted">' + approved + '%</div></td>' +
+        '<td class="num small" style="color:var(--status-info)">' + fmt(pendingVerifyQty) + (pendPct ? '<div class="muted">' + t('بانتظار اعتماد الاستشاري') + ' +' + pendPct + '%</div>' : '') + '</td>' +
         '<td class="num small" style="color:var(--status-warning)">' + fmt(remQty) + '</td>' +
+        '<td class="num small">' + fmt(claimedQty) + '<div class="muted">' + t('المتاح للمطالبة:') + ' ' + fmt(availableToClaim) + '</div></td>' +
         '<td>' + VS.statusPill(ds.cls, ds.label, ds.icon) +
           (ds.expected != null && ds.cls !== 'p-ok' ? '<div class="small muted num">' + t('المتوقع حسب الجدول') + ' ' + ds.expected + '%</div>' : '') + '</td>' +
+        '<td><button class="btn ghost sm" data-report-exec="' + esc(b.id) + '">➕ ' + t('تسجيل تنفيذ') + '</button></td>' +
         '</tr>';
     }).join('');
 
@@ -394,7 +410,7 @@
       '<span class="pill p-ok">' + t('المنفذ: ') + money(Math.round(totEarned)) + ' (' + (totVal ? Math.round(totEarned / totVal * 100) : 0) + '%)</span></div>' +
       (items.length ?
         '<div class="tbl-wrap" style="max-height:64vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-        '<th>' + t('الكود') + '</th><th>' + t('البند') + '</th><th>' + t('سعر الوحدة') + '</th><th>' + t('الكمية') + '</th><th>' + t('الكمية المنجزة') + '</th><th>' + t('الكمية الجاري العمل فيها') + '</th><th>' + t('الكمية المتبقية') + '</th><th>' + t('التأخير') + '</th>' +
+        '<th>' + t('الكود') + '</th><th>' + t('البند') + '</th><th>' + t('سعر الوحدة') + '</th><th>' + t('الكمية') + '</th><th>' + t('الكمية المنجزة') + '</th><th>' + t('الكمية الجاري العمل فيها') + '</th><th>' + t('الكمية المتبقية') + '</th><th>' + t('المُطالَب به') + '</th><th>' + t('التأخير') + '</th><th></th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
         '<div class="legend" style="margin-top:12px">' +
         '<span>' + VS.statusPill('p-ok', t('ضمن الجدول'), '✓') + '</span>' +
@@ -402,6 +418,78 @@
         '<span>' + VS.statusPill('p-danger', t('متأخر'), '✕') + '</span></div>'
         : '<div class="empty"><div class="e-ico">📐</div>' + t('لا بنود في عقدك بعد') + '</div>') +
       '</div>';
+
+    // المرحلة ١ من خط أنابيب اعتماد الكميات: تسجيل كمية مُنفَّذة فعلياً في الموقع — إنجاز خام غير
+    // موثَّق بعد، لا يُحرِّك progress ولا يُتيح مطالبة مالية حتى يعتمده الاستشاري بدليل (المرحلة ٢)
+    el.querySelectorAll('[data-report-exec]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const id = btn.getAttribute('data-report-exec');
+        const b = items.find(function (x) { return x.id === id; });
+        if (!b) return;
+        const totalQty = Number(b.qty) || 0;
+        const unitPrice = Number(b.unitPrice) || 0;
+        const remaining = Math.max(0, totalQty - (Number(b.executedQty) || 0));
+        const remainingPct = totalQty ? Math.round(remaining / totalQty * 1000) / 10 : 0;
+        const remainingAmount = Math.round(remaining * unitPrice * 100) / 100;
+        const m = VS.modal(
+          '<h3>➕ ' + t('تسجيل تنفيذ') + ' — ' + esc(b.description) + '</h3>' +
+          '<div class="m-sub">' + t('المتبقي من إجمالي كمية البند:') + ' <b class="num">' + remaining + '</b> ' + esc(b.unit) +
+            (totalQty ? ' (' + remainingPct + '%)' : '') + (unitPrice ? ' · ' + money(remainingAmount) : '') + '</div>' +
+          '<label class="fl">' + t('أدخل الكمية المُنفَّذة بأي من الطرق الثلاث التالية — القيم الثلاث مرتبطة تلقائياً وتتحدّث معاً') + '</label>' +
+          '<div class="grid g3" style="gap:8px">' +
+            '<div><label class="fl small">' + t('الكمية') + ' (' + esc(b.unit || '') + ')</label>' +
+              '<input class="inp num" id="rx-qty" type="number" min="0" max="' + remaining + '" step="any" dir="ltr"></div>' +
+            '<div><label class="fl small">' + t('النسبة %') + '</label>' +
+              '<input class="inp num" id="rx-pct" type="number" min="0" max="' + remainingPct + '" step="any" dir="ltr"' + (totalQty ? '' : ' disabled') + '></div>' +
+            '<div><label class="fl small">' + t('المبلغ (ر.س)') + '</label>' +
+              '<input class="inp num" id="rx-amount" type="number" min="0" max="' + remainingAmount + '" step="any" dir="ltr"' + (unitPrice ? '' : ' disabled') + '></div>' +
+          '</div>' +
+          (!unitPrice ? '<div class="small muted mt">' + t('سعر الوحدة غير محدَّد لهذا البند — استخدم الكمية أو النسبة') + '</div>'
+            : !totalQty ? '<div class="small muted mt">' + t('لا كمية إجمالية محدَّدة لهذا البند — استخدم الكمية أو المبلغ') + '</div>' : '') +
+          '<label class="fl">' + t('ملاحظة (اختياري)') + '</label><textarea class="inp" id="rx-note" rows="2"></textarea>' +
+          '<label class="fl">' + t('صور الموقع (اختياري)') + '</label><input class="inp" id="rx-photos" type="file" multiple accept="image/*">' +
+          '<div class="small muted mt">' + t('هذا تسجيل أولي فقط — لا يظهر في نسبة الإنجاز ولا يُتيح أي مطالبة مالية حتى يعتمده الاستشاري بدليل موثَّق.') + '</div>' +
+          '<div class="m-actions"><button class="btn" id="rx-ok">' + t('حفظ') + '</button><button class="btn mutedb" id="rx-cancel">' + t('إلغاء') + '</button></div>'
+        );
+
+        // ثلاثة حقول مترابطة لنفس القيمة الفعلية الواحدة (الكمية) — أياً كان الحقل الذي يكتب فيه
+        // المقاول، تُشتق الكمية الفعلية منه فوراً وتُعاد كتابة الحقلين الآخرين منها، فتبقى متوافقة
+        // دائماً دون أي حلقة تحديث ذاتي (كل مستمع يتجنّب الكتابة في حقله هو نفسه)
+        const qtyInp = m.querySelector('#rx-qty'), pctInp = m.querySelector('#rx-pct'), amtInp = m.querySelector('#rx-amount');
+        function round(n, d) { const f = Math.pow(10, d); return Math.round((n + Number.EPSILON) * f) / f; }
+        function syncFromQty(qty, skip) {
+          if (skip !== 'qty') qtyInp.value = qty > 0 ? round(qty, 3) : '';
+          if (skip !== 'pct') pctInp.value = (totalQty && qty > 0) ? round(qty / totalQty * 100, 1) : '';
+          if (skip !== 'amount') amtInp.value = (unitPrice && qty > 0) ? round(qty * unitPrice, 2) : '';
+        }
+        qtyInp.addEventListener('input', function () { syncFromQty(Number(qtyInp.value) || 0, 'qty'); });
+        pctInp.addEventListener('input', function () {
+          const qty = totalQty ? (Number(pctInp.value) || 0) / 100 * totalQty : 0;
+          syncFromQty(qty, 'pct');
+        });
+        amtInp.addEventListener('input', function () {
+          const qty = unitPrice ? (Number(amtInp.value) || 0) / unitPrice : 0;
+          syncFromQty(qty, 'amount');
+        });
+
+        m.querySelector('#rx-cancel').addEventListener('click', function () { m.remove(); });
+        m.querySelector('#rx-ok').addEventListener('click', async function () {
+          const okBtn = m.querySelector('#rx-ok');
+          const qty = Number(m.querySelector('#rx-qty').value);
+          if (!(qty > 0)) { toast(t('أدخل كمية صحيحة أكبر من صفر'), true); return; }
+          okBtn.disabled = true;
+          try {
+            const files = m.querySelector('#rx-photos').files;
+            const photos = [];
+            for (let i = 0; i < files.length; i++) photos.push(await Api.upload(files[i]));
+            await Api.reportExecutedQty({ boqItemId: b.id, qty: qty, note: m.querySelector('#rx-note').value, photos: photos });
+            m.remove();
+            toast('✅ ' + t('سُجِّل التنفيذ — بانتظار اعتماد الاستشاري'));
+            ctx.refresh();
+          } catch (e) { toast(e.message, true); okBtn.disabled = false; }
+        });
+      });
+    });
 
     const cTemplate = el.querySelector('#cboq-template');
     if (cTemplate) cTemplate.addEventListener('click', function () {

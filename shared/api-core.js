@@ -340,6 +340,15 @@
       // ولا تُعدَّل بيانات db.projects الأصلية، فتبقى صحيحة ومحدَّثة في كل طلب تلقائياً
       s.projects = (s.projects || []).map(function (p) { return Object.assign({}, p, liveActuals(p.id)); });
 
+      // عدادات خط أنابيب اعتماد الكميات الحيّة (منفَّذ/معتمَد/مُطالَب به/متاح للمطالبة) — تُدمَج في
+      // نسخة سطحية من كل بند، بنفس أسلوب liveActuals أعلاه تماماً، فلا تحتاج الواجهة إعادة اشتقاقها
+      s.boqItems = (s.boqItems || []).map(function (b) {
+        return Object.assign({}, b, {
+          executedQty: boqExecutedQty(b), approvedQty: boqApprovedQty(b),
+          claimedQty: boqClaimedQty(b), availableToClaim: boqAvailableToClaim(b)
+        });
+      });
+
       // مؤشر صحة كل مشروع في نطاق المستخدم (يُحسب بعد تقييد النطاق)
       s.projectHealth = {};
       (s.projects || []).forEach(function (p) { s.projectHealth[p.id] = computeProjectHealth(p.id); });
@@ -532,6 +541,20 @@
         persist();
         return Object.assign(stripPassword(item), { password: plain }); // تُعرض مرة واحدة فقط
       }
+      // لا يجوز تقديم مستخلص يطالب ببند بأكثر مما اعتمده الاستشاري وتم تنفيذه فعلياً — السقف
+      // availableToClaim (= min(approvedQty, executedQty) - المُطالَب به سابقاً) هو ما يحكم كل بند
+      if (collection === 'payments') {
+        (item.lines || []).forEach(function (line) {
+          if (typeof line.progress !== 'number') return;
+          const bq = db.boqItems.find(function (b) { return b.id === line.boqItemId; });
+          if (!bq) return;
+          const ceilingPct = (Number(bq.qty) || 0) ? Math.min(boqApprovedQty(bq), boqExecutedQty(bq)) / bq.qty * 100 : 0;
+          if (line.progress > ceilingPct + 1e-6) {
+            throw err('بند «' + (bq.description || bq.code) + '» — المطلوب ' + Math.round(line.progress) +
+              '% يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً (' + Math.round(ceilingPct * 10) / 10 + '%)', 400);
+          }
+        });
+      }
       db[collection] = db[collection] || []; // احتياط لأي مجموعة جديدة لم تُهيَّأ صراحةً في seed-data.js
       db[collection].push(item);
       // إشعار المكتب الفني بكل تقديم جديد من مقاول
@@ -574,6 +597,16 @@
       if (item.status && ['approved', 'approved_notes', 'rejected', 'fail'].indexOf(item.status) !== -1) {
         if ('amount' in patch || 'days' in patch) {
           throw err('لا يمكن تعديل القيمة المالية أو الأثر الزمني بعد اعتماد/رفض الطلب — أنشئ أمر تغيير جديداً لأي تعديل لاحق', 403);
+        }
+      }
+      if (collection === 'boqItems') {
+        // منع التعديل المباشر لحقول الإنجاز عبر هذا المسار العام — كانت (progress خصوصاً) تُعدَّل
+        // بحرية هنا عبر شريط تمرير في شاشة الاستشاري (renderBoq) دون أي تحقق أو دليل موثَّق، فيتجاوز
+        // أي مستخدم ذو صلاحية كامل آلية الإنجاز المُنفَّذ/المعتمد/المُطالَب به الجديدة بالكامل. التعديل
+        // الوحيد المسموح لهذه الحقول الآن هو عبر reportExecutedQty / approveExecutedQty المخصَّصتين
+        const lockedBoqFields = ['progress', 'status', 'executedQty', 'approvedQty', 'executedLog', 'approvals'];
+        if (lockedBoqFields.some(function (k) { return k in patch; })) {
+          throw err('إنجاز البند يُحدَّث فقط عبر تسجيل التنفيذ أو اعتماد الاستشاري — لا عبر تعديل مباشر', 403);
         }
       }
       if (collection === 'users') {
@@ -685,6 +718,21 @@
 
       // ===== المسار الفردي: بقية الطلبات + الاعتماد الأول لخط الأساس (الاستشاري/الأدمن) =====
       if (!isReviewer) throw err('اعتماد التعديل يتطلب توقيع الاستشاري أولاً', 403);
+      // تحقق دفاعي ثانٍ عند الاعتماد الفعلي، لا عند التقديم فقط — لو تغيّر إنجاز البند (نقصت كمية
+      // معتمَدة سابقاً مثلاً) بين تقديم المستخلص واعتماده، يُرفض الاعتماد بدل السماح بمطالبة تتجاوز
+      // سقف "المنفَّذ والمعتمَد فعلياً حالياً" لأي بند — نفس مبدأ "التحقق عند كل كتابة لا عند التحقق فقط"
+      if (collection === 'payments' && (status === 'approved' || status === 'approved_notes')) {
+        (item.lines || []).forEach(function (line) {
+          if (typeof line.progress !== 'number') return;
+          const bq = db.boqItems.find(function (b) { return b.id === line.boqItemId; });
+          if (!bq) return;
+          const ceilingPct = (Number(bq.qty) || 0) ? Math.min(boqApprovedQty(bq), boqExecutedQty(bq)) / bq.qty * 100 : 0;
+          if (line.progress > ceilingPct + 1e-6) {
+            throw err('تعذّر الاعتماد: بند «' + (bq.description || bq.code) + '» — المطلوب ' + Math.round(line.progress) +
+              '% يتجاوز المعتمَد والمنفَّذ فعلياً حالياً (' + Math.round(ceilingPct * 10) / 10 + '%)', 400);
+          }
+        });
+      }
       item.status = status;
       item.notes = opts.notes || '';
       item.signature = user.name;
@@ -757,17 +805,16 @@
       });
     }
 
-    /** أثر اعتماد المستخلص: تحديث نسب البنود + المبالغ المستلمة */
+    /**
+     * أثر اعتماد المستخلص. لم يعد يحرّك progress/status لبنود الكميات — الإنجاز الآن مشتق حصراً من
+     * اعتماد الاستشاري للتنفيذ (المرحلة ٢، recomputeBoqProgress)، لا من اعتماد المستخلص المالي، فلا
+     * تُخلَط "تم تنفيذه فعلياً" بـ"صار قابلاً للمطالبة به". claimedQty لكل بند لا يحتاج أي تحديث هنا
+     * أيضاً لأنه حي دائماً من db.payments مباشرة (boqClaimedQty) — بمجرد صيرورة حالة هذا المستخلص
+     * "معتمد" يعكسه الحساب الحي فوراً من تلقاء نفسه، ولا ينحرف أبداً مهما حُذف أو صُحح مستخلص لاحقاً.
+     */
     function applyPaymentEffects(pc) {
       const contractor = db.contractors.find(function (c) { return c.id === pc.contractorId; });
       if (contractor) contractor.amountReceived = (contractor.amountReceived || 0) + (pc.amount || 0);
-      (pc.lines || []).forEach(function (line) {
-        const bq = db.boqItems.find(function (b) { return b.id === line.boqItemId; });
-        if (bq && typeof line.progress === 'number') {
-          bq.progress = Math.max(bq.progress, Math.min(100, line.progress));
-          bq.status = bq.progress >= 100 ? 'منجز' : bq.progress > 0 ? 'جاري' : 'لم يبدأ';
-        }
-      });
     }
 
     /**
@@ -932,13 +979,14 @@
       const progress = total ? Math.round((earned / total) * 1000) / 10 : 0;
       const earnedValue = c.contractValue * progress / 100;
       const delayPct = thresholdsOf(c.projectId || 'P1').contractorDelayPct;
+      const amountReceived = contractorAmountReceived(c.id);
       return {
         id: c.id, name: c.name, type: c.type,
-        contractValue: c.contractValue, amountReceived: c.amountReceived,
+        contractValue: c.contractValue, amountReceived: amountReceived,
         startDate: c.startDate, endDate: c.endDate,
         progress: progress, plannedProgress: contractorPlannedProgress(c),
         delayed: progress < contractorPlannedProgress(c) - delayPct,
-        overpaid: c.amountReceived > earnedValue * 1.05,
+        overpaid: amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
     }
@@ -1019,6 +1067,119 @@
       return timeElapsedPct(c.startDate, c.endDate);
     }
 
+    /**
+     * المبلغ الفعلي المستلم لمقاول — يُحسَب حياً من مجموع مستخلصاته المعتمدة فعلياً في db.payments،
+     * بدل القراءة من الحقل الثابت c.amountReceived الذي يُحدَّث بالزيادة فقط عند اعتماد كل مستخلص
+     * (في review، أدناه) ولا يُعاد حسابه أبداً — فأي تعديل لاحق على البيانات (حذف/تصحيح مستخلص،
+     * ترحيل بيانات) يترك هذا الحقل عالقاً بقيمة قديمة لا تطابق المستخلصات المعتمدة فعلياً حالياً
+     * (رُصد فرق 7.2 مليون ريال بين الحقل المخزَّن والمجموع الحقيقي لمقاول واحد في بيانات الإنتاج).
+     */
+    function contractorAmountReceived(contractorId) {
+      return (db.payments || []).filter(function (p) { return p.contractorId === contractorId && p.status === 'approved'; })
+        .reduce(function (a, p) { return a + (Number(p.amount) || 0); }, 0);
+    }
+
+    // ============ خط أنابيب اعتماد الكميات على ثلاث مراحل (تنفيذ → اعتماد الاستشاري → مطالبة) ============
+    // المبدأ: كل عداد (منفَّذ/معتمَد/مُطالَب به) يُشتق دائماً من سجله المصدري (executedLog/approvals/
+    // مستخلصات معتمدة) بدل أن يكون عداداً منفصلاً يُزاد يدوياً — نفس درس c.amountReceived أعلاه الذي
+    // انحرف 7.2 مليون ريال عن الواقع لأن شيئاً لم يُعِد حسابه أبداً بعد أي تصحيح لاحق. الاشتقاق من
+    // المصدر لا ينحرف أبداً ولا يحتاج منطق "عكس" عند حذف/إلغاء مستخلص — يُعاد حسابه فوراً من جديد.
+
+    function boqExecutedQty(item) {
+      const sum = (item.executedLog || []).reduce(function (a, e) { return a + (Number(e.qty) || 0); }, 0);
+      return Math.min(Number(item.qty) || 0, Math.round(sum * 1000) / 1000);
+    }
+    function boqApprovedQty(item) {
+      const sum = (item.approvals || []).reduce(function (a, e) { return a + (Number(e.qty) || 0); }, 0);
+      return Math.min(boqExecutedQty(item), Math.round(sum * 1000) / 1000);
+    }
+    /** نفس منطق "أعلى نسبة مستهدفة تراكمية" المستخدم تاريخياً في applyPaymentEffects — وليس مجموعاً،
+     * فكل مستخلص يذكر النسبة الكلية المستهدفة للبند لا كمية إضافية */
+    function boqClaimedQty(item) {
+      let maxPct = 0;
+      (db.payments || []).forEach(function (p) {
+        if (p.status !== 'approved') return;
+        (p.lines || []).forEach(function (l) {
+          if (l.boqItemId === item.id && typeof l.progress === 'number') maxPct = Math.max(maxPct, Math.min(100, l.progress));
+        });
+      });
+      const claimed = (Number(item.qty) || 0) * maxPct / 100;
+      const ceiling = Math.min(boqApprovedQty(item), boqExecutedQty(item));
+      return Math.min(ceiling, Math.round(claimed * 1000) / 1000);
+    }
+    /** الكمية المتاحة للمطالبة بها الآن — السقف الذي تُقيَّد به مستخلصات جديدة */
+    function boqAvailableToClaim(item) {
+      return Math.max(0, Math.min(boqApprovedQty(item), boqExecutedQty(item)) - boqClaimedQty(item));
+    }
+    function findBoqItem(boqItemId) {
+      const item = (db.boqItems || []).find(function (b) { return b.id === boqItemId; });
+      if (!item) throw err('بند الكميات غير موجود', 404);
+      return item;
+    }
+    function recomputeBoqProgress(item) {
+      const approved = boqApprovedQty(item);
+      const qty = Number(item.qty) || 0;
+      item.progress = qty ? Math.round((approved / qty) * 1000) / 10 : 0;
+      item.status = item.progress >= 100 ? 'منجز' : item.progress > 0 ? 'جاري' : 'لم يبدأ';
+    }
+
+    /** المرحلة ١: تسجيل كمية مُنفَّذة فعلياً في الموقع — إنجاز خام غير موثَّق بعد، لا يُحرِّك لوحة
+     * التحكم (progress يبقى كما هو حتى اعتماد الاستشاري في المرحلة ٢) ولا يُتيح أي مطالبة مالية */
+    function reportExecutedQty(user, payload) {
+      const item = findBoqItem(payload.boqItemId);
+      const isOwnContractor = user.role === 'contractor' && item.contractorId === user.contractorId;
+      const isOversight = ['consultant', 'project_manager', 'admin'].indexOf(user.role) !== -1;
+      if (!isOwnContractor && !isOversight) throw err('تسجيل التنفيذ صلاحية المقاول المعني أو الاستشاري/مدير المشروع/الأدمن', 403);
+      const qty = Number(payload.qty);
+      if (!(qty > 0)) throw err('أدخل كمية صحيحة أكبر من صفر', 400);
+      const remaining = (Number(item.qty) || 0) - boqExecutedQty(item);
+      if (qty > remaining + 1e-6) throw err('الكمية تتجاوز المتبقي من إجمالي كمية البند (' + Math.round(remaining * 1000) / 1000 + ')', 400);
+      if (!item.executedLog) item.executedLog = [];
+      item.executedLog.push({
+        id: nextId('EX'), qty: qty, note: payload.note || '',
+        photos: Array.isArray(payload.photos) ? payload.photos : [],
+        by: user.name, role: user.role, date: todayStr()
+      });
+      audit(user, 'create', 'تسجيل تنفيذ ' + qty + ' ' + (item.unit || '') + ' على ' + (item.description || item.code || item.id));
+      persist();
+      return { executedQty: boqExecutedQty(item), item: item };
+    }
+
+    /** المرحلة ٢: اعتماد الاستشاري لكمية مُنفَّذة بدليل موثَّق إلزامي — هذا ما يحرّك progress فعلياً
+     * ويفتح المجال لمطالبة مالية بهذه الكمية لاحقاً (المرحلة ٣ عبر مستخلص قائم) */
+    function approveExecutedQty(user, payload) {
+      if (['consultant', 'project_manager', 'admin'].indexOf(user.role) === -1) {
+        throw err('اعتماد الكميات المنفَّذة صلاحية الاستشاري/مدير المشروع/الأدمن', 403);
+      }
+      const item = findBoqItem(payload.boqItemId);
+      const qty = Number(payload.qty);
+      if (!(qty > 0)) throw err('أدخل كمية صحيحة أكبر من صفر', 400);
+      const pending = boqExecutedQty(item) - boqApprovedQty(item);
+      if (qty > pending + 1e-6) throw err('الكمية تتجاوز المنفَّذ غير المعتمَد بعد (' + Math.round(pending * 1000) / 1000 + ')', 400);
+      const attachments = Array.isArray(payload.attachments) ? payload.attachments.filter(Boolean) : [];
+      if (!attachments.length) throw err('إرفاق مستند استلام موقَّع إلزامي قبل اعتماد أي كمية', 400);
+      if (!item.approvals) item.approvals = [];
+      item.approvals.push({
+        id: nextId('AP'), qty: qty,
+        signedReceiptQty: payload.signedReceiptQty != null ? Number(payload.signedReceiptQty) : null,
+        systemQtyAtSubmission: pending,
+        consultantName: payload.consultantName || user.name,
+        receiptNo: payload.receiptNo || '', attachments: attachments, note: payload.note || '',
+        enteredBy: user.name, role: user.role, date: todayStr(),
+        subcontractorId: payload.subcontractorId || null
+      });
+      recomputeBoqProgress(item);
+      if (item.contractorId) {
+        pushNotification({ contractorId: item.contractorId }, 'decision',
+          '✅ اعتمد الاستشاري ' + qty + ' ' + (item.unit || '') + ' من بند «' + (item.description || item.code) + '»', 'boqItems', item.id);
+      }
+      pushNotification({ role: 'owner' }, 'decision',
+        '✅ اعتماد كمية منفَّذة على بند «' + (item.description || item.code) + '» — الإنجاز الآن ' + item.progress + '%', 'boqItems', item.id);
+      audit(user, 'update', 'اعتماد تنفيذ ' + qty + ' ' + (item.unit || '') + ' على ' + (item.description || item.code || item.id));
+      persist();
+      return { approvedQty: boqApprovedQty(item), progress: item.progress, item: item };
+    }
+
     /** يحسب صحة مشروع من بياناته الحالية (نفس صيغة الواجهة تماماً) */
     function computeProjectHealth(projectId) {
       const P = db.projects.find(function (p) { return p.id === projectId; });
@@ -1042,7 +1203,7 @@
         items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
         const progress = total ? earned / total * 100 : 0;
         if (progress < contractorPlannedProgress(c) - th.contractorDelayPct) delayed++;
-        if (c.amountReceived > (c.contractValue * progress / 100) * 1.05) overpaid++;
+        if (contractorAmountReceived(c.id) > (c.contractValue * progress / 100) * 1.05) overpaid++;
       });
       const schedule = clampScore(100 + progVar * 3);
       const cost = clampScore(100 - Math.max(0, costVarPct) * 3);
@@ -1208,6 +1369,12 @@
       computeProjectHealth: computeProjectHealth,
       liveActuals: liveActuals,
       recordHealthSnapshot: recordHealthSnapshot,
+      reportExecutedQty: reportExecutedQty,
+      approveExecutedQty: approveExecutedQty,
+      boqExecutedQty: boqExecutedQty,
+      boqApprovedQty: boqApprovedQty,
+      boqClaimedQty: boqClaimedQty,
+      boqAvailableToClaim: boqAvailableToClaim,
       addContractor: addContractor,
       deleteContractor: deleteContractor,
       repairOrphanedProjectIds: repairOrphanedProjectIds,

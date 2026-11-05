@@ -548,10 +548,10 @@
     setTimeout(function () { t.remove(); }, 4200);
   }
 
-  function modal(html) {
+  function modal(html, cls) {
     const back = document.createElement('div');
     back.className = 'modal-back';
-    back.innerHTML = '<div class="modal">' + html + '</div>';
+    back.innerHTML = '<div class="modal' + (cls ? ' ' + cls : '') + '">' + html + '</div>';
     back.addEventListener('click', function (e) { if (e.target === back) back.remove(); });
     document.body.appendChild(back);
     return back;
@@ -590,6 +590,14 @@
     return now <= s ? 0 : now >= e ? 100 : Math.round(((now - s) / (e - s)) * 1000) / 10;
   }
 
+  // المبلغ الفعلي المستلم لمقاول — حياً من مستخلصاته المعتمدة، بدل الحقل الثابت c.amountReceived
+  // الذي يُحدَّث بالزيادة فقط عند اعتماد كل مستخلص ولا يُعاد حسابه أبداً، فيبقى عالقاً بقيمة قديمة
+  // بعد أي حذف/تصحيح لاحق على مستخلصات المقاول (رُصد فرق 7.2 مليون ريال في بيانات إنتاج فعلية)
+  function contractorAmountReceived(ctx, c) {
+    return (ctx.S.payments || []).filter(function (p) { return p.contractorId === c.id && p.status === 'approved'; })
+      .reduce(function (a, p) { return a + (Number(p.amount) || 0); }, 0);
+  }
+
   function summarize(ctx) {
     // ملخصات المقاولين محلياً (تطابق منطق الخادم)
     return ctx.S.contractors.map(function (c) {
@@ -597,12 +605,13 @@
       const progress = weightedProgress(items) || 0;
       const earnedValue = c.contractValue * progress / 100;
       const planned = contractorPlannedProgress(c);
+      const amountReceived = contractorAmountReceived(ctx, c);
       return {
         id: c.id, name: c.name, type: c.type, contractValue: c.contractValue,
-        amountReceived: c.amountReceived, startDate: c.startDate, endDate: c.endDate,
+        amountReceived: amountReceived, startDate: c.startDate, endDate: c.endDate,
         progress: progress, plannedProgress: planned,
         delayed: progress < planned - 3,
-        overpaid: c.amountReceived > earnedValue * 1.05,
+        overpaid: amountReceived > earnedValue * 1.05,
         earnedValue: Math.round(earnedValue)
       };
     });
@@ -640,7 +649,9 @@
     items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
     const progress = total ? earned / total * 100 : 0;
     const earnedValue = c.contractValue * progress / 100;
-    return { delayed: progress < (c.plannedProgress || 0) - (delayPct == null ? 3 : delayPct), overpaid: c.amountReceived > earnedValue * 1.05 };
+    const amountReceived = (A.payments || []).filter(function (p) { return p.contractorId === c.id && p.status === 'approved'; })
+      .reduce(function (a, p) { return a + (Number(p.amount) || 0); }, 0);
+    return { delayed: progress < contractorPlannedProgress(c) - (delayPct == null ? 3 : delayPct), overpaid: amountReceived > earnedValue * 1.05 };
   }
 
   /**

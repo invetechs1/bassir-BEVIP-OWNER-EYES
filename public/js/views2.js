@@ -638,7 +638,43 @@
     'كود المستند': 'Document Code',
     'فتح': 'Open',
     'يعرض أول 400 نتيجة — ضيّق البحث للوصول لبقية المستندات': 'Showing the first 400 results — narrow your search to see the rest of the documents',
-    'لا مستندات مطابقة للبحث': 'No documents match your search'
+    'لا مستندات مطابقة للبحث': 'No documents match your search',
+
+    // ============ خط أنابيب اعتماد الكميات (المرحلة ٢ — اعتماد الاستشاري) ============
+    'اعتماد كمية منفَّذة بدليل موثَّق هو ما يُحرِّك نسبة الإنجاز وسطوع المخططات': "Approving an executed quantity with documented evidence is what drives the progress % and drawing brightness",
+    'بانتظار الاعتماد': 'Awaiting approval',
+    'اعتماد كمية منفَّذة': 'Approve Executed Quantity',
+    'المنفَّذ غير المعتمَد بعد (حسب النظام):': "Executed but not yet approved (per system):",
+    'الكمية المذكورة في مستند الاستلام الموقَّع': 'Quantity stated on the signed receipt',
+    'الكمية المُعتمَدة الآن': 'Quantity being approved now',
+    'تنبيه: الكمية في النظام': 'Warning: the system quantity',
+    'والموقَّعة': 'and the signed quantity',
+    'والمُعتمَدة الآن': 'and the quantity being approved now',
+    'غير متطابقة — تحقَّق قبل المتابعة (لا يمنع الاعتماد، لكن وثِّق السبب في الملاحظة).': "don't match — check before proceeding (this doesn't block approval, but document the reason in the note).",
+    'اسم المهندس/الاستشاري': "Engineer/consultant's name",
+    'رقم المرجع/الإيصال (اختياري)': 'Reference/receipt number (optional)',
+    'مستند الاستلام الموقَّع': 'Signed receipt document',
+    'أدخل كمية صحيحة أكبر من صفر': 'Enter a valid quantity greater than zero',
+    'إرفاق مستند استلام موقَّع إلزامي قبل اعتماد أي كمية': 'Attaching a signed receipt document is mandatory before approving any quantity',
+    'اعتُمدت الكمية — انعكس ذلك على سطوع المخططات': 'Quantity approved — reflected in the drawing brightness',
+    'الكمية:': 'Quantity:',
+    'المعتمَد والمنفَّذ حالياً:': 'Currently approved & executed:',
+    'يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً — سيُرفض الاعتماد': "Exceeds what the consultant has approved and what's actually been executed — approval will be rejected",
+    'الحد الأقصى القابل للمطالبة به الآن:': 'Maximum claimable right now:',
+    'لا يوجد إنجاز معتمَد لهذا البند بعد': 'No approved progress on this item yet',
+    'المطلوب': 'Requested',
+    'يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً': "exceeds what the consultant has approved and what's actually been executed",
+
+    // ============ صفحة كاملة لرفع المستخلص — قائمة بنود قابلة للبحث والاختيار المباشر ============
+    'المشروع: ': 'Project: ',
+    'ابحث، اضغط «+ إضافة» على البند، ثم أدخل النسبة الجديدة': 'Search, click "+ Add" on the item, then enter the new percentage',
+    'ابحث بالكود أو الوصف أو الدور...': 'Search by code, description, or floor...',
+    '% الحالي': 'Current %',
+    'الحد الأقصى': 'Max',
+    'لا بنود كميات في هذا المشروع بعد': 'No BOQ items in this project yet',
+    'لا بنود مطابقة للبحث': 'No items match your search',
+    'إضافة': 'Add',
+    'يتجاوز الحد الأقصى': 'Exceeds the maximum'
   });
 
   const APPROVAL_TABS = [
@@ -820,7 +856,16 @@
         '<div class="card" style="padding:12px;margin-bottom:10px"><b class="small">' + I18n.t('بنود جدول الكميات في هذا المستخلص:') + '</b>' +
         it.lines.map(function (l) {
           const bq = ctx.S.boqItems.find(function (b) { return b.id === l.boqItemId; });
-          return '<div class="small muted" style="margin-top:6px">• ' + (bq ? esc(bq.description) + ' (' + esc(bq.floor) + ')' : l.boqItemId) + I18n.t(' ← إنجاز ') + '<b class="num" style="color:var(--ok)">' + l.progress + '%</b></div>';
+          // سياق كمّي للمراجع: الكمية الإجمالية والمعتمَد والمنفَّذ فعلياً حالياً لهذا البند — كان
+          // المراجع يرى النسبة المطلوبة فقط بلا أي سياق عن سقف "المعتمَد والمنفَّذ" المسموح بالمطالبة به
+          const ceiling = bq ? Math.min(Number(bq.approvedQty) || 0, Number(bq.executedQty) || 0) : 0;
+          const ceilingPct = bq && bq.qty ? Math.round(ceiling / bq.qty * 1000) / 10 : 0;
+          const overCeiling = bq && l.progress > ceilingPct + 1e-6;
+          return '<div class="small muted" style="margin-top:6px">• ' + (bq ? esc(bq.description) + ' (' + esc(bq.floor) + ')' : l.boqItemId) + I18n.t(' ← إنجاز ') +
+            '<b class="num" style="color:var(--ok)">' + l.progress + '%</b>' +
+            (bq ? ' <span class="small muted">(' + I18n.t('الكمية:') + ' ' + bq.qty + ' ' + esc(bq.unit) + ' · ' + I18n.t('المعتمَد والمنفَّذ حالياً:') + ' ' + ceilingPct + '%)</span>' : '') +
+            (overCeiling ? '<div style="color:var(--danger)">⚠ ' + I18n.t('يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً — سيُرفض الاعتماد') + '</div>' : '') +
+            '</div>';
         }).join('') +
         '<div class="small mt" style="color:var(--accent2)">' + I18n.t('💡 عند الاعتماد ستتحدث نسب هذه البنود تلقائياً وتتحول مناطقها في المخططات من داكنة إلى ساطعة.') + '</div></div>' : '') +
       '<div class="card" id="thread-box" style="padding:12px 16px;margin-bottom:14px"></div>' +
@@ -978,7 +1023,7 @@
     el.innerHTML =
       baselinePanel +
       '<div class="card"><div class="flex" style="justify-content:space-between;flex-wrap:wrap">' +
-      '<h3 style="margin:0">' + I18n.t('📊 جدول الكميات BOQ ') + '<span class="hint">' + I18n.t('تحديث نسب الإنجاز هنا يغيّر سطوع المخططات مباشرة') + '</span></h3>' +
+      '<h3 style="margin:0">' + I18n.t('📊 جدول الكميات BOQ ') + '<span class="hint">' + I18n.t('اعتماد كمية منفَّذة بدليل موثَّق هو ما يُحرِّك نسبة الإنجاز وسطوع المخططات') + '</span></h3>' +
       (canEdit ? '<div class="flex"><input class="inp" id="bq-file" type="file" accept=".xlsx,.xls,.csv,.pdf" style="max-width:220px">' +
         '<button class="btn sm" id="bq-upload">⬆ ' + I18n.t('رفع جدول كميات') + '</button></div>' : '') + '</div>' +
       (boqFiles.length ? '<div class="small muted mb">📎 ' + I18n.t('جداول مرفوعة: ') + boqFiles.map(function (f) { return (f.url ? '<a href="' + esc(f.url) + '" target="_blank">' + esc(f.name) + '</a>' : esc(f.name)) + ' <span class="muted num">(' + esc(f.docCode || '') + ')</span>'; }).join(' · ') + '</div>' : '') +
@@ -988,20 +1033,22 @@
       '<span class="pill p-info">' + I18n.t('القيمة: ') + money(Math.round(total)) + '</span>' +
       '<span class="pill p-ok">' + I18n.t('المنفذ: ') + money(Math.round(earned)) + ' (' + (total ? Math.round(earned / total * 100) : 0) + '%)</span></div>' +
       '<div class="tbl-wrap" style="max-height:60vh;overflow-y:auto"><table class="tbl"><thead><tr>' +
-      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
+      '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الدور') + '</th><th>' + I18n.t('الوحدة') + '</th><th>' + I18n.t('الكمية') + '</th><th>' + I18n.t('سعر الوحدة') + '</th><th>' + I18n.t('الإجمالي') + '</th><th style="min-width:160px">' + I18n.t('نسبة الإنجاز') + '</th><th>' + I18n.t('بانتظار الاعتماد') + '</th>' + (canEdit ? '<th></th>' : '') + '</tr></thead><tbody>' +
       items.map(function (b) {
         const d = discOf(ctx, b.discipline);
+        const executedQty = Number(b.executedQty) || 0, approvedQty = Number(b.approvedQty) || 0;
+        const pending = Math.max(0, executedQty - approvedQty);
         return '<tr><td class="num small">' + esc(b.code) + '</td>' +
           '<td>' + d.icon + ' ' + esc(b.description) + '</td>' +
           '<td class="small">' + esc(VS.floorName(ctx, b.floor)) + '</td>' +
           '<td class="small">' + esc(b.unit) + '</td><td class="num">' + b.qty + '</td>' +
           '<td class="num">' + b.unitPrice.toLocaleString('en-US') + '</td>' +
           '<td class="num">' + (b.qty * b.unitPrice).toLocaleString('en-US') + '</td>' +
-          '<td><div class="flex">' +
-          (canEdit ? '<input type="range" min="0" max="100" value="' + b.progress + '" data-bq="' + b.id + '" style="flex:1;accent-color:' + d.color + '">' :
-            '<div class="bar" style="flex:1"><i style="width:' + b.progress + '%"></i></div>') +
-          '<b class="num small" id="bqv-' + b.id + '">' + b.progress + '%</b></div></td>' +
+          '<td><div class="flex"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%"></i></div>' +
+          '<b class="num small">' + b.progress + '%</b></div></td>' +
+          '<td class="num small">' + (pending ? '<span class="pill p-warn">' + pending + ' ' + esc(b.unit) + '</span>' : '—') + '</td>' +
           (canEdit ? '<td><div class="flex" style="gap:6px;flex-wrap:nowrap">' +
+            (pending ? '<button class="btn sm" data-approve-exec="' + b.id + '">✅ ' + I18n.t('اعتماد') + '</button>' : '') +
             '<button class="btn ghost sm" data-bqedit="' + b.id + '">✏️</button>' +
             (VS.canDelete(ctx, 'boqItems') ? '<button class="btn danger sm" data-bqdel="' + b.id + '">🗑️</button>' : '') +
             '</div></td>' : '') + '</tr>';
@@ -1056,19 +1103,59 @@
         ctx.refresh();
       } catch (e) { toast(e.message, true); bqUp.disabled = false; }
     });
-    el.querySelectorAll('[data-bq]').forEach(function (r) {
-      r.addEventListener('input', function () {
-        el.querySelector('#bqv-' + r.getAttribute('data-bq')).textContent = r.value + '%';
-      });
-      r.addEventListener('change', async function () {
-        try {
-          const v = Number(r.value);
-          await Api.update('boqItems', r.getAttribute('data-bq'), {
-            progress: v, status: v >= 100 ? 'منجز' : v > 0 ? 'جاري' : 'لم يبدأ'
-          });
-          toast(I18n.t('✅ حُدّث البند — انعكس ذلك على سطوع المخططات'));
-          ctx.refreshSilent();
-        } catch (e) { toast(e.message, true); }
+    // المرحلة ٢ من خط أنابيب اعتماد الكميات: اعتماد الاستشاري لكمية مُنفَّذة بدليل موثَّق إلزامي —
+    // هذا وحده ما يُحرِّك progress ويفتح المجال لمطالبة مالية به لاحقاً، لا تعديل مباشر كما كان سابقاً
+    el.querySelectorAll('[data-approve-exec]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        const id = btn.getAttribute('data-approve-exec');
+        const b = items.find(function (x) { return x.id === id; });
+        if (!b) return;
+        const pending = Math.max(0, (Number(b.executedQty) || 0) - (Number(b.approvedQty) || 0));
+        const m = modal(
+          '<h3>✅ ' + I18n.t('اعتماد كمية منفَّذة') + ' — ' + esc(b.description) + '</h3>' +
+          '<div class="m-sub">' + I18n.t('المنفَّذ غير المعتمَد بعد (حسب النظام):') + ' <b class="num">' + pending + '</b> ' + esc(b.unit) + '</div>' +
+          '<label class="fl">' + I18n.t('الكمية المذكورة في مستند الاستلام الموقَّع') + '</label><input class="inp num" id="av-signed" type="number" min="0" max="' + pending + '" step="any" value="' + pending + '" dir="ltr">' +
+          '<label class="fl">' + I18n.t('الكمية المُعتمَدة الآن') + '</label><input class="inp num" id="av-qty" type="number" min="0" max="' + pending + '" step="any" value="' + pending + '" dir="ltr">' +
+          '<div id="av-warn" class="small mt" style="color:var(--warn,#f5a524);display:none"></div>' +
+          '<label class="fl">' + I18n.t('اسم المهندس/الاستشاري') + '</label><input class="inp" id="av-name" value="' + esc(ctx.U.name) + '">' +
+          '<label class="fl">' + I18n.t('رقم المرجع/الإيصال (اختياري)') + '</label><input class="inp" id="av-receipt">' +
+          '<label class="fl">' + I18n.t('مستند الاستلام الموقَّع') + ' <span style="color:var(--danger)">*</span></label><input class="inp" id="av-file" type="file" multiple>' +
+          '<label class="fl">' + I18n.t('ملاحظة (اختياري)') + '</label><textarea class="inp" id="av-note" rows="2"></textarea>' +
+          '<div class="m-actions"><button class="btn" id="av-ok">' + I18n.t('اعتماد') + '</button><button class="btn mutedb" id="av-cancel">' + I18n.t('إلغاء') + '</button></div>'
+        );
+        function checkMismatch() {
+          const signed = Number(m.querySelector('#av-signed').value) || 0;
+          const approving = Number(m.querySelector('#av-qty').value) || 0;
+          const warn = m.querySelector('#av-warn');
+          if (signed !== approving || signed !== pending) {
+            warn.style.display = '';
+            warn.textContent = '⚠ ' + I18n.t('تنبيه: الكمية في النظام') + ' (' + pending + ') ' + I18n.t('والموقَّعة') + ' (' + signed + ') ' + I18n.t('والمُعتمَدة الآن') + ' (' + approving + ') ' + I18n.t('غير متطابقة — تحقَّق قبل المتابعة (لا يمنع الاعتماد، لكن وثِّق السبب في الملاحظة).');
+          } else warn.style.display = 'none';
+        }
+        m.querySelector('#av-signed').addEventListener('input', checkMismatch);
+        m.querySelector('#av-qty').addEventListener('input', checkMismatch);
+        m.querySelector('#av-cancel').addEventListener('click', function () { m.remove(); });
+        m.querySelector('#av-ok').addEventListener('click', async function () {
+          const okBtn = m.querySelector('#av-ok');
+          const qty = Number(m.querySelector('#av-qty').value);
+          if (!(qty > 0)) { toast(I18n.t('أدخل كمية صحيحة أكبر من صفر'), true); return; }
+          const files = m.querySelector('#av-file').files;
+          if (!files.length) { toast(I18n.t('إرفاق مستند استلام موقَّع إلزامي قبل اعتماد أي كمية'), true); return; }
+          okBtn.disabled = true;
+          try {
+            const attachments = [];
+            for (let i = 0; i < files.length; i++) attachments.push(await Api.upload(files[i]));
+            await Api.approveExecutedQty({
+              boqItemId: b.id, qty: qty,
+              signedReceiptQty: Number(m.querySelector('#av-signed').value) || qty,
+              consultantName: m.querySelector('#av-name').value, receiptNo: m.querySelector('#av-receipt').value,
+              attachments: attachments, note: m.querySelector('#av-note').value
+            });
+            m.remove();
+            toast('✅ ' + I18n.t('اعتُمدت الكمية — انعكس ذلك على سطوع المخططات'));
+            ctx.refresh();
+          } catch (e) { toast(e.message, true); okBtn.disabled = false; }
+        });
       });
     });
     if (window.ViewsExtra && window.ViewsExtra.wireBaselineReview) window.ViewsExtra.wireBaselineReview(el, ctx);
@@ -1878,8 +1965,8 @@
       '<div class="sub num">' + esc(c.startDate) + ' ← ' + esc(c.endDate) + '</div></div>' +
       '<div class="card kpi ' + (sums.delayed ? 'k-danger' : 'k-ok') + '"><div class="lbl">' + I18n.t('نسبة الإنجاز') + '</div><div class="val num">' + sums.progress + '%</div>' +
       '<div class="sub">' + I18n.t('المخطط ') + '<b class="num">' + sums.plannedProgress + '%</b>' + (sums.delayed ? ' · <span class="trend-down">' + I18n.t('متأخر') + '</span>' : ' · <span class="trend-up">' + I18n.t('ضمن الجدول') + '</span>') + '</div></div>' +
-      '<div class="card kpi k-info"><div class="lbl">' + I18n.t('المبالغ المستلمة') + '</div><div class="val">' + VS.millions(c.amountReceived) + '</div>' +
-      '<div class="sub num">' + Math.round(c.amountReceived / c.contractValue * 100) + I18n.t('% من قيمة العقد') + '</div></div>' +
+      '<div class="card kpi k-info"><div class="lbl">' + I18n.t('المبالغ المستلمة') + '</div><div class="val">' + VS.millions(sums.amountReceived) + '</div>' +
+      '<div class="sub num">' + Math.round(sums.amountReceived / c.contractValue * 100) + I18n.t('% من قيمة العقد') + '</div></div>' +
       '<div class="card kpi k-warn"><div class="lbl">' + I18n.t('طلبات قيد المراجعة') + '</div><div class="val num">' + pendingAll + '</div><div class="sub">' + I18n.t('لدى الاستشاري') + '</div></div>' +
       '</div>' +
 
@@ -1979,11 +2066,47 @@
     const needAmount = tab === 'changeOrders' || tab === 'payments' || tab === 'claims';
     const isPayment = tab === 'payments';
     const isWir = tab === 'wirs';
-    const myBoq = ctx.S.boqItems;
+    const P = ctx.S.projects[0];
+    // بنود هذا المشروع فقط — لا بنود أي مشروع آخر، حتى لو توسّع النظام مستقبلاً لتعدّد المشاريع
+    const myBoq = (ctx.S.boqItems || []).filter(function (b) { return !P || b.projectId === P.id; });
+    // السقف الأقصى لنسبة أي بند = المعتمَد والمنفَّذ فعلياً حالياً (min(approvedQty,executedQty))، لا
+    // 100% بلا قيد كما كان سابقاً — فلا يمكن المطالبة بأكثر مما اعتمده الاستشاري بدليل موثَّق فعلاً
+    function ceilingPctOf(b) {
+      const ceiling = Math.min(Number(b.approvedQty) || 0, Number(b.executedQty) || 0);
+      return b.qty ? Math.round(ceiling / b.qty * 1000) / 10 : 0;
+    }
+    // قائمة واحدة قابلة للبحث: كل بند يبدأ بزر "+ إضافة"؛ الضغط عليه يحوّل ذلك الصف نفسه إلى حقل
+    // إدخال % مباشرة (بدل قائمة منسدلة منفصلة عن المرجع) — فيرى المقاول كل البنود دفعة واحدة
+    // ويختار منها بضغطة واحدة، لا بالبحث داخل خيارات <select> طويلة النص
+    const boqPickerHtml = !isPayment ? '' :
+      '<label class="fl">' + I18n.t('بنود المستخلص') + ' <span class="hint">' + I18n.t('ابحث، اضغط «+ إضافة» على البند، ثم أدخل النسبة الجديدة') + '</span></label>' +
+      (myBoq.length ?
+        '<input class="inp" id="sb-boq-search" placeholder="' + I18n.t('ابحث بالكود أو الوصف أو الدور...') + '" style="margin-bottom:8px">' +
+        '<div class="m-boq-table-wrap"><table class="m-boq-table"><thead><tr>' +
+        '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الكمية') + '</th>' +
+        '<th>' + I18n.t('% الحالي') + '</th><th>' + I18n.t('الحد الأقصى') + '</th><th></th>' +
+        '</tr></thead><tbody id="sb-boq-tbody">' +
+        myBoq.map(function (b) {
+          const ceilingPct = ceilingPctOf(b);
+          const searchKey = ((b.code || '') + ' ' + (b.description || '') + ' ' + (b.floor || '')).toLowerCase();
+          return '<tr data-boq-row="' + esc(b.id) + '" data-search="' + esc(searchKey) + '"' + (ceilingPct <= 0 ? ' class="m-boq-zero"' : '') + '>' +
+            '<td class="num small">' + esc(b.code || '') + '</td>' +
+            '<td>' + esc(b.description) + '<div class="small muted">' + esc(b.floor === 'ALL' ? I18n.t('كامل المشروع') : b.floor) + '</div></td>' +
+            '<td class="num small">' + (b.qty || 0) + ' <span class="muted">' + esc(b.unit || '') + '</span></td>' +
+            '<td class="num small">' + (b.progress || 0) + '%</td>' +
+            '<td class="num small" style="color:var(--status-ok)">' + ceilingPct + '%</td>' +
+            '<td class="m-boq-action">' +
+              (ceilingPct > 0
+                ? '<button class="btn ghost sm" data-boq-add="' + esc(b.id) + '">+ ' + I18n.t('إضافة') + '</button>'
+                : '<span class="small muted">—</span>') +
+            '</td>' +
+            '</tr>';
+        }).join('') +
+        '</tbody></table></div>' +
+        '<div class="small muted mt" id="sb-boq-empty" style="display:none">' + I18n.t('لا بنود مطابقة للبحث') + '</div>'
+        : '<div class="small muted" style="margin:10px 0">' + I18n.t('لا بنود كميات في هذا المشروع بعد') + '</div>');
 
-    const m = modal(
-      '<h3>' + I18n.t('➕ رفع ') + I18n.t(meta.name) + '</h3>' +
-      '<div class="m-sub">' + I18n.t('سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض — يُعطى رقم مرجع تلقائياً') + '</div>' +
+    const formHtml =
       '<label class="fl">' + I18n.t('العنوان / الوصف') + '</label><input class="inp" id="sb-title">' +
       (tab === 'rfis' ? '<label class="fl">' + I18n.t('نص الاستفسار الفني') + '</label><textarea class="inp" id="sb-question" rows="3" placeholder="' + I18n.t('اشرح التعارض أو المعلومة المطلوبة مع ذكر رقم المخطط...') + '"></textarea>' : '') +
       (tab === 'rfps' ? '<label class="fl">' + I18n.t('موجه إلى') + '</label><select class="inp" id="sb-to"><option value="consultant">📐 ' + I18n.t('الاستشاري') + '</option><option value="owner">👁 ' + I18n.t('المالك') + '</option></select>' +
@@ -1995,7 +2118,7 @@
       // مرجع الجدول الزمني المعتمد — ليرى المقاول والاستشاري أثر أيام أمر التغيير على الجدول الرسمي فعلياً
       (tab === 'changeOrders' ? (function () {
         const tasks = (ctx.S.scheduleTasks || []).slice().sort(function (a, b) { return String(a.endPlanned || '').localeCompare(String(b.endPlanned || '')); });
-        const P = ctx.S.projects[0];
+        const P2 = ctx.S.projects[0];
         if (!tasks.length) {
           return '<div class="card" style="padding:10px 14px;margin:4px 0 10px"><b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + '</b>' +
             '<div class="small muted mt">' + I18n.t('لا يوجد جدول زمني معتمد لهذا المشروع بعد.') + '</div></div>';
@@ -2003,8 +2126,8 @@
         const upcoming = tasks.filter(function (t) { return (t.progress || 0) < 100; }).slice(0, 5);
         return '<div class="card" style="padding:10px 14px;margin:4px 0 10px">' +
           '<b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + ' <span class="hint">' + I18n.t('ليتّضح أثر الأيام الإضافية على الجدول الرسمي') + '</span></b>' +
-          '<div class="small muted mt">' + I18n.t('تاريخ الانتهاء المخطط: ') + '<b class="num">' + esc(P.endPlanned || '—') + '</b>' +
-          (P.endForecast && P.endForecast !== P.endPlanned ? ' · ' + I18n.t('المتوقع حالياً: ') + '<b class="num">' + esc(P.endForecast) + '</b>' : '') + '</div>' +
+          '<div class="small muted mt">' + I18n.t('تاريخ الانتهاء المخطط: ') + '<b class="num">' + esc(P2.endPlanned || '—') + '</b>' +
+          (P2.endForecast && P2.endForecast !== P2.endPlanned ? ' · ' + I18n.t('المتوقع حالياً: ') + '<b class="num">' + esc(P2.endForecast) + '</b>' : '') + '</div>' +
           (upcoming.length ? '<div class="small mt" style="max-height:110px;overflow-y:auto">' +
             upcoming.map(function (t) {
               return '<div class="flex" style="justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)">' +
@@ -2014,25 +2137,70 @@
       })() : '') +
       (isWir ? '<label class="fl">' + I18n.t('الموقع / الدور') + '</label><select class="inp" id="sb-loc">' +
         ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>' : '') +
-      (isPayment ?
-        '<label class="fl">' + I18n.t('بنود المستخلص (اختر البند والنسبة المنجزة الجديدة)') + '</label><div id="sb-lines"></div>' +
-        '<button class="btn ghost sm" id="sb-addline">' + I18n.t('+ إضافة بند') + '</button>' : '') +
+      boqPickerHtml +
       '<label class="fl">' + I18n.t('المرفقات (المخطط / الداتا شيت / المستندات)') + '</label><input class="inp" id="sb-file" type="file" multiple>' +
-      '<div class="m-actions"><button class="btn" id="sb-ok">' + I18n.t('إرسال للاستشاري') + '</button><button class="btn mutedb" id="sb-cancel">' + I18n.t('إلغاء') + '</button></div>'
+      '<div class="m-actions"><button class="btn" id="sb-ok">' + I18n.t('إرسال للاستشاري') + '</button><button class="btn mutedb" id="sb-cancel">' + I18n.t('إلغاء') + '</button></div>';
+
+    const m = modal(
+      '<h3>' + I18n.t('➕ رفع ') + I18n.t(meta.name) + '</h3>' +
+      '<div class="m-sub">' + I18n.t('سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض — يُعطى رقم مرجع تلقائياً') +
+      (isPayment && P ? ' · ' + I18n.t('المشروع: ') + '<b>' + esc(P.name || '') + '</b>' : '') + '</div>' +
+      formHtml,
+      isPayment ? 'modal-full' : undefined
     );
 
-    if (isPayment) {
-      const wrap = m.querySelector('#sb-lines');
-      function addLine() {
-        const r = document.createElement('div');
-        r.className = 'grid'; r.style.cssText = 'grid-template-columns:2.2fr 1fr;gap:6px;margin-bottom:6px';
-        r.innerHTML = '<select class="inp" data-lf="boqItemId">' +
-          myBoq.map(function (b) { return '<option value="' + b.id + '">' + esc(b.description) + ' — ' + esc(b.floor) + I18n.t(' (حالياً ') + b.progress + '%)</option>'; }).join('') +
-          '</select><input class="inp num" data-lf="progress" type="number" min="0" max="100" placeholder="' + I18n.t('% الجديدة') + '">';
-        wrap.appendChild(r);
+    if (isPayment && myBoq.length) {
+      // كل صف يبدأ بزر "+ إضافة"؛ الضغط عليه يستبدل الزر بحقل % داخل الصف نفسه (بدل قائمة منفصلة)،
+      // فيبقى المقاول يرى كل البنود في مكان واحد ويعرف فوراً ما الذي اختاره وما تبقّى متاحاً
+      function addRow(id) {
+        const b = myBoq.find(function (x) { return x.id === id; });
+        if (!b) return;
+        const row = m.querySelector('tr[data-boq-row="' + id + '"]');
+        if (!row) return;
+        const ceilingPct = ceilingPctOf(b);
+        const cell = row.querySelector('.m-boq-action');
+        cell.innerHTML =
+          '<div class="m-boq-pctwrap">' +
+          '<input class="inp num m-boq-pct" type="number" min="0" max="' + ceilingPct + '" step="any" placeholder="%" data-boq-pct="' + esc(id) + '">' +
+          '<button class="btn ghost sm" data-boq-remove="' + esc(id) + '">✕</button>' +
+          '</div><div class="small muted mt" data-boq-hint="' + esc(id) + '"></div>';
+        row.classList.add('m-boq-selected');
+        const pctInp = cell.querySelector('[data-boq-pct]');
+        const hint = cell.querySelector('[data-boq-hint]');
+        function syncHint() {
+          const pct = Number(pctInp.value) || 0;
+          const amt = b.unitPrice ? Math.round(b.qty * pct / 100 * b.unitPrice) : null;
+          hint.textContent = pct > ceilingPct
+            ? I18n.t('يتجاوز الحد الأقصى') + ' (' + ceilingPct + '%)'
+            : (amt != null ? '≈ ' + amt.toLocaleString('en-US') + ' ' + I18n.t('ر.س') : '');
+          hint.style.color = pct > ceilingPct ? 'var(--danger, #ff5a5a)' : '';
+        }
+        pctInp.addEventListener('input', syncHint);
+        pctInp.focus();
+        cell.querySelector('[data-boq-remove]').addEventListener('click', function () { removeRow(id); });
       }
-      addLine();
-      m.querySelector('#sb-addline').addEventListener('click', addLine);
+      function removeRow(id) {
+        const row = m.querySelector('tr[data-boq-row="' + id + '"]');
+        if (!row) return;
+        row.classList.remove('m-boq-selected');
+        row.querySelector('.m-boq-action').innerHTML =
+          '<button class="btn ghost sm" data-boq-add="' + esc(id) + '">+ ' + I18n.t('إضافة') + '</button>';
+        row.querySelector('[data-boq-add]').addEventListener('click', function () { addRow(id); });
+      }
+      m.querySelectorAll('[data-boq-add]').forEach(function (btn) {
+        btn.addEventListener('click', function () { addRow(btn.getAttribute('data-boq-add')); });
+      });
+      const searchInp = m.querySelector('#sb-boq-search');
+      searchInp.addEventListener('input', function () {
+        const q = searchInp.value.trim().toLowerCase();
+        let anyVisible = false;
+        m.querySelectorAll('tr[data-boq-row]').forEach(function (row) {
+          const match = !q || (row.getAttribute('data-search') || '').indexOf(q) !== -1;
+          row.style.display = match ? '' : 'none';
+          if (match) anyVisible = true;
+        });
+        m.querySelector('#sb-boq-empty').style.display = anyVisible ? 'none' : '';
+      });
     }
 
     m.querySelector('#sb-cancel').addEventListener('click', function () { m.remove(); });
@@ -2049,12 +2217,21 @@
       if (tab === 'methodStatements' || tab === 'claims') data.kind = m.querySelector('#sb-kind').value;
       if (isWir) data.location = m.querySelector('#sb-loc').value;
       if (isPayment) {
-        data.lines = Array.prototype.map.call(m.querySelector('#sb-lines').children, function (r) {
-          return {
-            boqItemId: r.querySelector('[data-lf="boqItemId"]').value,
-            progress: Number(r.querySelector('[data-lf="progress"]').value) || 0
-          };
+        data.lines = Array.prototype.map.call(m.querySelectorAll('[data-boq-pct]'), function (inp) {
+          return { boqItemId: inp.getAttribute('data-boq-pct'), progress: Number(inp.value) || 0 };
         }).filter(function (l) { return l.progress > 0; });
+        // تحقق فوري بالواجهة قبل الإرسال — رسالة واضحة بدل انتظار رفض الخادم العام؛ الخادم يتحقق مرة
+        // أخرى بصرامة دائماً (هذا لتحسين تجربة الاستخدام فقط، لا بديلاً عن التحقق الفعلي)
+        for (const l of data.lines) {
+          const bq = myBoq.find(function (b) { return b.id === l.boqItemId; });
+          if (!bq) continue;
+          const ceiling = Math.min(Number(bq.approvedQty) || 0, Number(bq.executedQty) || 0);
+          const ceilingPct = bq.qty ? Math.round(ceiling / bq.qty * 1000) / 10 : 0;
+          if (l.progress > ceilingPct + 1e-6) {
+            toast(I18n.t('بند') + ' «' + bq.description + '» — ' + I18n.t('المطلوب') + ' ' + l.progress + '% ' + I18n.t('يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً') + ' (' + ceilingPct + '%)', true);
+            return;
+          }
+        }
       }
       // رفع المرفق كان خارج try/catch تماماً — أي فشل فيه (حجم كبير، انقطاع شبكة، رفض الخادم)
       // كان يسقط كـ unhandled promise rejection بلا أي رسالة للمستخدم، فيبدو الزر وكأنه "لا يعمل"
