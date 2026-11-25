@@ -311,6 +311,7 @@ function serveStatic(req, res) {
   // الصفحة الرئيسية للدومين = الموقع التعريفي؛ والتطبيق (دخول العملاء/المالك) على /app
   if (urlPath === '/') urlPath = '/site.html';
   else if (urlPath === '/en' || urlPath === '/en/') urlPath = '/site-en.html';
+  else if (urlPath === '/deck' || urlPath === '/deck/') urlPath = '/deck.html';
   else if (urlPath === '/subscribe') urlPath = '/landing.html';
   else if (urlPath === '/subscribe/en' || urlPath === '/subscribe-en') urlPath = '/landing-en.html';
   else if (urlPath === '/app' || urlPath === '/app/') urlPath = '/index.html';
