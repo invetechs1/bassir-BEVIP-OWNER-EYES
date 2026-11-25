@@ -3,6 +3,21 @@
 (function () {
   'use strict';
   var PRICE = 2000;
+  // لغة الصفحة (ar / en) — الصفحة الإنجليزية site-en.html تضبط lang="en"
+  var LANG = (document.documentElement.lang === 'en') ? 'en' : 'ar';
+  var CUR = LANG === 'en' ? ' SAR' : ' ر.س';
+  var T = {
+    needCompany: { ar: '⚠️ أدخل اسم الشركة/الجهة.', en: '⚠️ Please enter the company/entity name.' },
+    needEmail: { ar: '⚠️ أدخل البريد الإلكتروني.', en: '⚠️ Please enter your email.' },
+    sending: { ar: '⏳ جارٍ الإرسال…', en: '⏳ Sending…' },
+    sendFail: { ar: 'تعذّر إرسال الطلب، حاول مجدداً.', en: 'Could not send the request, please try again.' },
+    needCreds: { ar: '⚠️ أدخل اسم المستخدم وكلمة المرور.', en: '⚠️ Enter username and password.' },
+    signingIn: { ar: '⏳ جارٍ الدخول…', en: '⏳ Signing in…' },
+    badCreds: { ar: 'بيانات الدخول غير صحيحة', en: 'Invalid credentials' },
+    notOwner: { ar: 'هذا الحساب ليس مالكاً للمنصّة', en: 'This account is not a platform owner' },
+    loginFail: { ar: 'تعذّر الدخول.', en: 'Could not sign in.' }
+  };
+  function t(k) { return (T[k] && T[k][LANG]) || (T[k] && T[k].ar) || k; }
 
   // ====== طبقة اتصال: الخادم الحقيقي إن وُجد، وإلا نواة داخل المتصفح ======
   var _core = null;
@@ -47,10 +62,10 @@
     var v = parseNum(rVal.value), n = clampCount(rCount.value);
     rCount.value = n; rVal.value = v.toLocaleString('en-US');
     var s1 = v * 0.03, s2 = v * 0.015, s3 = v * 0.005, total = (s1 + s2 + s3) * n, cost = n * PRICE * 12;
-    $('roi-s1').textContent = fmt(Math.round(s1 * n)) + ' ر.س';
-    $('roi-s2').textContent = fmt(Math.round(s2 * n)) + ' ر.س';
-    $('roi-s3').textContent = fmt(Math.round(s3 * n)) + ' ر.س';
-    $('roi-total').textContent = fmt(Math.round(total)) + ' ر.س';
+    $('roi-s1').textContent = fmt(Math.round(s1 * n)) + CUR;
+    $('roi-s2').textContent = fmt(Math.round(s2 * n)) + CUR;
+    $('roi-s3').textContent = fmt(Math.round(s3 * n)) + CUR;
+    $('roi-total').textContent = fmt(Math.round(total)) + CUR;
     $('roi-x').textContent = cost ? Math.round(total / cost) : '—';
   }
   $('roi-plus').onclick = function () { rCount.value = clampCount(rCount.value) + 1; calcRoi(); };
@@ -65,9 +80,9 @@
     ev.preventDefault();
     var ok = $('d-ok'), err = $('d-err'); ok.style.display = 'none'; err.style.display = 'none';
     var company = $('d-company').value.trim(), email = $('d-email').value.trim();
-    if (!company) { err.textContent = '⚠️ أدخل اسم الشركة/الجهة.'; err.style.display = 'block'; return; }
-    if (!email) { err.textContent = '⚠️ أدخل البريد الإلكتروني.'; err.style.display = 'block'; return; }
-    var btn = $('d-send'); btn.disabled = true; var old = btn.textContent; btn.textContent = '⏳ جارٍ الإرسال…';
+    if (!company) { err.textContent = t('needCompany'); err.style.display = 'block'; return; }
+    if (!email) { err.textContent = t('needEmail'); err.style.display = 'block'; return; }
+    var btn = $('d-send'); btn.disabled = true; var old = btn.textContent; btn.textContent = t('sending');
     try {
       await apiCall('/api/platform/register', {
         companyName: company, contactName: $('d-contact').value.trim(),
@@ -75,7 +90,7 @@
       });
       ok.style.display = 'block'; $('demo-form').reset(); dProj.value = 1;
     } catch (e) {
-      err.textContent = '⚠️ ' + (e.message || 'تعذّر إرسال الطلب، حاول مجدداً.'); err.style.display = 'block';
+      err.textContent = '⚠️ ' + (e.message || t('sendFail')); err.style.display = 'block';
     } finally { btn.disabled = false; btn.textContent = old; }
   };
 
@@ -90,19 +105,19 @@
   async function ownerLogin() {
     var err = $('o-err'); err.style.display = 'none';
     var u = $('o-user').value.trim(), p = $('o-pass').value;
-    if (!u || !p) { err.textContent = '⚠️ أدخل اسم المستخدم وكلمة المرور.'; err.style.display = 'block'; return; }
-    var btn = $('o-go'); btn.disabled = true; var old = btn.textContent; btn.textContent = '⏳ جارٍ الدخول…';
+    if (!u || !p) { err.textContent = t('needCreds'); err.style.display = 'block'; return; }
+    var btn = $('o-go'); btn.disabled = true; var old = btn.textContent; btn.textContent = t('signingIn');
     try {
       var r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
       var data = await r.json().catch(function () { return {}; });
-      if (!r.ok || !data.user) throw new Error(data.error || 'بيانات الدخول غير صحيحة');
-      if (['platform_admin', 'admin'].indexOf(data.user.role) === -1) throw new Error('هذا الحساب ليس مالكاً للمنصّة');
+      if (!r.ok || !data.user) throw new Error(data.error || t('badCreds'));
+      if (['platform_admin', 'admin'].indexOf(data.user.role) === -1) throw new Error(t('notOwner'));
       // خزّن الجلسة بنفس مفاتيح التطبيق ثم انتقل مباشرةً للوحة المنصّة
       try { if (data.token) sessionStorage.setItem('bassir-token', data.token); } catch (e) {}
       try { sessionStorage.setItem('bassir-user', JSON.stringify(data.user)); } catch (e) {}
       window.location.href = '/app#biz-overview';
     } catch (e) {
-      err.textContent = '⚠️ ' + (e.message || 'تعذّر الدخول.'); err.style.display = 'block';
+      err.textContent = '⚠️ ' + (e.message || t('loginFail')); err.style.display = 'block';
       btn.disabled = false; btn.textContent = old;
     }
   }
