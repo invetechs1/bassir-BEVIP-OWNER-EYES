@@ -275,6 +275,27 @@
 
     // رؤية المشروع (2D + واجهات + BIM)
     'جميع البنود': 'All Items',
+    'القبو': 'Basement',
+    'الدور الأرضي': 'Ground Floor',
+    'الميزانين': 'Mezzanine',
+    'الدور الأول': 'First Floor',
+    'الدور الثاني': 'Second Floor',
+    'الدور الثالث': 'Third Floor',
+    'الدور الرابع': 'Fourth Floor',
+    'السطح': 'Roof',
+    'الأعمال الإنشائية': 'Structural Works',
+    'الأعمال المعمارية': 'Architectural Works',
+    'الأعمال الكهربائية': 'Electrical Works',
+    'أعمال التكييف HVAC': 'HVAC Works',
+    'الأعمال الصحية': 'Plumbing Works',
+    'أعمال الحريق': 'Fire Works',
+    'الفرش والأثاث': 'FF&E',
+    'الإنشائية': 'Structural',
+    'المعمارية': 'Architectural',
+    'الكهربائية': 'Electrical',
+    'التكييف HVAC': 'HVAC',
+    'الصحية': 'Plumbing',
+    'الحريق': 'Fire',
     'المخططات ثنائية الأبعاد': '2D Drawings',
     'واجهات المبنى': 'Building Facades',
     'نموذج BIM ثلاثي الأبعاد': '3D BIM Model',
@@ -563,7 +584,7 @@
 
   function floorName(ctx, id) {
     const f = (ctx.S.projects[0].floors || []).find(function (x) { return x.id === id; });
-    return f ? f.name : id;
+    return f ? I18n.t(f.name) : id;
   }
 
   /** إنجاز مرجّح بالقيمة لمجموعة بنود */
@@ -828,7 +849,7 @@
           return '<div class="eye-floor" data-goflor="' + f.id + '" data-gopr="' + P.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
             (p >= 95 ? 'box-shadow:0 0 14px rgba(224,164,88,.65);' : '') + '">' +
             '<b class="num" style="color:' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '">' + p + '%</b>' +
-            '<span style="color:' + (t > 0.5 ? '#233' : '#8b95a8') + '">' + esc(f.name) + '</span></div>';
+            '<span style="color:' + (t > 0.5 ? '#233' : '#8b95a8') + '">' + esc(I18n.t(f.name)) + '</span></div>';
         }).join('') + '</div>' +
         '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>' + I18n.t('داكن = لم يُنفذ') + '</span>' +
         '<span><span class="sw" style="background:#e0a458;box-shadow:0 0 8px rgba(224,164,88,.8)"></span>' + I18n.t('ساطع = منفذ ومعتمد') + '</span></div></div>' : '';
@@ -1494,7 +1515,7 @@
         const d = discOf(ctx, s.type);
         return '<tr>' +
           '<td><b>' + esc(s.name) + '</b></td>' +
-          '<td><span class="pill p-muted">' + d.icon + ' ' + esc(d.name) + '</span></td>' +
+          '<td><span class="pill p-muted">' + d.icon + ' ' + esc(I18n.t(d.name)) + '</span></td>' +
           '<td>' + money(s.contractValue) + '</td>' +
           '<td><div class="flex"><div class="bar ' + (s.delayed ? 'b-danger' : 'b-ok') + '" style="flex:1"><i style="width:' + s.progress + '%"></i></div><b class="num">' + s.progress + '%</b></div>' +
           '<div class="small muted num">' + I18n.t('المخطط') + ' ' + s.plannedProgress + '%</div></td>' +
@@ -1530,7 +1551,7 @@
       '<div class="disc-chip ' + (st.disc === 'all' ? 'active' : '') + '" data-disc="all" style="--disc-color:#e0a458"><span class="dot"></span>' + I18n.t('جميع البنود') + '</div>' +
       P.disciplines.map(function (d) {
         return '<div class="disc-chip ' + (st.disc === d.id ? 'active' : '') + '" data-disc="' + d.id + '" style="--disc-color:' + d.color + '">' +
-          '<span class="dot"></span>' + d.icon + ' ' + esc(d.name) + '</div>';
+          '<span class="dot"></span>' + d.icon + ' ' + esc(I18n.t(d.name)) + '</div>';
       }).join('') + '</div>';
 
     let body = '', tabsHtml = '';
@@ -1675,7 +1696,7 @@
       const scope = dr.floor === 'ALL' ? I18n.t('كامل المشروع') : dr.floor === 'ELEV' ? I18n.t('الواجهات') : floorName(ctx, dr.floor);
       return '<div class="flex" style="justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--bg2)">' +
         '<span class="small">📄 <b>' + esc(dr.ref || '') + '</b> ' + esc(dr.title || '') +
-        ' <span class="muted">· ' + d.icon + ' ' + esc(d.name) + ' · ' + esc(scope) + '</span></span>' +
+        ' <span class="muted">· ' + d.icon + ' ' + esc(I18n.t(d.name)) + ' · ' + esc(scope) + '</span></span>' +
         (ok ? window.DrawingViewer.btn(dr) : '<span class="pill p-muted" style="font-size:10px">' + I18n.t('بلا ملف') + '</span>') +
         '</div>';
     }).join('');
@@ -1703,7 +1724,7 @@
 
     const floorTabs = '<div class="floor-tabs">' + P.floors.map(function (f) {
       const fp = weightedProgress(itemsFor(ctx, f.id, st.disc, null));
-      return '<div class="tab ' + (st.floor === f.id ? 'active' : '') + '" data-floor="' + f.id + '">' + esc(f.name) +
+      return '<div class="tab ' + (st.floor === f.id ? 'active' : '') + '" data-floor="' + f.id + '">' + esc(I18n.t(f.name)) +
         (fp != null ? ' <span class="muted num">' + fp + '%</span>' : '') + '</div>';
     }).join('') + '</div>';
 
@@ -1772,7 +1793,7 @@
       P.disciplines.map(function (d) {
         const p = weightedProgress(itemsFor(ctx, st.floor, d.id, null));
         if (p == null) return '';
-        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(d.name.replace('الأعمال ', '').replace('أعمال ', '')) +
+        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(I18n.t(d.name.replace('الأعمال ', '').replace('أعمال ', ''))) +
           ' <b class="num" style="color:' + d.color + '">' + p + '%</b></span>';
       }).join('') + '</div></div>';
 
@@ -1791,8 +1812,8 @@
         const d = discOf(ctx, b.discipline);
         const done = b.progress >= 100;
         return '<div style="border:1px solid ' + (done ? d.color : 'var(--border)') + ';border-radius:10px;padding:10px 12px;margin-bottom:9px;background:var(--bg2)' + (done ? ';box-shadow:0 0 12px ' + d.color + '33' : '') + '">' +
-          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(b.status) + '</span></div>' +
-          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(d.name) + '</div>' +
+          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(I18n.t(b.status)) + '</span></div>' +
+          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(I18n.t(d.name)) + '</div>' +
           '<div class="flex mt" style="margin-top:8px"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%;background:linear-gradient(90deg,' + d.color + '88,' + d.color + ')"></i></div><b class="num small">' + b.progress + '%</b></div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="e-ico">🗂️</div>' + I18n.t('لا توجد بنود مطابقة للتصفية الحالية') + '</div>') +
@@ -1835,7 +1856,7 @@
       P.disciplines.map(function (d) {
         const p = weightedProgress(itemsFor(ctx, st.floor, d.id, null));
         if (p == null) return '';
-        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(d.name.replace('الأعمال ', '').replace('أعمال ', '')) +
+        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(I18n.t(d.name.replace('الأعمال ', '').replace('أعمال ', ''))) +
           ' <b class="num" style="color:' + d.color + '">' + p + '%</b></span>';
       }).join('') + '</div></div>';
 
@@ -1874,8 +1895,8 @@
         const d = discOf(ctx, b.discipline);
         const done = b.progress >= 100;
         return '<div style="border:1px solid ' + (done ? d.color : 'var(--border)') + ';border-radius:10px;padding:10px 12px;margin-bottom:9px;background:var(--bg2)' + (done ? ';box-shadow:0 0 12px ' + d.color + '33' : '') + '">' +
-          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(b.status) + '</span></div>' +
-          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(d.name) + '</div>' +
+          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(I18n.t(b.status)) + '</span></div>' +
+          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(I18n.t(d.name)) + '</div>' +
           '<div class="flex mt" style="margin-top:8px"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%;background:linear-gradient(90deg,' + d.color + '88,' + d.color + ')"></i></div><b class="num small">' + b.progress + '%</b></div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="e-ico">🗂️</div>' + I18n.t('لا توجد بنود مطابقة للتصفية الحالية') + '</div>') +
@@ -2007,7 +2028,7 @@
         const p = weightedProgress(itemsFor(ctx, selFloor, d.id, null));
         if (p == null) return '';
         return '<div style="margin-bottom:13px"><div class="flex" style="justify-content:space-between;font-size:12.5px;margin-bottom:5px">' +
-          '<span>' + d.icon + ' ' + esc(d.name) + '</span><b class="num" style="color:' + d.color + '">' + p + '%</b></div>' +
+          '<span>' + d.icon + ' ' + esc(I18n.t(d.name)) + '</span><b class="num" style="color:' + d.color + '">' + p + '%</b></div>' +
           '<div class="bar"><i style="width:' + p + '%;background:linear-gradient(90deg,' + d.color + '77,' + d.color + ')' + (p >= 95 ? ';box-shadow:0 0 10px ' + d.color : '') + '"></i></div></div>';
       }).join('') +
       '<div class="small muted mt">💡 ' + I18n.t('المناطق الساطعة المتوهجة = بنود مكتملة اعتُمدت مستخلصاتها. اضغط أي دور في النموذج لعرض تفاصيله.') + '</div>' +
