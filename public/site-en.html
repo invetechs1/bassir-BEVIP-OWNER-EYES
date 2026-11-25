@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bassir — Owner Eyes | Visual construction project monitoring platform</title>
+  <meta name="description" content="Bassir is a Saudi platform for visual construction project monitoring: a progress map on your drawings, 3D BIM/IFC models, a health index and documented approvals — for real-estate developers and government entities.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁</text></svg>">
+  <style>
+    :root{
+      --bg:#0b0e14; --bg2:#0f131c; --panel:#121724; --border:#1f2635;
+      --text:#e7ecf4; --muted:#8b95a8; --brand:#e0a458; --brand2:#8a6a35;
+      --ok:#3fb27f; --warn:#e0a458; --danger:#e05858; --info:#5aa6e0; --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,"Noto Kufi Arabic","Cairo",Arial,sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+    .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+    .num{font-variant-numeric:tabular-nums}
+    /* nav */
+    nav{position:sticky;top:0;z-index:50;background:rgba(11,14,20,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    nav .wrap{display:flex;align-items:center;justify-content:space-between;height:66px;gap:12px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
+    .logo .eye{font-size:26px}
+    .logo small{display:block;font-size:9px;letter-spacing:2px;color:var(--muted);font-weight:600}
+    .nav-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .nav-links .lnk{padding:8px 12px;color:var(--muted);font-size:14px;font-weight:600;border-radius:8px}
+    .nav-links .lnk:hover{color:var(--text)}
+    @media(max-width:920px){.nav-links .lnk{display:none}}
+    .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);padding:9px 16px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+    .btn:hover{border-color:var(--brand)}
+    .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:var(--brand);color:#1a1206}
+    .btn.primary:hover{filter:brightness(1.07)}
+    .btn.lg{padding:14px 28px;font-size:16px}
+    .btn.ghost{background:transparent}
+    .btn.sm{padding:7px 13px;font-size:13px}
+    /* hero */
+    .hero{position:relative;overflow:hidden;padding:84px 0 56px;background:radial-gradient(900px 440px at 82% -10%,rgba(224,164,88,.18),transparent 60%),var(--bg)}
+    .kicker{color:var(--brand);font-weight:800;letter-spacing:2px;font-size:12.5px;display:block;margin-bottom:12px}
+    .hero h1{font-size:clamp(30px,5.2vw,54px);line-height:1.2;margin:0 0 18px;font-weight:900}
+    .hero h1 .g{background:linear-gradient(135deg,var(--brand),#f2c98a);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero p.lead{font-size:clamp(16px,2.3vw,21px);color:var(--muted);max-width:720px;margin:0 0 28px}
+    .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+    .chip{background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:8px 15px;font-size:13px;color:var(--muted)}
+    .chip b{color:var(--text)}
+    /* sections */
+    section{padding:62px 0}
+    .alt{background:var(--bg2);border-block:1px solid var(--border)}
+    .sec-head{text-align:center;max-width:720px;margin:0 auto 40px}
+    .sec-head h2{font-size:clamp(24px,3.6vw,34px);margin:0 0 12px}
+    .sec-head p{color:var(--muted);margin:0;font-size:16px}
+    .grid{display:grid;gap:18px}
+    .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+    @media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+    .card .ico{font-size:30px;margin-bottom:12px;display:block}
+    .card h3{margin:0 0 10px;font-size:19px}
+    .card p{color:var(--muted);margin:0;font-size:14.5px}
+    .card ul{margin:0;padding-inline-start:20px}
+    .card ul li{margin:7px 0;color:var(--muted);font-size:14.5px}
+    .card ul li b{color:var(--text)}
+    .role-tag{display:inline-block;font-size:12px;font-weight:800;color:var(--brand);background:rgba(224,164,88,.12);border:1px solid rgba(224,164,88,.3);border-radius:999px;padding:4px 12px;margin-bottom:12px}
+    /* showcase gallery */
+    .shot{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--bg2)}
+    .shot .cap{padding:14px 18px;border-top:1px solid var(--border)}
+    .shot .cap b{font-size:16px} .shot .cap div{color:var(--muted);font-size:13px;margin-top:3px}
+    .shot.big{grid-column:span 2}
+    @media(max-width:900px){.shot.big{grid-column:span 1}}
+    /* stats */
+    .stat{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px;text-align:center}
+    .stat .v{font-size:30px;font-weight:900;color:var(--brand)}
+    .stat .l{color:var(--muted);font-size:13.5px;margin-top:4px}
+    /* roi */
+    .pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+    @media(max-width:900px){.pay-grid{grid-template-columns:1fr}}
+    label.fl{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+    .inp{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:11px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none;transition:.15s}
+    .inp:focus{border-color:var(--brand)}
+    .stepper{display:flex;border:1px solid var(--border);border-radius:11px;overflow:hidden;width:max-content}
+    .stepper button{width:44px;height:48px;background:var(--bg2);border:0;color:var(--text);font-size:22px;cursor:pointer}
+    .stepper button:hover{background:var(--panel);color:var(--brand)}
+    .stepper input{width:66px;height:48px;border:0;background:var(--bg);color:var(--text);text-align:center;font-size:20px;font-weight:800;font-family:inherit}
+    .srow{display:flex;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:9px}
+    .note{font-size:12.5px;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:14px}
+    /* pricing */
+    .price-card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:18px;padding:28px;position:relative;display:flex;flex-direction:column}
+    .price-card.pop{border-color:var(--brand);box-shadow:0 20px 60px rgba(224,164,88,.12)}
+    .price-card .badge{position:absolute;top:-13px;inset-inline-start:24px;background:var(--brand);color:#1a1206;font-weight:800;font-size:12px;border-radius:999px;padding:5px 14px}
+    .price-card h3{font-size:22px;margin:0 0 4px} .price-card .seg{color:var(--muted);font-size:13px;margin-bottom:14px}
+    .price-card .amt{font-size:34px;font-weight:900} .price-card .amt small{font-size:14px;color:var(--muted);font-weight:600}
+    .price-card ul{list-style:none;padding:0;margin:16px 0 20px} .price-card li{margin:9px 0;font-size:14px;color:var(--text)} .price-card li.off{color:var(--muted)}
+    .price-card li::before{content:"✓ ";color:var(--ok);font-weight:800} .price-card li.off::before{content:"— ";color:var(--muted)}
+    .price-card .btn{margin-top:auto;justify-content:center}
+    /* steps */
+    .step{display:flex;gap:18px;align-items:flex-start;padding:16px 0;border-bottom:1px dashed var(--border)}
+    .step:last-child{border-bottom:0}
+    .step .n{flex:0 0 46px;height:46px;width:46px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:18px;background:rgba(224,164,88,.12);border:1px solid rgba(224,164,88,.35);color:var(--brand)}
+    .step h4{margin:2px 0 4px;font-size:17px} .step p{margin:0;color:var(--muted)}
+    /* faq */
+    details{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:4px 18px;margin-bottom:10px}
+    details summary{cursor:pointer;font-weight:700;padding:12px 0;list-style:none}
+    details summary::-webkit-details-marker{display:none}
+    details summary::before{content:"＋";color:var(--brand);font-weight:800;margin-inline-end:10px}
+    details[open] summary::before{content:"－"}
+    details p{margin:0 0 14px;color:var(--muted)}
+    /* contact */
+    .ok-msg{background:rgba(63,178,127,.1);border:1px solid rgba(63,178,127,.4);color:#8fe3bd;border-radius:12px;padding:14px 16px;margin-top:14px;display:none}
+    .err-msg{background:rgba(224,88,88,.1);border:1px solid rgba(224,88,88,.4);color:#f0a3a3;border-radius:12px;padding:12px 14px;margin-top:14px;display:none}
+    footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px}
+    footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center}
+    .foot-links{display:flex;gap:18px;flex-wrap:wrap}
+    .foot-links a:hover{color:var(--text)}
+    .owner-link{opacity:.55;font-size:12px}
+    .owner-link:hover{opacity:1;color:var(--brand)}
+    /* modal */
+    .modal-back{position:fixed;inset:0;background:rgba(5,7,11,.74);backdrop-filter:blur(4px);z-index:90;display:none;place-items:center;padding:20px}
+    .modal-back.on{display:grid}
+    .modal{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:18px;max-width:420px;width:100%;padding:30px}
+    .modal h3{margin:0 0 6px}
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="wrap">
+      <a class="logo" href="#top"><span class="eye">👁</span><span>Bassir<small>OWNER EYES</small></span></a>
+      <div class="nav-links">
+        <a class="lnk" href="#product">Platform</a>
+        <a class="lnk" href="#solutions">Solutions</a>
+        <a class="lnk" href="#why">Why Bassir</a>
+        <a class="lnk" href="#roi">ROI</a>
+        <a class="lnk" href="#pricing">Pricing</a>
+        <a class="lnk" href="/" style="font-weight:800;color:var(--brand)">العربية</a>
+        <a class="btn ghost sm" href="/app">Client login</a>
+        <a class="btn primary sm" href="#contact">Request a demo</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero" id="top">
+    <div class="wrap">
+      <span class="kicker">A Saudi platform for construction project monitoring</span>
+      <h1>See your construction projects <span class="g">with your own eyes</span><br>without leaving your desk.</h1>
+      <p class="lead">Bassir turns your drawings and models into a live progress map that lights up as every quantity is executed, with a financial and schedule health index and decisions documented by name and time — owner, owner's rep, consultant and contractor, all on one platform.</p>
+      <div class="cta">
+        <a class="btn primary lg" href="#contact">Request a demo</a>
+        <a class="btn ghost lg" href="#product">See the platform</a>
+      </div>
+      <div class="chips">
+        <span class="chip">🗺️ Progress map on your real drawings</span>
+        <span class="chip">🧊 3D BIM / IFC models</span>
+        <span class="chip">🚦 Cost &amp; schedule health index</span>
+        <span class="chip">🔏 Approvals logged by name &amp; time</span>
+      </div>
+    </div>
+  </header>
+
+  <section style="padding:34px 0">
+    <div class="wrap grid g4">
+      <div class="stat"><div class="v">5 Dimensions</div><div class="l">Composite project health index</div></div>
+      <div class="stat"><div class="v num">0.1–0.25%</div><div class="l">of project value per year only</div></div>
+      <div class="stat"><div class="v">Visual insight</div><div class="l">See execution, don't just read about it</div></div>
+      <div class="stat"><div class="v">All parties</div><div class="l">Owner · Consultant · Contractor</div></div>
+    </div>
+  </section>
+
+  <section id="product" class="alt">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">The Platform</span><h2>See how you watch your project in Bassir</h2><p>Real screenshots from the system — not mockups.</p></div>
+      <div class="grid g2">
+        <div class="shot big"><img src="/vendor/site/en/map.png" alt="Projects map"><div class="cap"><b>🗺️ All your projects on the map of Saudi Arabia</b><div>A dot per project, colored by status — click it to open the project.</div></div></div>
+        <div class="shot"><img src="/vendor/site/en/progress.png" alt="Progress map"><div class="cap"><b>🧭 Progress map</b><div>Each zone lights up by its real completion linked to the quantities.</div></div></div>
+        <div class="shot"><img src="/vendor/site/en/bim.png" alt="3D BIM model"><div class="cap"><b>🧊 BIM / IFC models</b><div>Reads your real engineering models and renders them in 3D.</div></div></div>
+        <div class="shot"><img src="/vendor/site/en/health.png" alt="Project health index"><div class="cap"><b>👁 Owner Eye — health index</b><div>One number tells you your project's state: schedule, cost, quality, safety.</div></div></div>
+        <div class="shot"><img src="/vendor/site/en/dashboard.png" alt="Dashboard"><div class="cap"><b>📊 Dashboard</b><div>Every project metric on one screen, updated live.</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="solutions">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">Solutions</span><h2>Tangible value for every party</h2><p>Bassir is built to serve the full project lifecycle.</p></div>
+      <div class="grid g2">
+        <div class="card"><span class="ico">🏢</span><span class="role-tag">Real-estate developers</span><h3>Peace of mind for your portfolio and capital</h3><ul><li>Visual insight into all your projects without site visits</li><li>Health index that flags cost overruns and delays early</li><li>Saudi map showing each project's status by color</li><li>Documented decisions and approvals that protect your investment</li></ul></div>
+        <div class="card"><span class="ico">🏛️</span><span class="role-tag">Government entities</span><h3>Transparency and governance for the entity's projects</h3><ul><li>Monitor all the entity's projects from one dashboard</li><li>Every approval logged by name and time — an undeniable record</li><li>Ready, auditable governance reports</li><li>Hosting, data-residency options and dedicated support</li></ul></div>
+        <div class="card"><span class="ico">🧭</span><span class="role-tag">Consultant</span><h3>An organized technical office — paperless</h3><ul><li>Approve payment certificates and requests in one place</li><li>Complete RFI / WIR / non-conformance log</li><li>Link quantities to drawings and models</li></ul></div>
+        <div class="card"><span class="ico">👷</span><span class="role-tag">Contractor</span><h3>Document your work and get paid faster</h3><ul><li>Upload quantities, schedule and payment certificates easily</li><li>Track executed, remaining and delay per item</li><li>Faster collection after documented approval</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="why" class="alt">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">The right technology choice</span><h2>Why is Bassir the right platform?</h2><p>Not just reports — an integrated visual-monitoring system built for construction in Saudi Arabia.</p></div>
+      <div class="grid g3">
+        <div class="card"><span class="ico">🗺️</span><h3>Real visual insight</h3><p>A progress map on your drawings and 3D BIM/IFC — you see execution, not read about it.</p></div>
+        <div class="card"><span class="ico">🇸🇦</span><h3>Built for the Saudi market</h3><p>Fully Arabic, with the terminology, payment certificates and technical office our companies use.</p></div>
+        <div class="card"><span class="ico">🤝</span><h3>All parties together</h3><p>Owner, rep, consultant and contractor on one platform — no scatter.</p></div>
+        <div class="card"><span class="ico">🔏</span><h3>Governance &amp; integrity</h3><p>Every decision logged by name and time — a record that protects your rights and settles disputes.</p></div>
+        <div class="card"><span class="ico">📱</span><h3>No installation</h3><p>Runs in the browser on mobile and desktop. Sign up and start in minutes.</p></div>
+        <div class="card"><span class="ico">🔒</span><h3>Secure, isolated data</h3><p>Full isolation per project and precise permissions per role.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="roi">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">Return on investment</span><h2>Your project bleeds millions silently — Bassir stops the bleed</h2><p>Cost overruns, delays and rework eat 5%–20% of any project's value. Early insight saves many times the cost of the system.</p></div>
+      <div class="card" style="background:radial-gradient(500px 220px at 50% 0,rgba(224,164,88,.12),transparent 70%)">
+        <div class="sec-head" style="margin-bottom:20px"><h2 style="font-size:26px;margin:0">Calculate how much Bassir saves you 👇</h2></div>
+        <div class="pay-grid" style="align-items:center">
+          <div>
+            <label class="fl">Estimated project value (SAR)</label>
+            <input class="inp num" id="roi-value" dir="ltr" inputmode="numeric" value="50,000,000">
+            <label class="fl">Number of projects</label>
+            <div class="stepper"><button type="button" id="roi-minus">−</button><input id="roi-count" class="num" value="1" inputmode="numeric"><button type="button" id="roi-plus">＋</button></div>
+            <div class="note">💡 Conservative estimates based on industry averages — actual results vary by project.</div>
+          </div>
+          <div>
+            <div class="srow"><span>🛑 Preventing budget overrun (~3%)</span><b class="num" id="roi-s1">—</b></div>
+            <div class="srow"><span>🔁 Reducing waste &amp; rework (~1.5%)</span><b class="num" id="roi-s2">—</b></div>
+            <div class="srow"><span>⚡ Faster approval &amp; collection (~0.5%)</span><b class="num" id="roi-s3">—</b></div>
+            <div class="srow" style="background:linear-gradient(135deg,rgba(63,178,127,.16),rgba(63,178,127,.05));border-color:rgba(63,178,127,.5)"><span style="font-weight:800;font-size:17px">💰 Estimated annual savings</span><b class="num" id="roi-total" style="color:#8fe3bd;font-size:24px">—</b></div>
+            <div style="text-align:center;background:rgba(224,164,88,.1);border:1px solid rgba(224,164,88,.4);border-radius:14px;padding:14px;font-size:18px;font-weight:800;margin-top:10px">For every riyal you pay Bassir, it saves you ~ <span id="roi-x" style="color:var(--brand);font-size:24px">—</span> riyals</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="pricing" class="alt">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">Pricing</span><h2>Value-based pricing — fair and transparent</h2><p>A subscription per active project by its size, or an annual license for large portfolios and government entities.</p></div>
+      <div class="grid g3">
+        <div class="price-card"><h3>Standard</h3><div class="seg">For small developers · per project</div><div class="amt"><span class="num">3,000</span> <small>SAR / project / month</small></div>
+          <ul><li>Owner Eye &amp; progress map</li><li>Quantities, payment certificates &amp; reports</li><li>BIM/IFC &amp; documents</li><li class="off">AI visual monitoring</li><li class="off">SLA &amp; dedicated support</li></ul>
+          <a class="btn ghost" href="#contact">Request a demo</a></div>
+        <div class="price-card pop"><div class="badge">Most popular</div><h3>Professional</h3><div class="seg">For medium/large developers · per project</div><div class="amt"><span class="num">from 6,000</span> <small>SAR / project / month</small></div>
+          <ul><li>Everything in Standard</li><li>AI visual monitoring</li><li>Integration &amp; white-label (optional)</li><li>Priority support</li><li>Discount on annual billing</li></ul>
+          <a class="btn primary" href="#contact">Request a demo</a></div>
+        <div class="price-card"><h3>Enterprise / Government</h3><div class="seg">Large portfolio or entity · annual license</div><div class="amt">Custom</div>
+          <ul><li>Unlimited projects</li><li>SLA, dedicated support + implementation &amp; training</li><li>Hosting &amp; data residency</li><li>API integration &amp; white-label</li><li>Governance reports</li></ul>
+          <a class="btn ghost" href="#contact">Contact us</a></div>
+      </div>
+      <p class="sec-head" style="margin:26px auto 0;font-size:13px;color:var(--muted)">💡 Pricing stays 0.1%–0.25% of project value per year — a tiny fraction against millions in savings. Annual billing = two months free.</p>
+    </div>
+  </section>
+
+  <section id="how">
+    <div class="wrap" style="max-width:820px">
+      <div class="sec-head"><span class="kicker">How it works</span><h2>From sign-up to your first report — in simple steps</h2></div>
+      <div class="step"><div class="n">1</div><div><h4>Request a demo and start a trial</h4><p>We activate a single project to prove the value on the ground.</p></div></div>
+      <div class="step"><div class="n">2</div><div><h4>Upload your drawings, quantities and models</h4><p>PDF, IFC/BIM models and BOQs distributed across floors.</p></div></div>
+      <div class="step"><div class="n">3</div><div><h4>Monitor progress visually</h4><p>A progress map that lights up with execution, a health index, and periodic reports.</p></div></div>
+      <div class="step"><div class="n">4</div><div><h4>Expand to the rest of your portfolio</h4><p>Add your projects and move to a portfolio license with a volume discount.</p></div></div>
+    </div>
+  </section>
+
+  <section id="contact" class="alt">
+    <div class="wrap" style="max-width:760px">
+      <div class="sec-head"><span class="kicker">Get started</span><h2>Request a demo</h2><p>Leave your details and we'll reach out to present the platform on one of your projects.</p></div>
+      <div class="card">
+        <form id="demo-form" autocomplete="off">
+          <div class="pay-grid">
+            <div><label class="fl">Company / entity name *</label><input class="inp" id="d-company" placeholder="e.g. Al-Emaar Holding" required></div>
+            <div><label class="fl">Contact name</label><input class="inp" id="d-contact" placeholder="Full name"></div>
+          </div>
+          <div class="pay-grid">
+            <div><label class="fl">Email *</label><input class="inp" id="d-email" type="email" dir="ltr" placeholder="you@company.com" required></div>
+            <div><label class="fl">Phone</label><input class="inp num" id="d-phone" dir="ltr" placeholder="05xxxxxxxx"></div>
+          </div>
+          <label class="fl">Your current number of projects</label>
+          <div class="stepper"><button type="button" id="d-minus">−</button><input id="d-proj" class="num" value="1" inputmode="numeric"><button type="button" id="d-plus">＋</button></div>
+          <button class="btn primary lg" type="submit" id="d-send" style="width:100%;justify-content:center;margin-top:18px">Send request</button>
+          <div class="ok-msg" id="d-ok">✓ Your request was received — we'll contact you soon. You can also subscribe and pay directly from the subscription page.</div>
+          <div class="err-msg" id="d-err"></div>
+          <div class="note">Or subscribe and pay directly now from the <a href="/landing.html" style="color:var(--brand)">subscription page</a>.</div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap" style="max-width:820px">
+      <div class="sec-head"><span class="kicker">FAQ</span><h2>Before you start</h2></div>
+      <details open><summary>How is the price calculated?</summary><p>Per active project by its size (starting from SAR 3,000/month), or a fixed annual license for large portfolios and entities. The price stays a small fraction of the project value.</p></details>
+      <details><summary>Do I need to install software?</summary><p>No. Bassir runs directly in the browser on mobile and desktop.</p></details>
+      <details><summary>Does it support BIM models and BOQs?</summary><p>Yes — it reads IFC/BIM models and renders them in 3D, and lets you enter quantities and distribute them across floors.</p></details>
+      <details><summary>Is it suitable for government entities?</summary><p>Yes — we offer an enterprise license with SLA, hosting, data residency, governance reports, implementation and training.</p></details>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div><div class="logo">👁 <span>Bassir — Owner Eyes</span></div><div style="margin-top:8px">© <span class="num">2026</span> Bassir Business — All rights reserved.</div></div>
+      <div class="foot-links">
+        <a href="#product">Platform</a><a href="#pricing">Pricing</a><a href="#contact">Contact</a>
+        <a href="/app">Client login</a>
+        <a href="#" id="owner-login" class="owner-link">🔐 Platform owner login</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="modal-back" id="owner-modal">
+    <div class="modal">
+      <h3>🔐 Platform owner login</h3>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 14px">Platform control panel: number of clients, revenue, growth and conversion.</p>
+      <label class="fl">Username</label><input class="inp" id="o-user" dir="ltr" value="biz">
+      <label class="fl">Password</label><input class="inp" id="o-pass" type="password" dir="ltr">
+      <button class="btn primary lg" id="o-go" style="width:100%;justify-content:center;margin-top:16px">Sign in</button>
+      <div class="err-msg" id="o-err"></div>
+      <button class="btn ghost" id="o-cancel" style="width:100%;justify-content:center;margin-top:10px">Cancel</button>
+    </div>
+  </div>
+
+  <script src="/shared/seed-data.js"></script>
+  <script src="/shared/api-core.js"></script>
+  <script src="/js/site.js"></script>
+</body>
+</html>

@@ -310,6 +310,7 @@ function serveStatic(req, res) {
   let urlPath = decodeURIComponent(req.url.split('?')[0]);
   // الصفحة الرئيسية للدومين = الموقع التعريفي؛ والتطبيق (دخول العملاء/المالك) على /app
   if (urlPath === '/') urlPath = '/site.html';
+  else if (urlPath === '/en' || urlPath === '/en/') urlPath = '/site-en.html';
   else if (urlPath === '/app' || urlPath === '/app/') urlPath = '/index.html';
   // كل نوع مسار له مجلد أساس خاص به وتحقق احتواء مستقل — يدعم ذلك أن UPLOADS_DIR
   // قد يقع خارج ROOT كلياً (مسار تخزين خارجي مُوجَّه عبر متغير البيئة).
