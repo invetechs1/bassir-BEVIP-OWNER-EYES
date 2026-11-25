@@ -60,11 +60,12 @@
     const f = item.file;
     if (!f) return { name: '', url: '', isImage: false, isPdf: false, isDxf: false };
     if (typeof f === 'string') return { name: f, url: '', isImage: false, isPdf: false, isDxf: false };
-    const name = f.name || '', url = f.url || '';
+    const name = f.name || '', url = f.url || '', mime = f.mime || '';
+    // الاسم قد يكون مبتوراً (امتداد ناقص من ملفات رُفعت قبل إصلاح storeUpload) — نوع المحتوى الحقيقي أوثق منه
     return {
       name: name, url: url,
-      isImage: !!url && IMG_EXT.test(name || url),
-      isPdf: !!url && PDF_EXT.test(name || url),
+      isImage: !!url && (IMG_EXT.test(name || url) || /^image\//.test(mime)),
+      isPdf: !!url && (PDF_EXT.test(name || url) || mime === 'application/pdf'),
       isDxf: !!url && DXF_EXT.test(name || url)
     };
   }

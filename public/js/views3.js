@@ -680,8 +680,8 @@
         if (cs) data.contractorId = cs.value;
         if (isRfp) data.to = m.querySelector('#rx-to').value;
         const rf = m.querySelector('#rx-file').files[0];
-        if (rf) data.file = await Api.upload(rf);
         try {
+          if (rf) data.file = await Api.upload(rf);
           await Api.create(tab, data);
           m.remove(); toast(I18n.t('✅ أُرسل وسُجّل بانتظار الرد')); ctx.refresh();
         } catch (e) { toast(e.message, true); }

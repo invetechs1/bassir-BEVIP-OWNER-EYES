@@ -1,8 +1,9 @@
 /*
- * اختبار السلسلة الأساسية: ربط المخطط بجدول الكميات (مظلم ← ساطع).
- * المقاول يرفع مستخلص إنجاز 100٪ لأدنى دور معماري → الاستشاري يعتمده →
- * تتحدّث نسب البنود → تُضيء مناطق خريطة الإنجاز التي يراها المالك.
- * يقيس سطوع مناطق المخطط قبل/بعد كإثبات موضوعي.
+ * اختبار السلسلة الأساسية: ربط المخطط بجدول الكميات (مظلم ← ساطع)، عبر خط أنابيب اعتماد
+ * الكميات الثلاثي الكامل: المقاول يسجّل تنفيذاً فعلياً لأدنى دور معماري (المرحلة ١) →
+ * الاستشاري يعتمده بدليل موثَّق (المرحلة ٢) → المقاول يطالب بمستخلص ضمن السقف المعتمَد
+ * (المرحلة ٣) → الاستشاري يعتمد المستخلص → تتحدّث نسب البنود → تُضيء مناطق خريطة الإنجاز
+ * التي يراها المالك. يقيس سطوع مناطق المخطط قبل/بعد كإثبات موضوعي.
  */
 const H = require('./_harness');
 
@@ -31,23 +32,61 @@ const H = require('./_harness');
   const before = await readMap(target.floor);
   await page.screenshot({ path: H.OUT + '/map-before.png' });
 
-  // contractor submits payment raising target-floor architectural items to 100%
+  // اختر حتى 6 بنود معمارية من الدور المستهدف لرفعها إلى 100%
+  const targetItems = await page.evaluate((floor) => {
+    const d = JSON.parse(localStorage.getItem('bassir-demo-db'));
+    return d.boqItems.filter(x => x.discipline === 'architectural' && x.floor === floor).slice(0, 6)
+      .map(x => ({ id: x.id, qty: x.qty, description: x.description }));
+  }, target.floor);
+
+  // ===== المرحلة ١: المقاول يسجّل تنفيذ كامل الكمية فعلياً على كل بند مستهدَف =====
+  await H.login(page, 'contractor');
+  for (const item of targetItems) {
+    await H.nav(page, 'boq-c');
+    const btn = page.locator('[data-report-exec="' + item.id + '"]');
+    if (!(await btn.count())) continue;
+    await btn.first().click();
+    await page.waitForSelector('#rx-qty', { timeout: 4000 });
+    await page.fill('#rx-qty', String(item.qty));
+    await page.click('#rx-ok');
+    await page.waitForTimeout(300);
+  }
+
+  // ===== المرحلة ٢: الاستشاري يعتمد كل تنفيذ بدليل موثَّق (مرفق إلزامي) =====
+  await H.login(page, 'consultant');
+  let stage2Count = 0;
+  for (const item of targetItems) {
+    await H.nav(page, 'boq');
+    const btn = page.locator('[data-approve-exec="' + item.id + '"]');
+    if (!(await btn.count())) continue;
+    await btn.first().click();
+    await page.waitForSelector('#av-ok', { timeout: 4000 });
+    await page.setInputFiles('#av-file', H.file('receipt-' + item.id + '.pdf'));
+    await page.click('#av-ok');
+    await page.waitForTimeout(400);
+    stage2Count++;
+  }
+  R.stage1Items = targetItems.length; R.stage2Approved = stage2Count;
+
+  // ===== المرحلة ٣: المقاول يطالب بمستخلص — الآن ضمن السقف المعتمَد فعلياً (100%) =====
   await H.login(page, 'contractor');
   await H.nav(page, 'home');
   const ptab = page.locator('[data-ctab="payments"]'); if (await ptab.count()) await ptab.first().click(); await page.waitForTimeout(200);
   await page.click('#ct-new'); await page.waitForSelector('#sb-title', { timeout: 4000 });
   await page.fill('#sb-title', 'مستخلص إنجاز معماري 100% — ' + target.floor);
   if (await page.locator('#sb-amount').count()) await page.fill('#sb-amount', '950000');
-  const sel0 = await page.$('#sb-lines [data-lf="boqItemId"]');
-  const opts = await sel0.$$eval('option', os => os.map((o, i) => ({ i, t: o.textContent })));
-  const idx = opts.filter(o => o.t.includes(' — ' + target.floor + ' (')).map(o => o.i).slice(0, 6);
-  async function setLine(row, opt) { const rows = await page.$$('#sb-lines > div'); const r = rows[row]; if (!r) return; await (await r.$('[data-lf="boqItemId"]')).selectOption({ index: opt }); await (await r.$('[data-lf="progress"]')).fill('100'); }
-  for (let k = 0; k < idx.length; k++) { if (k > 0) await page.click('#sb-addline'); await page.waitForTimeout(60); await setLine(k, idx[k]); }
+  // القائمة الكاملة الجديدة لاختيار بنود المستخلص: اضغط "+ إضافة" على كل بند مستهدَف، ثم أدخل 100% في حقله
+  for (const item of targetItems) {
+    const addBtn = page.locator('[data-boq-add="' + item.id + '"]');
+    if (await addBtn.count()) await addBtn.first().click();
+    const pctInp = page.locator('[data-boq-pct="' + item.id + '"]');
+    if (await pctInp.count()) await pctInp.fill('100');
+  }
   if (await page.locator('#sb-file').count()) await page.setInputFiles('#sb-file', H.file('IPC-' + target.floor + '.pdf'));
   await page.click('#sb-ok'); await page.waitForTimeout(500);
   const payId = await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('bassir-demo-db')); return d.payments[d.payments.length - 1].id; });
 
-  // consultant approves that specific payment
+  // الاستشاري يعتمد هذا المستخلص تحديداً
   await H.login(page, 'consultant');
   await H.nav(page, 'submittals');
   await page.locator('.tabbar .tab', { hasText: 'بانتظار قراري' }).first().click(); await page.waitForTimeout(300);
@@ -65,7 +104,7 @@ const H = require('./_harness');
   R.brightnessIncreased = after.brightSum > before.brightSum;
   console.log(JSON.stringify(R, null, 2));
   await browser.close();
-  const ok = approved && R.brightnessIncreased && errors.length === 0;
-  console.log(ok ? 'RESULT: PASS (dark→bright works)' : 'RESULT: FAIL');
+  const ok = approved && R.brightnessIncreased && R.stage2Approved === R.stage1Items && errors.length === 0;
+  console.log(ok ? 'RESULT: PASS (dark→bright works through the full three-stage pipeline)' : 'RESULT: FAIL');
   process.exit(ok ? 0 : 1);
 })().catch(e => { console.error('HARNESS FAIL', e); process.exit(1); });
