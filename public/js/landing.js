@@ -96,7 +96,7 @@ back.innerHTML =
   '<p style="color:var(--muted);margin:0 0 6px">أهلاً بك في بصير، <b>' + (t.companyName || '') + '</b>.</p>' +
   '<p style="margin:0 0 4px">اشتراكك: <b class="num">' + fmt(amount) + ' ر.س</b> / شهر لـ <b class="num">' + (t.projectCount || 1) + '</b> مشروع.</p>' +
   '<p style="color:var(--muted);font-size:13px">صدرت فاتورة مدفوعة' + (t.cardLast4 ? ' على بطاقة تنتهي بـ <b class="num">' + t.cardLast4 + '</b>' : '') + '.</p>' +
-  '<a class="btn primary lg" href="/" style="width:100%;justify-content:center;margin-top:12px">ادخل إلى لوحتك الآن</a>' +
+  '<a class="btn primary lg" href="/app" style="width:100%;justify-content:center;margin-top:12px">ادخل إلى لوحتك الآن</a>' +
   '<button class="btn ghost" id="m-close" style="margin-top:10px">إغلاق</button>' +
   '</div>';
 document.body.appendChild(back);

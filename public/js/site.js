@@ -100,7 +100,7 @@
       // خزّن الجلسة بنفس مفاتيح التطبيق ثم انتقل مباشرةً للوحة المنصّة
       try { if (data.token) sessionStorage.setItem('bassir-token', data.token); } catch (e) {}
       try { sessionStorage.setItem('bassir-user', JSON.stringify(data.user)); } catch (e) {}
-      window.location.href = '/#biz-overview';
+      window.location.href = '/app#biz-overview';
     } catch (e) {
       err.textContent = '⚠️ ' + (e.message || 'تعذّر الدخول.'); err.style.display = 'block';
       btn.disabled = false; btn.textContent = old;
