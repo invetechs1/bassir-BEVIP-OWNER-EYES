@@ -1,6 +1,26 @@
 (function () {
 'use strict';
 var PRICE = 2000;
+var LANG = (document.documentElement.lang === 'en') ? 'en' : 'ar';
+var CUR = LANG === 'en' ? ' SAR' : ' ر.س';
+var TT = {
+  cardName:{ar:'الاسم على البطاقة',en:'Name on card'},
+  paying:{ar:'⏳ جارٍ الدفع والتفعيل…',en:'⏳ Processing payment…'},
+  needCompany:{ar:'أدخل اسم الشركة.',en:'Please enter the company name.'},
+  needEmail:{ar:'أدخل البريد الإلكتروني.',en:'Please enter your email.'},
+  badCard:{ar:'أدخل رقم بطاقة صحيح (جرّب 4111 1111 1111 1111).',en:'Enter a valid card number (try 4111 1111 1111 1111).'},
+  payFail:{ar:'تعذّر إتمام العملية.',en:'Could not complete the operation.'},
+  activated:{ar:'تم تفعيل حسابك!',en:'Your account is activated!'},
+  welcome:{ar:'أهلاً بك في بصير،',en:'Welcome to Bassir,'},
+  subIs:{ar:'اشتراكك:',en:'Your subscription:'},
+  perMonthFor:{ar:' / شهر لـ ',en:' / month for '},
+  projectsWord:{ar:' مشروع.',en:' project(s).'},
+  paidInvoice:{ar:'صدرت فاتورة مدفوعة',en:'A paid invoice was issued'},
+  cardEnding:{ar:' على بطاقة تنتهي بـ ',en:' on a card ending in '},
+  enterDash:{ar:'ادخل إلى لوحتك الآن',en:'Enter your dashboard now'},
+  close:{ar:'إغلاق',en:'Close'}
+};
+function tr(k){ return (TT[k]&&TT[k][LANG])||(TT[k]&&TT[k].ar)||k; }
 
 // ====== طبقة اتصال: الخادم الحقيقي إن وُجد، وإلا نواة داخل المتصفح ======
 var _core = null;
@@ -74,7 +94,7 @@ var d = cNum.value.replace(/\D/g, '').slice(0, 16);
 cNum.value = d.replace(/(.{4})/g, '$1 ').trim();
 document.getElementById('cf-num').textContent = (cNum.value || '•••• •••• •••• ••••').padEnd(19, '•');
 };
-cName.oninput = function () { document.getElementById('cf-name').textContent = cName.value.toUpperCase() || 'الاسم على البطاقة'; };
+cName.oninput = function () { document.getElementById('cf-name').textContent = cName.value.toUpperCase() || tr('cardName'); };
 cExp.oninput = function () {
 var d = cExp.value.replace(/\D/g, '').slice(0, 4);
 if (d.length >= 3) d = d.slice(0, 2) + '/' + d.slice(2);
@@ -92,12 +112,12 @@ back.className = 'modal-back';
 back.innerHTML =
   '<div class="modal">' +
   '<div class="big">🎉</div>' +
-  '<h2 style="margin:0 0 6px">تم تفعيل حسابك!</h2>' +
-  '<p style="color:var(--muted);margin:0 0 6px">أهلاً بك في بصير، <b>' + (t.companyName || '') + '</b>.</p>' +
-  '<p style="margin:0 0 4px">اشتراكك: <b class="num">' + fmt(amount) + ' ر.س</b> / شهر لـ <b class="num">' + (t.projectCount || 1) + '</b> مشروع.</p>' +
-  '<p style="color:var(--muted);font-size:13px">صدرت فاتورة مدفوعة' + (t.cardLast4 ? ' على بطاقة تنتهي بـ <b class="num">' + t.cardLast4 + '</b>' : '') + '.</p>' +
-  '<a class="btn primary lg" href="/app" style="width:100%;justify-content:center;margin-top:12px">ادخل إلى لوحتك الآن</a>' +
-  '<button class="btn ghost" id="m-close" style="margin-top:10px">إغلاق</button>' +
+  '<h2 style="margin:0 0 6px">' + tr('activated') + '</h2>' +
+  '<p style="color:var(--muted);margin:0 0 6px">' + tr('welcome') + ' <b>' + (t.companyName || '') + '</b>.</p>' +
+  '<p style="margin:0 0 4px">' + tr('subIs') + ' <b class="num">' + fmt(amount) + CUR + '</b>' + tr('perMonthFor') + '<b class="num">' + (t.projectCount || 1) + '</b>' + tr('projectsWord') + '</p>' +
+  '<p style="color:var(--muted);font-size:13px">' + tr('paidInvoice') + (t.cardLast4 ? tr('cardEnding') + '<b class="num">' + t.cardLast4 + '</b>' : '') + '.</p>' +
+  '<a class="btn primary lg" href="/app" style="width:100%;justify-content:center;margin-top:12px">' + tr('enterDash') + '</a>' +
+  '<button class="btn ghost" id="m-close" style="margin-top:10px">' + tr('close') + '</button>' +
   '</div>';
 document.body.appendChild(back);
 back.querySelector('#m-close').onclick = function () { back.remove(); };
@@ -109,12 +129,12 @@ ev.preventDefault();
 hideErr();
 var company = document.getElementById('f-company').value.trim();
 var email = document.getElementById('f-email').value.trim();
-if (!company) { showErr('أدخل اسم الشركة.'); return; }
-if (!email) { showErr('أدخل البريد الإلكتروني.'); return; }
+if (!company) { showErr(tr('needCompany')); return; }
+if (!email) { showErr(tr('needEmail')); return; }
 var cardNum = cNum.value.replace(/\D/g, '');
-if (cardNum.length < 12) { showErr('أدخل رقم بطاقة صحيح (جرّب 4111 1111 1111 1111).'); return; }
+if (cardNum.length < 12) { showErr(tr('badCard')); return; }
 var btn = document.getElementById('pay-btn');
-btn.disabled = true; var old = btn.innerHTML; btn.innerHTML = '⏳ جارٍ الدفع والتفعيل…';
+btn.disabled = true; var old = btn.innerHTML; btn.innerHTML = tr('paying');
 try {
   var payload = {
     companyName: company,
@@ -128,7 +148,7 @@ try {
   var res = await apiCall('/api/platform/subscribe', payload);
   successModal(res);
 } catch (e) {
-  showErr(e.message || 'تعذّر إتمام العملية.');
+  showErr(e.message || tr('payFail'));
 } finally {
   btn.disabled = false; btn.innerHTML = old;
 }
@@ -149,11 +169,11 @@ var s1 = v * 0.03, s2 = v * 0.015, s3 = v * 0.005;
 var totalPer = s1 + s2 + s3;
 var total = totalPer * n;
 var cost = n * PRICE * 12;
-document.getElementById('roi-s1').textContent = fmt(Math.round(s1 * n)) + ' ر.س';
-document.getElementById('roi-s2').textContent = fmt(Math.round(s2 * n)) + ' ر.س';
-document.getElementById('roi-s3').textContent = fmt(Math.round(s3 * n)) + ' ر.س';
-document.getElementById('roi-total').textContent = fmt(Math.round(total)) + ' ر.س';
-document.getElementById('roi-cost').textContent = fmt(cost) + ' ر.س';
+document.getElementById('roi-s1').textContent = fmt(Math.round(s1 * n)) + CUR;
+document.getElementById('roi-s2').textContent = fmt(Math.round(s2 * n)) + CUR;
+document.getElementById('roi-s3').textContent = fmt(Math.round(s3 * n)) + CUR;
+document.getElementById('roi-total').textContent = fmt(Math.round(total)) + CUR;
+document.getElementById('roi-cost').textContent = fmt(cost) + CUR;
 document.getElementById('roi-x').textContent = cost ? Math.round(total / cost) : '—';
 }
 document.getElementById('roi-plus').onclick = function () { rCount.value = clampCount(rCount.value) + 1; calcRoi(); };

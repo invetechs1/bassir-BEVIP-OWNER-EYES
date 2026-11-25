@@ -1251,7 +1251,7 @@
       // زر العرض السريع يفتح نفس ملف النموذج المسجّل في السجل أدناه — نجد معرّفه الحقيقي
       // ليعمل الربط ببنود الكميات هنا أيضاً، لا فقط عبر زر "3D" داخل السجل
       const registered = (ctx.S.bimModels || []).find(function (mm) { return mm.url === '/vendor/bim/BassirTower.ifc'; });
-      open3d({ title: 'برج بصير التجاري — نموذج BIM ثلاثي الأبعاد', url: '/vendor/bim/BassirTower.ifc', ctx: ctx, modelId: registered ? registered.id : null, canMap: canMapBim });
+      open3d({ title: (I18n.getLang() === 'en' ? 'Bassir Commercial Tower — 3D BIM Model' : 'برج بصير التجاري — نموذج BIM ثلاثي الأبعاد'), url: '/vendor/bim/BassirTower.ifc', ctx: ctx, modelId: registered ? registered.id : null, canMap: canMapBim });
     });
     el.querySelectorAll('[data-bim3d]').forEach(function (b) {
       b.addEventListener('click', function () {
