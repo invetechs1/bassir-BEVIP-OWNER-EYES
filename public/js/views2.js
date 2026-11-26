@@ -913,7 +913,7 @@
           '<td class="small">' + (acc ? '👤 <b class="num">' + esc(acc.username) + '</b>' : '<span class="muted">' + I18n.t('بلا حساب') + '</span>') + '</td>' +
           '<td class="flex" style="gap:4px;flex-wrap:nowrap">' +
           '<button class="btn ghost sm" data-edit-c="' + esc(s.id) + '">✏️ ' + I18n.t('تعديل') + '</button>' +
-          (ctx.U.role === 'admin' ? '<button class="btn danger sm" data-del-c="' + esc(s.id) + '">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
+          (['admin', 'consultant', 'project_manager'].indexOf(ctx.U.role) !== -1 ? '<button class="btn danger sm" data-del-c="' + esc(s.id) + '">🗑️ ' + I18n.t('حذف') + '</button>' : '') +
           '</td></tr>';
       }).join('') + '</tbody></table></div></div>' +
 
