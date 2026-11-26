@@ -2161,9 +2161,9 @@
       btn.disabled = false;
     }
     const wPdf = el.querySelector('#rp-pdf-weekly');
-    if (wPdf) wPdf.addEventListener('click', function () { downloadPdf(wPdf, '/api/actions/progress-report?period=weekly&lang=' + I18n.getLang(), 'Weekly-Report.pdf'); });
+    if (wPdf) wPdf.addEventListener('click', function () { downloadPdf(wPdf, '/api/actions/progress-report?period=weekly&lang=' + I18n.getLang() + '&projectId=' + encodeURIComponent(ctx.projectId || ''), 'Weekly-Report.pdf'); });
     const mPdf = el.querySelector('#rp-pdf-monthly');
-    if (mPdf) mPdf.addEventListener('click', function () { downloadPdf(mPdf, '/api/actions/progress-report?period=monthly&lang=' + I18n.getLang(), 'Monthly-Report.pdf'); });
+    if (mPdf) mPdf.addEventListener('click', function () { downloadPdf(mPdf, '/api/actions/progress-report?period=monthly&lang=' + I18n.getLang() + '&projectId=' + encodeURIComponent(ctx.projectId || ''), 'Monthly-Report.pdf'); });
   }
 
   const DEFAULT_THRESHOLDS = { slaReviewDays: 7, warrantyWarnDays: 90, contractorDelayPct: 3, progressAmberPct: 10, healthAlertGrade: 'C' };

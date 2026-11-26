@@ -8,10 +8,15 @@ function contractorName(db, id) {
   return c ? c.name : (id || '—');
 }
 
-/** تقرير تقدّم دوري (أسبوعي/شهري) — جاهز للإرسال بضغطة واحدة */
-function buildProgressReport(db, lang, period) {
+/** تقرير تقدّم دوري (أسبوعي/شهري) — جاهز للإرسال بضغطة واحدة.
+ *  state: نتيجة core.getState(user) — نطاقها مقيَّد أصلاً بمشاريع هذا المستخدم ومحسوبة حيّاً
+ *  (تقدّم/تكلفة)، لا db الخام مباشرة — فلا يُستبعَد مقاولون/تنبيهات مشروع آخر، ولا يُعرَض لمستخدم
+ *  مُقيَّد تقرير عن مشروع خارج نطاقه أصلاً (يستحيل أن يظهر في state.projects من الأساس).
+ *  projectId: المشروع المطلوب تحديداً (افتراضياً أول مشروع ضمن نطاق المستخدم) */
+function buildProgressReport(state, lang, period, projectId) {
   const isAr = lang !== 'en';
-  const P = db.projects[0] || {};
+  const projects = state.projects || [];
+  const P = (projectId && projects.find(function (p) { return p.id === projectId; })) || projects[0] || {};
   const r = createReport({ lang: lang });
   const periodLabel = period === 'monthly' ? (isAr ? 'التقرير الشهري' : 'Monthly Report') : (isAr ? 'التقرير الأسبوعي' : 'Weekly Report');
 
@@ -30,8 +35,8 @@ function buildProgressReport(db, lang, period) {
   r.row(isAr ? 'التسليم المتوقع' : 'Forecast Completion', P.endForecast || '—');
 
   r.section(isAr ? 'أداء المقاولين' : 'Contractor Performance');
-  const boq = db.boqItems || [];
-  const rows = (db.contractors || []).map(function (c) {
+  const boq = state.boqItems || [];
+  const rows = (state.contractors || []).filter(function (c) { return c.projectId === P.id; }).map(function (c) {
     const items = boq.filter(function (b) { return b.contractorId === c.id; });
     let earned = 0, total = 0;
     items.forEach(function (b) { const v = b.qty * b.unitPrice; total += v; earned += v * (b.progress / 100); });
@@ -52,7 +57,7 @@ function buildProgressReport(db, lang, period) {
   }
 
   r.section(isAr ? 'ملاحظات وتنبيهات' : 'Notes & Alerts');
-  const alerts = (db.aiInsights || []).filter(function (a) { return a.severity !== 'ok'; }).slice(0, 8);
+  const alerts = (state.aiInsights || []).filter(function (a) { return a.projectId === P.id && a.severity !== 'ok'; }).slice(0, 8);
   if (alerts.length) {
     alerts.forEach(function (a) { r.paragraph('• ' + (a.note || a.area || '')); });
   } else {
@@ -63,11 +68,12 @@ function buildProgressReport(db, lang, period) {
   return r.doc;
 }
 
-/** تقرير حادث/تنبيه واحد قابل للأرشفة والطباعة — من رؤى بصير الذكية (كاميرات/صور) */
-function buildIncidentReport(db, insight, lang) {
+/** تقرير حادث/تنبيه واحد قابل للأرشفة والطباعة — من رؤى بصير الذكية (كاميرات/صور).
+ *  state: نتيجة core.getState(user) — نفس مبدأ buildProgressReport أعلاه */
+function buildIncidentReport(state, insight, lang) {
   const isAr = lang !== 'en';
-  const P = db.projects[0] || {};
-  const assignee = insight.assignedTo ? contractorName(db, insight.assignedTo) : (isAr ? 'غير مُسندة' : 'Unassigned');
+  const P = (state.projects || []).find(function (p) { return p.id === insight.projectId; }) || (state.projects || [])[0] || {};
+  const assignee = insight.assignedTo ? contractorName(state, insight.assignedTo) : (isAr ? 'غير مُسندة' : 'Unassigned');
   const severityLabel = { alert: isAr ? 'حرج 🚨' : 'Critical 🚨', warn: isAr ? 'تنبيه ⚠️' : 'Warning ⚠️', ok: isAr ? 'سليم ✅' : 'OK ✅' }[insight.severity] || (insight.severity || '—');
   const sourceLabel = { camera: isAr ? 'كاميرات الموقع' : 'Site Cameras', photos: isAr ? 'تحليل الصور' : 'Photo Analysis' }[insight.source] || (insight.source || '—');
 

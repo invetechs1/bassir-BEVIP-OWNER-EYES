@@ -1,32 +1,40 @@
 /**
  * بصير | توليد تقارير PDF ثنائية اللغة (عربي RTL / إنجليزي LTR) — PDFKit بلا متصفح.
  *
- * ملاحظة فنية مهمة: PDFKit يرسم كل نص من اليسار لليمين حرفاً حرفاً بغض النظر عن اتجاه اللغة،
- * ولا يدعم تشكيل الحروف العربية (Shaping) أو ترتيب BiDi تلقائياً. الحل المتَّبع هنا:
- * - كل "جزء" عربي بحت (run) يُشكَّل بمكتبة arabic-reshaper ثم تُعكس حروفه فقط هو (لأن ما يُرسم
- *   أولاً من اليسار يجب أن يكون آخر ما يُقرأ من اليمين).
- * - أي جزء غير عربي (أرقام، %، أقواس، إنجليزي) يبقى بترتيبه الطبيعي دون أي عكس — فلا تنقلب
- *   "94%" إلى "%49" حين تكون مُضمَّنة داخل جملة عربية.
- * - الالتفاف لأكثر من سطر يتم يدوياً على مستوى الكلمات (بالعرض الفعلي المقيس لكل كلمة) قبل
- *   التشكيل والعكس، ثم يُشكَّل/يُعكس كل سطر مكتمل على حدة ويُرسم في مكانه — بخلاف الاعتماد على
- *   التفاف PDFKit التلقائي لنص مُشكَّل ومعكوس سلفاً بالكامل، وهو ما كان يُنتج نصاً مبعثراً تماماً
- *   حال تجاوز الفقرة سطراً واحداً (لأن نقاط فصل الأسطر التلقائية تقع في مواضع خاطئة من نص معكوس).
+ * ملاحظة فنية مهمة (اكتُشفت بعد تجربة مباشرة، تُنقض الافتراض الذي اعتُمد سابقاً في هذا الملف):
+ * PDFKit (عبر محرك fontkit الذي يرسم النص فعلياً) **يُشكِّل الحروف العربية تلقائياً بشكل صحيح**
+ * (يصل كل حرف بجاره حسب موقعه في الكلمة) عند تمرير نص عربي خام غير معدَّل إطلاقاً — تأكَّد هذا
+ * عملياً بمقارنة نص خام عبر doc.text() مباشرة (يظهر متصلاً وصحيحاً تماماً) مقابل نفس النص بعد
+ * تمريره على مكتبة arabic-reshaper ثم عكس ترتيب حروفه (كانت هذه هي الطريقة المُتَّبعة سابقاً هنا) —
+ * فالثاني يُنتج حروفاً منفصلة/مكسورة بصرياً، لأن أشكال العرض الجاهزة (Presentation Forms) التي
+ * تُنتجها arabic-reshaper لا تتصل مع بعضها بنفس جودة التشكيل الموضعي (Contextual Shaping) الذي
+ * يؤديه fontkit تلقائياً من حروف Unicode الأساسية عبر جداول OpenType الخاصة بالخط نفسه.
+ *
+ * ما لا يزال PDFKit لا يفعله تلقائياً هو ترتيب BiDi على مستوى الكلمات/الأسطر (عكس اتجاه القراءة)،
+ * وله أخطاء حقيقية خاصة به عند خلط عربي/إنجليزي في نفس السطر (مسافات تُفقَد عند حدود الاتجاه،
+ * وأسطر أساسها إنجليزي يُعاد ترتيبها بالكامل خطأً بدل عزل العبارة العربية المُضمَّنة فقط). لذلك:
+ * - كل "كلمة" (مفصولة بمسافة) تُرسَم بنصها الخام دون أي تعديل لحروفها — fontkit يتولى التشكيل.
+ * - ترتيب **الكلمات** هو ما نتحكم فيه يدوياً حسب اتجاه السطر (عكس كامل لسطر عربي، أو عزل العبارات
+ *   العربية المتجاورة فقط ضمن سطر أساسه إنجليزي) — تفصيل كافٍ وبسيط يتفادى خلل PDFKit الخاص بذلك.
+ * - الالتفاف لأكثر من سطر يتم يدوياً على مستوى الكلمات (بالعرض الفعلي المقيس لكل كلمة) قبل الرسم،
+ *   ثم يُرسَم كل سطر مكتمل في مكانه بترتيب كلماته الصحيح — بخلاف ترك PDFKit يلف نصاً مُعاد ترتيبه
+ *   مسبقاً بالكامل، وهو ما كان يُنتج نصاً مبعثراً عند تجاوز الفقرة سطراً واحداً.
  */
 'use strict';
 
 const PDFDocument = require('pdfkit');
-const reshaper = require('arabic-reshaper');
 const path = require('path');
 
 const FONT_AR = path.join(__dirname, 'fonts', 'NotoNaskhArabic-Regular.ttf');
 const FONT_EN = path.join(__dirname, 'fonts', 'NotoSans-Regular.ttf');
 
 // نطاقات يونيكود للحروف العربية (عربي أساسي + ملحقات + أشكال عرض) — أي شيء خارجها (أرقام،
-// إنجليزي، علامات ترقيم، %، أقواس، مسافات) يُعامَل كجزء "غير عربي" فلا يُعكس اتجاهه أبداً
+// إنجليزي، علامات ترقيم، %، أقواس، مسافات) يُعامَل كجزء "غير عربي"
 const AR_RANGE = '\\u0600-\\u06FF\\u0750-\\u077F\\u08A0-\\u08FF\\uFB50-\\uFDFF\\uFE70-\\uFEFF';
 const RUN_RE = new RegExp('([' + AR_RANGE + ']+)|([^' + AR_RANGE + ']+)', 'g');
 
-/** يقسّم نصاً مختلطاً إلى أجزاء متتالية: عربي بحت أو غير عربي بحت، كلٌّ بعلم ar */
+/** يقسّم نصاً مختلطاً إلى أجزاء متتالية: عربي بحت أو غير عربي بحت، كلٌّ بعلم ar — تُستخدم فقط
+ *  لاختيار الخط الصحيح لكل جزء (لا لأي تعديل على الحروف نفسها، تبقى كما هي دوماً) */
 function splitRuns(s) {
   const runs = [];
   let m;
@@ -36,19 +44,6 @@ function splitRuns(s) {
     else if (m[2]) runs.push({ text: m[2], ar: false });
   }
   return runs;
-}
-
-/** يُشكِّل جزءاً عربياً بحتاً ويعكس ترتيب حروفه؛ الأجزاء غير العربية تمر دون أي تعديل */
-function shapeRun(run) {
-  return run.ar ? reshaper.convertArabic(run.text).split('').reverse().join('') : run.text;
-}
-
-/** يُشكِّل نصاً عربياً بحتاً بالكامل ويعكس ترتيب حروفه — صالح فقط كأداة عامة لسطر واحد قصير بلا
- *  أرقام مُضمَّنة ولا التفاف؛ الرسم الفعلي لكل نصوص التقرير يمر عبر drawParagraph/drawLine أدناه */
-function ar(text) {
-  const s = String(text == null ? '' : text);
-  if (!s) return s;
-  return reshaper.convertArabic(s).split('').reverse().join('');
 }
 
 const PAGE_MARGIN = 50;
@@ -65,23 +60,23 @@ function createReport(opts) {
 
   doc.font(bodyFont);
 
-  function t(text) { return isAr ? ar(text) : String(text == null ? '' : text); }
+  function t(text) { return String(text == null ? '' : text); }
 
   function ensureSpace(h) {
     // هامش أمان إضافي (10) لأن heightOfString تقديرية وقد تختلف قليلاً عن الارتفاع الفعلي عند الرسم
     if (doc.y + h > doc.page.height - PAGE_MARGIN - 10) doc.addPage();
   }
 
-  /** عرض كلمة واحدة (قد تحوي أجزاءً مختلطة، مثل "6%" ملتصقة بنص عربي) بجمع عرض كل أجزائها */
+  /** عرض كلمة واحدة (قد تحوي أجزاءً مختلطة، مثل "6%" ملتصقة بنص عربي) بجمع عرض كل أجزائها بخطها الصحيح */
   function wordWidth(word, size) {
     return splitRuns(word).reduce(function (w, run) {
-      doc.font(run.ar ? bodyFont : FONT_EN).fontSize(size);
-      return w + doc.widthOfString(shapeRun(run));
+      doc.font(run.ar ? FONT_AR : FONT_EN).fontSize(size);
+      return w + doc.widthOfString(run.text);
     }, 0);
   }
 
-  /** يلف نصاً (بترتيبه المنطقي الأصلي، قبل أي تشكيل أو عكس) إلى أسطر لا تتجاوز maxWidth،
-   *  بالقياس الفعلي لعرض كل كلمة بخطها الصحيح — كل عنصر في الناتج مصفوفة كلمات سطر واحد */
+  /** يلف نصاً (بترتيبه المنطقي الأصلي) إلى أسطر لا تتجاوز maxWidth، بالعرض الفعلي المقيس لكل
+   *  كلمة بخطها الصحيح — كل عنصر في الناتج مصفوفة كلمات سطر واحد */
   function wrapWords(text, maxWidth, size) {
     const words = String(text == null ? '' : text).split(/\s+/).filter(Boolean);
     if (!words.length) return [];
@@ -99,8 +94,24 @@ function createReport(opts) {
     return lines;
   }
 
-  /** يرسم سطراً واحداً مكتملاً (مصفوفة كلمات بترتيبها المنطقي) بالاتجاه الصحيح: عند lineAlign='right'
-   *  تُعكس الكلمات، وكل كلمة تُشكَّل/تُعكس جزئياً حسب أجزائها (عربي يُعكس، أرقام/رموز تبقى كما هي) */
+  /** هل غالب حروف هذه الكلمة عربية؟ يُستخدم لتحديد اتجاهها ضمن سطر أساسه إنجليزي */
+  function isArabicWord(w) {
+    const ar = (w.match(/[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/g) || []).length;
+    return ar > w.length / 2;
+  }
+  /** هل تحوي هذه الكلمة حرفاً لاتينياً حقيقياً؟ (لا رقماً/رمزاً فقط) */
+  function hasLatinLetter(w) { return /[A-Za-z]/.test(w); }
+  /** رابط محايد (شرطة/فاصلة) لا يحمل اتجاهاً خاصاً به — إن وقع بين كلمتين عربيتين (مثل
+   *  "الرياض - حي الياسمين") يُعامَل كجزء من نفس العبارة العربية المتجاورة لا كفاصل يقطعها */
+  function isNeutralConnector(w) { return /^[-–—,،]+$/.test(w); }
+
+  /** يرسم سطراً واحداً مكتملاً (مصفوفة كلمات بترتيبها المنطقي) بالاتجاه الصحيح. الاتجاه الفعلي
+   *  للسطر يُقرَّر من محتواه لا من لغة التقرير فقط: lineAlign='right' دائماً RTL كاملاً (تُعكس كل
+   *  الكلمات)؛ وعند lineAlign='left' فإن لم يحوِ السطر ولو كلمة إنجليزية حقيقية (ملاحظة/نص لم
+   *  يُترجَم ظهر كاملاً داخل تقرير إنجليزي) يُعامَل أيضاً كسطر RTL كامل رغم محاذاته اليسرى، وإلا
+   *  (نص إنجليزي أساساً مع اسم عربي قصير مُضمَّن) تُعكَس فقط كل عبارة عربية متجاورة مع إبقائها في
+   *  موضعها — بديل بسيط وكافٍ هنا عن خوارزمية BiDi الكاملة. كل كلمة تُرسَم بنصها الخام دون أي
+   *  تعديل لحروفها — fontkit يتولى تشكيل الاتصال بين الحروف تلقائياً وبشكل صحيح */
   function drawLine(words, x, y, maxWidth, size, color, lineAlign) {
     doc.font(FONT_EN).fontSize(size);
     const spaceW = doc.widthOfString(' ');
@@ -109,28 +120,45 @@ function createReport(opts) {
     let curX = lineAlign === 'right' ? (x + maxWidth - total)
       : lineAlign === 'center' ? (x + (maxWidth - total) / 2)
         : x;
-    const ordered = lineAlign === 'right' ? words.slice().reverse() : words;
+    const lineIsRtl = lineAlign === 'right' || !words.some(hasLatinLetter);
+    let ordered;
+    if (lineIsRtl) {
+      ordered = words.slice().reverse();
+    } else {
+      ordered = [];
+      let i = 0;
+      while (i < words.length) {
+        if (isArabicWord(words[i])) {
+          let j = i;
+          while (j < words.length) {
+            if (isArabicWord(words[j])) { j++; continue; }
+            if (isNeutralConnector(words[j]) && j + 1 < words.length && isArabicWord(words[j + 1])) { j++; continue; }
+            break;
+          }
+          ordered = ordered.concat(words.slice(i, j).reverse());
+          i = j;
+        } else {
+          ordered.push(words[i]);
+          i++;
+        }
+      }
+    }
     ordered.forEach(function (word, wi) {
       splitRuns(word).forEach(function (run) {
-        const shaped = shapeRun(run);
-        doc.font(run.ar ? bodyFont : FONT_EN).fontSize(size).fillColor(color || '#000');
-        doc.text(shaped, curX, y, { lineBreak: false });
-        curX += doc.widthOfString(shaped);
+        doc.font(run.ar ? FONT_AR : FONT_EN).fontSize(size).fillColor(color || '#000');
+        doc.text(run.text, curX, y, { lineBreak: false });
+        curX += doc.widthOfString(run.text);
       });
       if (wi < ordered.length - 1) curX += spaceW;
     });
     doc.fillColor('#000');
   }
 
-  /** يرسم نصاً مع التفاف صحيح للأسطر الطويلة واتجاه سليم للأرقام/الرموز المُضمَّنة داخله —
-   *  البديل الآمن عن doc.text(t(text), ...) المباشر. يُعيد الـ y بعد آخر سطر مرسوم */
+  /** يرسم نصاً مع التفاف صحيح للأسطر الطويلة واتجاه سليم للكلمات العربية/الأرقام المُضمَّنة داخله —
+   *  البديل الآمن عن doc.text(text, ...) المباشر عند الحاجة لالتفاف صحيح لأكثر من سطر عربي.
+   *  يُعيد الـ y بعد آخر سطر مرسوم. يعمل بنفس الآلية في التقريرين العربي والإنجليزي معاً — فبيانات
+   *  حقيقية (اسم مشروع، مقاول، ملاحظات) قد تبقى عربية بحتة حتى داخل تقرير "إنجليزي" إن لم تُترجَم */
   function drawParagraph(text, x, startY, maxWidth, size, color, lineAlign) {
-    if (!isAr) {
-      doc.font(FONT_EN).fontSize(size).fillColor(color || '#000');
-      doc.text(String(text == null ? '' : text), x, startY, { width: maxWidth, align: lineAlign === 'right' ? 'right' : (lineAlign === 'center' ? 'center' : 'left') });
-      doc.fillColor('#000');
-      return doc.y;
-    }
     const lines = wrapWords(text, maxWidth, size);
     const lineH = size * 1.3;
     let y = startY;
@@ -162,14 +190,14 @@ function createReport(opts) {
     doc.moveTo(PAGE_MARGIN, ly).lineTo(PAGE_MARGIN + W, ly).strokeColor('#ccc').stroke();
     doc.moveDown(0.5);
   }
-  /** سطر "تسمية: قيمة" — التسمية بلغة التقرير (مُشكَّلة إن عربية)، والقيمة (رقم/تاريخ/كود) دون تعديل
-   *  بعمود منفصل. بعض القيم الفعلية (اسم المشروع، الموقع، اسم المقاول...) نص عربي بحت لا رمز/رقم
-   *  خام — فتُكتشف تلقائياً وتُرسم كسطر عربي واحد "تسمية: قيمة" بدل عمود FONT_EN الخام الذي كان
-   *  يعرضها حروفاً مفقودة/غير مُشكَّلة لأنه صُمِّم لقيم غير عربية فقط */
+  /** سطر "تسمية: قيمة" — التسمية بلغة التقرير، والقيمة (رقم/تاريخ/كود) دون تعديل بعمود منفصل.
+   *  بعض القيم الفعلية (اسم المشروع، الموقع، اسم المقاول...) نص عربي بحت لا رمز/رقم خام — في تقرير
+   *  عربي أو إنجليزي على حدٍّ سواء (بيانات غير مُترجَمة) — فتُكتشف تلقائياً وتُرسم كسطر واحد
+   *  "تسمية: قيمة" بدل عمود FONT_EN الخام المخصَّص لقيم غير عربية فقط */
   function row(label, value) {
     ensureSpace(20);
     const v = value == null || value === '' ? '—' : String(value);
-    if (isAr && splitRuns(v).some(function (r) { return r.ar; })) {
+    if (splitRuns(v).some(function (r) { return r.ar; })) {
       drawParagraph(label + ': ' + v, PAGE_MARGIN, doc.y, W, 10.5, '#444', align);
       doc.moveDown(0.55);
       return;
@@ -194,8 +222,8 @@ function createReport(opts) {
     doc.text((done ? '[x] ' : '[ ] ') + (hint || ''), PAGE_MARGIN, y, { width: W, align: valueAlign });
     doc.moveDown(0.5);
   }
-  /** جدول بسيط بأعمدة ثابتة العرض؛ كل خلية إما نص عربي بحت/مختلط يُشكَّل بالتفاف صحيح، أو رقم/رمز
-   *  خام حسب raw (العناوين تُشكَّل دوماً بلغة التقرير) */
+  /** جدول بسيط بأعمدة ثابتة العرض؛ كل خلية إما نص عربي بحت/مختلط يُلتف بشكل صحيح، أو رقم/رمز
+   *  خام حسب raw (العناوين تُرسم دوماً بآلية الالتفاف نفسها) */
   function table(cols, rows) {
     ensureSpace(30);
     const colW = cols.map(function (c) { return c.width || (W / cols.length); });
@@ -248,4 +276,4 @@ function createReport(opts) {
   };
 }
 
-module.exports = { createReport: createReport, ar: ar };
+module.exports = { createReport: createReport };

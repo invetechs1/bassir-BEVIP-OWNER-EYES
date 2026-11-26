@@ -626,13 +626,21 @@ const server = http.createServer(async function (req, res) {
       return json(res, 200, core.sendReport(user, body));
     }
 
-    // تقارير PDF ثنائية اللغة — تُبنى من بيانات الخادم الحقيقية مباشرة (لا تعمل في وضع الديمو بالمتصفح)
+    // تقارير PDF ثنائية اللغة — تُبنى من حالة المستخدم المُقيَّدة بنطاق مشاريعه (core.getState)، لا
+    // db الخام مباشرة — فيستحيل بنيوياً أن يُولَّد تقرير عن مشروع خارج نطاق مُصدِره، ولا يختلط
+    // مقاولو/تنبيهات مشروع آخر (مثل مشاريع العرض التجريبي P1/P2) بتقرير المشروع الحقيقي
     if (u === '/api/actions/progress-report' && req.method === 'GET') {
       if (['admin', 'consultant', 'owner', 'owner_rep'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
       const qs = new URL(req.url, 'http://x').searchParams;
       const lang = qs.get('lang') === 'en' ? 'en' : 'ar';
       const period = qs.get('period') === 'monthly' ? 'monthly' : 'weekly';
-      const pdfDoc = reportsModule.buildProgressReport(db, lang, period);
+      const state = core.getState(user);
+      const requestedPid = qs.get('projectId');
+      const projectId = (requestedPid && (state.projects || []).some(function (p) { return p.id === requestedPid; }))
+        ? requestedPid
+        : ((state.projects || [])[0] && state.projects[0].id);
+      if (!projectId) return json(res, 404, { error: 'لا يوجد مشروع ضمن نطاقك لإصدار تقرير عنه' });
+      const pdfDoc = reportsModule.buildProgressReport(state, lang, period, projectId);
       res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="' + period + '-report.pdf"' });
       pdfDoc.pipe(res);
       pdfDoc.end();
@@ -645,9 +653,12 @@ const server = http.createServer(async function (req, res) {
       if (['admin', 'consultant', 'owner', 'owner_rep'].indexOf(user.role) === -1) return json(res, 403, { error: 'غير مصرح' });
       const qs = new URL(req.url, 'http://x').searchParams;
       const lang = qs.get('lang') === 'en' ? 'en' : 'ar';
-      const insight = (db.aiInsights || []).find(function (x) { return x.id === qs.get('id'); });
+      const state = core.getState(user);
+      // البحث ضمن state.aiInsights المُقيَّد بنطاق المستخدم أصلاً، لا db.aiInsights الخام — فيستحيل
+      // طلب تقرير حادث يخص مشروعاً خارج نطاق المستخدم حتى لو عرف معرّفه مباشرة
+      const insight = (state.aiInsights || []).find(function (x) { return x.id === qs.get('id'); });
       if (!insight) return json(res, 404, { error: 'التنبيه غير موجود' });
-      const pdfDoc = reportsModule.buildIncidentReport(db, insight, lang);
+      const pdfDoc = reportsModule.buildIncidentReport(state, insight, lang);
       res.writeHead(200, { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="Incident-Report.pdf"' });
       pdfDoc.pipe(res);
       pdfDoc.end();
