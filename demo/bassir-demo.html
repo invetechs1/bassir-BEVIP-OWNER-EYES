@@ -441,9 +441,20 @@ textarea.inp { resize: vertical; min-height: 80px; }
 /* ============ نوافذ ورسائل ============ */
 .modal-back { position: fixed; inset: 0; background: rgba(5, 8, 14, .7); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; }
 .modal { width: 560px; max-width: 100%; max-height: 88vh; overflow-y: auto; background: linear-gradient(180deg, var(--panel2), var(--panel)); border: 1px solid var(--border); border-radius: 18px; padding: 26px; box-shadow: var(--shadow); }
+.modal.modal-full { width: min(1180px, 96vw); max-height: 94vh; }
 .modal h3 { margin-bottom: 6px; }
 .modal .m-sub { color: var(--muted); font-size: 12.5px; margin-bottom: 14px; }
 .m-actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+.m-boq-table-wrap { max-height: 56vh; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; margin: 0 0 4px; }
+.m-boq-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.m-boq-table th { position: sticky; top: 0; background: var(--panel2); text-align: start; padding: 9px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; z-index: 1; }
+.m-boq-table td { padding: 8px 10px; border-bottom: 1px solid rgba(255, 255, 255, .05); vertical-align: middle; }
+.m-boq-table tr.m-boq-zero { opacity: .55; }
+.m-boq-table tr.m-boq-selected { background: rgba(224, 164, 88, .08); }
+.m-boq-table tr.m-boq-selected td:first-child { border-inline-start: 3px solid var(--accent); }
+.m-boq-action { min-width: 150px; }
+.m-boq-pctwrap { display: flex; gap: 6px; align-items: center; }
+.m-boq-pctwrap input.m-boq-pct { width: 70px; }
 
 .toast-wrap { position: fixed; bottom: 24px; inset-inline-end: 24px; z-index: 200; display: flex; flex-direction: column; gap: 10px; }
 .toast { background: var(--panel2); border: 1px solid var(--border); border-inline-start: 4px solid var(--ok); border-radius: 12px; padding: 14px 18px; font-size: 13.5px; box-shadow: var(--shadow); animation: pop .25s; max-width: 380px; }
@@ -3386,11 +3397,12 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const f = item.file;
     if (!f) return { name: '', url: '', isImage: false, isPdf: false, isDxf: false };
     if (typeof f === 'string') return { name: f, url: '', isImage: false, isPdf: false, isDxf: false };
-    const name = f.name || '', url = f.url || '';
+    const name = f.name || '', url = f.url || '', mime = f.mime || '';
+    // الاسم قد يكون مبتوراً (امتداد ناقص من ملفات رُفعت قبل إصلاح storeUpload) — نوع المحتوى الحقيقي أوثق منه
     return {
       name: name, url: url,
-      isImage: !!url && IMG_EXT.test(name || url),
-      isPdf: !!url && PDF_EXT.test(name || url),
+      isImage: !!url && (IMG_EXT.test(name || url) || /^image\//.test(mime)),
+      isPdf: !!url && (PDF_EXT.test(name || url) || mime === 'application/pdf'),
       isDxf: !!url && DXF_EXT.test(name || url)
     };
   }
@@ -4277,7 +4289,13 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'معتمد بالكامل': 'Fully approved',
     'عناصر مربوطة': 'elements linked',
     'انقر أي عنصر في النموذج لعرض تفاصيله أو ربطه ببند كميات.': 'Click any element in the model to see its details or link it to a BOQ item.',
-    'عنصر بلا اسم': 'Unnamed element'
+    'عنصر بلا اسم': 'Unnamed element',
+    'نموذج IFC حقيقي': 'Real IFC model',
+    'عنصر': 'elements',
+    'مثلث': 'triangles',
+    'ملاءمة': 'Fit',
+    'شبكي': 'Wireframe',
+    'جارٍ بناء النموذج ثلاثي الأبعاد...': 'Building the 3D model…'
   });
 
   let webifcPromise = null;
@@ -5544,6 +5562,27 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     // رؤية المشروع (2D + واجهات + BIM)
     'جميع البنود': 'All Items',
+    'القبو': 'Basement',
+    'الدور الأرضي': 'Ground Floor',
+    'الميزانين': 'Mezzanine',
+    'الدور الأول': 'First Floor',
+    'الدور الثاني': 'Second Floor',
+    'الدور الثالث': 'Third Floor',
+    'الدور الرابع': 'Fourth Floor',
+    'السطح': 'Roof',
+    'الأعمال الإنشائية': 'Structural Works',
+    'الأعمال المعمارية': 'Architectural Works',
+    'الأعمال الكهربائية': 'Electrical Works',
+    'أعمال التكييف HVAC': 'HVAC Works',
+    'الأعمال الصحية': 'Plumbing Works',
+    'أعمال الحريق': 'Fire Works',
+    'الفرش والأثاث': 'FF&E',
+    'الإنشائية': 'Structural',
+    'المعمارية': 'Architectural',
+    'الكهربائية': 'Electrical',
+    'التكييف HVAC': 'HVAC',
+    'الصحية': 'Plumbing',
+    'الحريق': 'Fire',
     'المخططات ثنائية الأبعاد': '2D Drawings',
     'واجهات المبنى': 'Building Facades',
     'نموذج BIM ثلاثي الأبعاد': '3D BIM Model',
@@ -5817,10 +5856,10 @@ textarea.inp { resize: vertical; min-height: 80px; }
     setTimeout(function () { t.remove(); }, 4200);
   }
 
-  function modal(html) {
+  function modal(html, cls) {
     const back = document.createElement('div');
     back.className = 'modal-back';
-    back.innerHTML = '<div class="modal">' + html + '</div>';
+    back.innerHTML = '<div class="modal' + (cls ? ' ' + cls : '') + '">' + html + '</div>';
     back.addEventListener('click', function (e) { if (e.target === back) back.remove(); });
     document.body.appendChild(back);
     return back;
@@ -5832,7 +5871,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
   function floorName(ctx, id) {
     const f = (ctx.S.projects[0].floors || []).find(function (x) { return x.id === id; });
-    return f ? f.name : id;
+    return f ? I18n.t(f.name) : id;
   }
 
   /** إنجاز مرجّح بالقيمة لمجموعة بنود */
@@ -6097,7 +6136,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
           return '<div class="eye-floor" data-goflor="' + f.id + '" data-gopr="' + P.id + '" style="background:' + mixColor('#e0a458', t) + ';' +
             (p >= 95 ? 'box-shadow:0 0 14px rgba(224,164,88,.65);' : '') + '">' +
             '<b class="num" style="color:' + (t > 0.5 ? '#10151f' : '#e9ecf3') + '">' + p + '%</b>' +
-            '<span style="color:' + (t > 0.5 ? '#233' : '#8b95a8') + '">' + esc(f.name) + '</span></div>';
+            '<span style="color:' + (t > 0.5 ? '#233' : '#8b95a8') + '">' + esc(I18n.t(f.name)) + '</span></div>';
         }).join('') + '</div>' +
         '<div class="legend"><span><span class="sw" style="background:#141a26;border:1px solid #26314a"></span>' + I18n.t('داكن = لم يُنفذ') + '</span>' +
         '<span><span class="sw" style="background:#e0a458;box-shadow:0 0 8px rgba(224,164,88,.8)"></span>' + I18n.t('ساطع = منفذ ومعتمد') + '</span></div></div>' : '';
@@ -6763,7 +6802,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const d = discOf(ctx, s.type);
         return '<tr>' +
           '<td><b>' + esc(s.name) + '</b></td>' +
-          '<td><span class="pill p-muted">' + d.icon + ' ' + esc(d.name) + '</span></td>' +
+          '<td><span class="pill p-muted">' + d.icon + ' ' + esc(I18n.t(d.name)) + '</span></td>' +
           '<td>' + money(s.contractValue) + '</td>' +
           '<td><div class="flex"><div class="bar ' + (s.delayed ? 'b-danger' : 'b-ok') + '" style="flex:1"><i style="width:' + s.progress + '%"></i></div><b class="num">' + s.progress + '%</b></div>' +
           '<div class="small muted num">' + I18n.t('المخطط') + ' ' + s.plannedProgress + '%</div></td>' +
@@ -6799,7 +6838,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       '<div class="disc-chip ' + (st.disc === 'all' ? 'active' : '') + '" data-disc="all" style="--disc-color:#e0a458"><span class="dot"></span>' + I18n.t('جميع البنود') + '</div>' +
       P.disciplines.map(function (d) {
         return '<div class="disc-chip ' + (st.disc === d.id ? 'active' : '') + '" data-disc="' + d.id + '" style="--disc-color:' + d.color + '">' +
-          '<span class="dot"></span>' + d.icon + ' ' + esc(d.name) + '</div>';
+          '<span class="dot"></span>' + d.icon + ' ' + esc(I18n.t(d.name)) + '</div>';
       }).join('') + '</div>';
 
     let body = '', tabsHtml = '';
@@ -6944,7 +6983,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       const scope = dr.floor === 'ALL' ? I18n.t('كامل المشروع') : dr.floor === 'ELEV' ? I18n.t('الواجهات') : floorName(ctx, dr.floor);
       return '<div class="flex" style="justify-content:space-between;align-items:center;gap:8px;border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:6px;background:var(--bg2)">' +
         '<span class="small">📄 <b>' + esc(dr.ref || '') + '</b> ' + esc(dr.title || '') +
-        ' <span class="muted">· ' + d.icon + ' ' + esc(d.name) + ' · ' + esc(scope) + '</span></span>' +
+        ' <span class="muted">· ' + d.icon + ' ' + esc(I18n.t(d.name)) + ' · ' + esc(scope) + '</span></span>' +
         (ok ? window.DrawingViewer.btn(dr) : '<span class="pill p-muted" style="font-size:10px">' + I18n.t('بلا ملف') + '</span>') +
         '</div>';
     }).join('');
@@ -6972,7 +7011,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
 
     const floorTabs = '<div class="floor-tabs">' + P.floors.map(function (f) {
       const fp = weightedProgress(itemsFor(ctx, f.id, st.disc, null));
-      return '<div class="tab ' + (st.floor === f.id ? 'active' : '') + '" data-floor="' + f.id + '">' + esc(f.name) +
+      return '<div class="tab ' + (st.floor === f.id ? 'active' : '') + '" data-floor="' + f.id + '">' + esc(I18n.t(f.name)) +
         (fp != null ? ' <span class="muted num">' + fp + '%</span>' : '') + '</div>';
     }).join('') + '</div>';
 
@@ -7041,7 +7080,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       P.disciplines.map(function (d) {
         const p = weightedProgress(itemsFor(ctx, st.floor, d.id, null));
         if (p == null) return '';
-        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(d.name.replace('الأعمال ', '').replace('أعمال ', '')) +
+        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(I18n.t(d.name.replace('الأعمال ', '').replace('أعمال ', ''))) +
           ' <b class="num" style="color:' + d.color + '">' + p + '%</b></span>';
       }).join('') + '</div></div>';
 
@@ -7060,8 +7099,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const d = discOf(ctx, b.discipline);
         const done = b.progress >= 100;
         return '<div style="border:1px solid ' + (done ? d.color : 'var(--border)') + ';border-radius:10px;padding:10px 12px;margin-bottom:9px;background:var(--bg2)' + (done ? ';box-shadow:0 0 12px ' + d.color + '33' : '') + '">' +
-          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(b.status) + '</span></div>' +
-          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(d.name) + '</div>' +
+          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(I18n.t(b.status)) + '</span></div>' +
+          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(I18n.t(d.name)) + '</div>' +
           '<div class="flex mt" style="margin-top:8px"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%;background:linear-gradient(90deg,' + d.color + '88,' + d.color + ')"></i></div><b class="num small">' + b.progress + '%</b></div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="e-ico">🗂️</div>' + I18n.t('لا توجد بنود مطابقة للتصفية الحالية') + '</div>') +
@@ -7104,7 +7143,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       P.disciplines.map(function (d) {
         const p = weightedProgress(itemsFor(ctx, st.floor, d.id, null));
         if (p == null) return '';
-        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(d.name.replace('الأعمال ', '').replace('أعمال ', '')) +
+        return '<span class="small" style="white-space:nowrap">' + d.icon + ' ' + esc(I18n.t(d.name.replace('الأعمال ', '').replace('أعمال ', ''))) +
           ' <b class="num" style="color:' + d.color + '">' + p + '%</b></span>';
       }).join('') + '</div></div>';
 
@@ -7143,8 +7182,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const d = discOf(ctx, b.discipline);
         const done = b.progress >= 100;
         return '<div style="border:1px solid ' + (done ? d.color : 'var(--border)') + ';border-radius:10px;padding:10px 12px;margin-bottom:9px;background:var(--bg2)' + (done ? ';box-shadow:0 0 12px ' + d.color + '33' : '') + '">' +
-          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(b.status) + '</span></div>' +
-          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(d.name) + '</div>' +
+          '<div class="flex" style="justify-content:space-between"><b class="small">' + esc(b.description) + '</b><span class="pill ' + (done ? 'p-ok' : b.progress > 0 ? 'p-warn' : 'p-muted') + '">' + esc(I18n.t(b.status)) + '</span></div>' +
+          '<div class="small muted num">' + esc(b.code) + ' · ' + b.qty + ' ' + esc(b.unit) + ' × ' + b.unitPrice.toLocaleString('en-US') + I18n.t(' ر.س') + ' · ' + d.icon + ' ' + esc(I18n.t(d.name)) + '</div>' +
           '<div class="flex mt" style="margin-top:8px"><div class="bar" style="flex:1"><i style="width:' + b.progress + '%;background:linear-gradient(90deg,' + d.color + '88,' + d.color + ')"></i></div><b class="num small">' + b.progress + '%</b></div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="e-ico">🗂️</div>' + I18n.t('لا توجد بنود مطابقة للتصفية الحالية') + '</div>') +
@@ -7276,7 +7315,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const p = weightedProgress(itemsFor(ctx, selFloor, d.id, null));
         if (p == null) return '';
         return '<div style="margin-bottom:13px"><div class="flex" style="justify-content:space-between;font-size:12.5px;margin-bottom:5px">' +
-          '<span>' + d.icon + ' ' + esc(d.name) + '</span><b class="num" style="color:' + d.color + '">' + p + '%</b></div>' +
+          '<span>' + d.icon + ' ' + esc(I18n.t(d.name)) + '</span><b class="num" style="color:' + d.color + '">' + p + '%</b></div>' +
           '<div class="bar"><i style="width:' + p + '%;background:linear-gradient(90deg,' + d.color + '77,' + d.color + ')' + (p >= 95 ? ';box-shadow:0 0 10px ' + d.color : '') + '"></i></div></div>';
       }).join('') +
       '<div class="small muted mt">💡 ' + I18n.t('المناطق الساطعة المتوهجة = بنود مكتملة اعتُمدت مستخلصاتها. اضغط أي دور في النموذج لعرض تفاصيله.') + '</div>' +
@@ -8186,7 +8225,18 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'الحد الأقصى القابل للمطالبة به الآن:': 'Maximum claimable right now:',
     'لا يوجد إنجاز معتمَد لهذا البند بعد': 'No approved progress on this item yet',
     'المطلوب': 'Requested',
-    'يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً': "exceeds what the consultant has approved and what's actually been executed"
+    'يتجاوز ما اعتمده الاستشاري وتم تنفيذه فعلياً': "exceeds what the consultant has approved and what's actually been executed",
+
+    // ============ صفحة كاملة لرفع المستخلص — قائمة بنود قابلة للبحث والاختيار المباشر ============
+    'المشروع: ': 'Project: ',
+    'ابحث، اضغط «+ إضافة» على البند، ثم أدخل النسبة الجديدة': 'Search, click "+ Add" on the item, then enter the new percentage',
+    'ابحث بالكود أو الوصف أو الدور...': 'Search by code, description, or floor...',
+    '% الحالي': 'Current %',
+    'الحد الأقصى': 'Max',
+    'لا بنود كميات في هذا المشروع بعد': 'No BOQ items in this project yet',
+    'لا بنود مطابقة للبحث': 'No items match your search',
+    'إضافة': 'Add',
+    'يتجاوز الحد الأقصى': 'Exceeds the maximum'
   });
 
   const APPROVAL_TABS = [
@@ -9578,11 +9628,47 @@ textarea.inp { resize: vertical; min-height: 80px; }
     const needAmount = tab === 'changeOrders' || tab === 'payments' || tab === 'claims';
     const isPayment = tab === 'payments';
     const isWir = tab === 'wirs';
-    const myBoq = ctx.S.boqItems;
+    const P = ctx.S.projects[0];
+    // بنود هذا المشروع فقط — لا بنود أي مشروع آخر، حتى لو توسّع النظام مستقبلاً لتعدّد المشاريع
+    const myBoq = (ctx.S.boqItems || []).filter(function (b) { return !P || b.projectId === P.id; });
+    // السقف الأقصى لنسبة أي بند = المعتمَد والمنفَّذ فعلياً حالياً (min(approvedQty,executedQty))، لا
+    // 100% بلا قيد كما كان سابقاً — فلا يمكن المطالبة بأكثر مما اعتمده الاستشاري بدليل موثَّق فعلاً
+    function ceilingPctOf(b) {
+      const ceiling = Math.min(Number(b.approvedQty) || 0, Number(b.executedQty) || 0);
+      return b.qty ? Math.round(ceiling / b.qty * 1000) / 10 : 0;
+    }
+    // قائمة واحدة قابلة للبحث: كل بند يبدأ بزر "+ إضافة"؛ الضغط عليه يحوّل ذلك الصف نفسه إلى حقل
+    // إدخال % مباشرة (بدل قائمة منسدلة منفصلة عن المرجع) — فيرى المقاول كل البنود دفعة واحدة
+    // ويختار منها بضغطة واحدة، لا بالبحث داخل خيارات <select> طويلة النص
+    const boqPickerHtml = !isPayment ? '' :
+      '<label class="fl">' + I18n.t('بنود المستخلص') + ' <span class="hint">' + I18n.t('ابحث، اضغط «+ إضافة» على البند، ثم أدخل النسبة الجديدة') + '</span></label>' +
+      (myBoq.length ?
+        '<input class="inp" id="sb-boq-search" placeholder="' + I18n.t('ابحث بالكود أو الوصف أو الدور...') + '" style="margin-bottom:8px">' +
+        '<div class="m-boq-table-wrap"><table class="m-boq-table"><thead><tr>' +
+        '<th>' + I18n.t('الكود') + '</th><th>' + I18n.t('البند') + '</th><th>' + I18n.t('الكمية') + '</th>' +
+        '<th>' + I18n.t('% الحالي') + '</th><th>' + I18n.t('الحد الأقصى') + '</th><th></th>' +
+        '</tr></thead><tbody id="sb-boq-tbody">' +
+        myBoq.map(function (b) {
+          const ceilingPct = ceilingPctOf(b);
+          const searchKey = ((b.code || '') + ' ' + (b.description || '') + ' ' + (b.floor || '')).toLowerCase();
+          return '<tr data-boq-row="' + esc(b.id) + '" data-search="' + esc(searchKey) + '"' + (ceilingPct <= 0 ? ' class="m-boq-zero"' : '') + '>' +
+            '<td class="num small">' + esc(b.code || '') + '</td>' +
+            '<td>' + esc(b.description) + '<div class="small muted">' + esc(b.floor === 'ALL' ? I18n.t('كامل المشروع') : b.floor) + '</div></td>' +
+            '<td class="num small">' + (b.qty || 0) + ' <span class="muted">' + esc(b.unit || '') + '</span></td>' +
+            '<td class="num small">' + (b.progress || 0) + '%</td>' +
+            '<td class="num small" style="color:var(--status-ok)">' + ceilingPct + '%</td>' +
+            '<td class="m-boq-action">' +
+              (ceilingPct > 0
+                ? '<button class="btn ghost sm" data-boq-add="' + esc(b.id) + '">+ ' + I18n.t('إضافة') + '</button>'
+                : '<span class="small muted">—</span>') +
+            '</td>' +
+            '</tr>';
+        }).join('') +
+        '</tbody></table></div>' +
+        '<div class="small muted mt" id="sb-boq-empty" style="display:none">' + I18n.t('لا بنود مطابقة للبحث') + '</div>'
+        : '<div class="small muted" style="margin:10px 0">' + I18n.t('لا بنود كميات في هذا المشروع بعد') + '</div>');
 
-    const m = modal(
-      '<h3>' + I18n.t('➕ رفع ') + I18n.t(meta.name) + '</h3>' +
-      '<div class="m-sub">' + I18n.t('سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض — يُعطى رقم مرجع تلقائياً') + '</div>' +
+    const formHtml =
       '<label class="fl">' + I18n.t('العنوان / الوصف') + '</label><input class="inp" id="sb-title">' +
       (tab === 'rfis' ? '<label class="fl">' + I18n.t('نص الاستفسار الفني') + '</label><textarea class="inp" id="sb-question" rows="3" placeholder="' + I18n.t('اشرح التعارض أو المعلومة المطلوبة مع ذكر رقم المخطط...') + '"></textarea>' : '') +
       (tab === 'rfps' ? '<label class="fl">' + I18n.t('موجه إلى') + '</label><select class="inp" id="sb-to"><option value="consultant">📐 ' + I18n.t('الاستشاري') + '</option><option value="owner">👁 ' + I18n.t('المالك') + '</option></select>' +
@@ -9594,7 +9680,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       // مرجع الجدول الزمني المعتمد — ليرى المقاول والاستشاري أثر أيام أمر التغيير على الجدول الرسمي فعلياً
       (tab === 'changeOrders' ? (function () {
         const tasks = (ctx.S.scheduleTasks || []).slice().sort(function (a, b) { return String(a.endPlanned || '').localeCompare(String(b.endPlanned || '')); });
-        const P = ctx.S.projects[0];
+        const P2 = ctx.S.projects[0];
         if (!tasks.length) {
           return '<div class="card" style="padding:10px 14px;margin:4px 0 10px"><b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + '</b>' +
             '<div class="small muted mt">' + I18n.t('لا يوجد جدول زمني معتمد لهذا المشروع بعد.') + '</div></div>';
@@ -9602,8 +9688,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const upcoming = tasks.filter(function (t) { return (t.progress || 0) < 100; }).slice(0, 5);
         return '<div class="card" style="padding:10px 14px;margin:4px 0 10px">' +
           '<b class="small">📅 ' + I18n.t('الجدول الزمني المعتمد') + ' <span class="hint">' + I18n.t('ليتّضح أثر الأيام الإضافية على الجدول الرسمي') + '</span></b>' +
-          '<div class="small muted mt">' + I18n.t('تاريخ الانتهاء المخطط: ') + '<b class="num">' + esc(P.endPlanned || '—') + '</b>' +
-          (P.endForecast && P.endForecast !== P.endPlanned ? ' · ' + I18n.t('المتوقع حالياً: ') + '<b class="num">' + esc(P.endForecast) + '</b>' : '') + '</div>' +
+          '<div class="small muted mt">' + I18n.t('تاريخ الانتهاء المخطط: ') + '<b class="num">' + esc(P2.endPlanned || '—') + '</b>' +
+          (P2.endForecast && P2.endForecast !== P2.endPlanned ? ' · ' + I18n.t('المتوقع حالياً: ') + '<b class="num">' + esc(P2.endForecast) + '</b>' : '') + '</div>' +
           (upcoming.length ? '<div class="small mt" style="max-height:110px;overflow-y:auto">' +
             upcoming.map(function (t) {
               return '<div class="flex" style="justify-content:space-between;padding:3px 0;border-top:1px solid rgba(255,255,255,.06)">' +
@@ -9613,44 +9699,70 @@ textarea.inp { resize: vertical; min-height: 80px; }
       })() : '') +
       (isWir ? '<label class="fl">' + I18n.t('الموقع / الدور') + '</label><select class="inp" id="sb-loc">' +
         ctx.S.projects[0].floors.map(function (f) { return '<option value="' + f.id + '">' + esc(f.name) + '</option>'; }).join('') + '</select>' : '') +
-      (isPayment ?
-        '<label class="fl">' + I18n.t('بنود المستخلص (اختر البند والنسبة المنجزة الجديدة)') + '</label><div id="sb-lines"></div>' +
-        '<button class="btn ghost sm" id="sb-addline">' + I18n.t('+ إضافة بند') + '</button>' : '') +
+      boqPickerHtml +
       '<label class="fl">' + I18n.t('المرفقات (المخطط / الداتا شيت / المستندات)') + '</label><input class="inp" id="sb-file" type="file" multiple>' +
-      '<div class="m-actions"><button class="btn" id="sb-ok">' + I18n.t('إرسال للاستشاري') + '</button><button class="btn mutedb" id="sb-cancel">' + I18n.t('إلغاء') + '</button></div>'
+      '<div class="m-actions"><button class="btn" id="sb-ok">' + I18n.t('إرسال للاستشاري') + '</button><button class="btn mutedb" id="sb-cancel">' + I18n.t('إلغاء') + '</button></div>';
+
+    const m = modal(
+      '<h3>' + I18n.t('➕ رفع ') + I18n.t(meta.name) + '</h3>' +
+      '<div class="m-sub">' + I18n.t('سيصل الطلب للاستشاري للمراجعة والاعتماد أو الرفض — يُعطى رقم مرجع تلقائياً') +
+      (isPayment && P ? ' · ' + I18n.t('المشروع: ') + '<b>' + esc(P.name || '') + '</b>' : '') + '</div>' +
+      formHtml,
+      isPayment ? 'modal-full' : undefined
     );
 
-    if (isPayment) {
-      const wrap = m.querySelector('#sb-lines');
-      // السقف الأقصى لنسبة أي بند = المعتمَد والمنفَّذ فعلياً حالياً (min(approvedQty,executedQty))، لا
-      // 100% بلا قيد كما كان سابقاً — فلا يمكن المطالبة بأكثر مما اعتمده الاستشاري بدليل موثَّق فعلاً
-      function ceilingPctOf(b) {
-        const ceiling = Math.min(Number(b.approvedQty) || 0, Number(b.executedQty) || 0);
-        return b.qty ? Math.round(ceiling / b.qty * 1000) / 10 : 0;
-      }
-      function addLine() {
-        const r = document.createElement('div');
-        r.className = 'grid'; r.style.cssText = 'grid-template-columns:2.2fr 1fr;gap:6px;margin-bottom:2px';
-        r.innerHTML = '<select class="inp" data-lf="boqItemId">' +
-          myBoq.map(function (b) { return '<option value="' + b.id + '">' + esc(b.description) + ' — ' + esc(b.floor) + I18n.t(' (حالياً ') + b.progress + '%)</option>'; }).join('') +
-          '</select><input class="inp num" data-lf="progress" type="number" min="0" max="100" placeholder="' + I18n.t('% الجديدة') + '">';
-        const hint = document.createElement('div');
-        hint.className = 'small muted'; hint.style.cssText = 'grid-column:1/-1;margin-bottom:6px';
-        r.appendChild(hint); // ابن للصف نفسه لا شقيقاً له — القارئ أدناه يُعامل كل عنصر في wrap كصف مستقل
-        wrap.appendChild(r);
-        const sel = r.querySelector('[data-lf="boqItemId"]'), inp = r.querySelector('[data-lf="progress"]');
-        function syncCeiling() {
-          const b = myBoq.find(function (x) { return x.id === sel.value; });
-          const ceilingPct = b ? ceilingPctOf(b) : 0;
-          inp.max = ceilingPct;
-          hint.textContent = I18n.t('الحد الأقصى القابل للمطالبة به الآن:') + ' ' + ceilingPct + '%' +
-            (ceilingPct <= 0 ? ' — ' + I18n.t('لا يوجد إنجاز معتمَد لهذا البند بعد') : '');
+    if (isPayment && myBoq.length) {
+      // كل صف يبدأ بزر "+ إضافة"؛ الضغط عليه يستبدل الزر بحقل % داخل الصف نفسه (بدل قائمة منفصلة)،
+      // فيبقى المقاول يرى كل البنود في مكان واحد ويعرف فوراً ما الذي اختاره وما تبقّى متاحاً
+      function addRow(id) {
+        const b = myBoq.find(function (x) { return x.id === id; });
+        if (!b) return;
+        const row = m.querySelector('tr[data-boq-row="' + id + '"]');
+        if (!row) return;
+        const ceilingPct = ceilingPctOf(b);
+        const cell = row.querySelector('.m-boq-action');
+        cell.innerHTML =
+          '<div class="m-boq-pctwrap">' +
+          '<input class="inp num m-boq-pct" type="number" min="0" max="' + ceilingPct + '" step="any" placeholder="%" data-boq-pct="' + esc(id) + '">' +
+          '<button class="btn ghost sm" data-boq-remove="' + esc(id) + '">✕</button>' +
+          '</div><div class="small muted mt" data-boq-hint="' + esc(id) + '"></div>';
+        row.classList.add('m-boq-selected');
+        const pctInp = cell.querySelector('[data-boq-pct]');
+        const hint = cell.querySelector('[data-boq-hint]');
+        function syncHint() {
+          const pct = Number(pctInp.value) || 0;
+          const amt = b.unitPrice ? Math.round(b.qty * pct / 100 * b.unitPrice) : null;
+          hint.textContent = pct > ceilingPct
+            ? I18n.t('يتجاوز الحد الأقصى') + ' (' + ceilingPct + '%)'
+            : (amt != null ? '≈ ' + amt.toLocaleString('en-US') + ' ' + I18n.t('ر.س') : '');
+          hint.style.color = pct > ceilingPct ? 'var(--danger, #ff5a5a)' : '';
         }
-        sel.addEventListener('change', syncCeiling);
-        syncCeiling();
+        pctInp.addEventListener('input', syncHint);
+        pctInp.focus();
+        cell.querySelector('[data-boq-remove]').addEventListener('click', function () { removeRow(id); });
       }
-      addLine();
-      m.querySelector('#sb-addline').addEventListener('click', addLine);
+      function removeRow(id) {
+        const row = m.querySelector('tr[data-boq-row="' + id + '"]');
+        if (!row) return;
+        row.classList.remove('m-boq-selected');
+        row.querySelector('.m-boq-action').innerHTML =
+          '<button class="btn ghost sm" data-boq-add="' + esc(id) + '">+ ' + I18n.t('إضافة') + '</button>';
+        row.querySelector('[data-boq-add]').addEventListener('click', function () { addRow(id); });
+      }
+      m.querySelectorAll('[data-boq-add]').forEach(function (btn) {
+        btn.addEventListener('click', function () { addRow(btn.getAttribute('data-boq-add')); });
+      });
+      const searchInp = m.querySelector('#sb-boq-search');
+      searchInp.addEventListener('input', function () {
+        const q = searchInp.value.trim().toLowerCase();
+        let anyVisible = false;
+        m.querySelectorAll('tr[data-boq-row]').forEach(function (row) {
+          const match = !q || (row.getAttribute('data-search') || '').indexOf(q) !== -1;
+          row.style.display = match ? '' : 'none';
+          if (match) anyVisible = true;
+        });
+        m.querySelector('#sb-boq-empty').style.display = anyVisible ? 'none' : '';
+      });
     }
 
     m.querySelector('#sb-cancel').addEventListener('click', function () { m.remove(); });
@@ -9667,11 +9779,8 @@ textarea.inp { resize: vertical; min-height: 80px; }
       if (tab === 'methodStatements' || tab === 'claims') data.kind = m.querySelector('#sb-kind').value;
       if (isWir) data.location = m.querySelector('#sb-loc').value;
       if (isPayment) {
-        data.lines = Array.prototype.map.call(m.querySelector('#sb-lines').children, function (r) {
-          return {
-            boqItemId: r.querySelector('[data-lf="boqItemId"]').value,
-            progress: Number(r.querySelector('[data-lf="progress"]').value) || 0
-          };
+        data.lines = Array.prototype.map.call(m.querySelectorAll('[data-boq-pct]'), function (inp) {
+          return { boqItemId: inp.getAttribute('data-boq-pct'), progress: Number(inp.value) || 0 };
         }).filter(function (l) { return l.progress > 0; });
         // تحقق فوري بالواجهة قبل الإرسال — رسالة واضحة بدل انتظار رفض الخادم العام؛ الخادم يتحقق مرة
         // أخرى بصرامة دائماً (هذا لتحسين تجربة الاستخدام فقط، لا بديلاً عن التحقق الفعلي)
@@ -11566,7 +11675,7 @@ textarea.inp { resize: vertical; min-height: 80px; }
       // زر العرض السريع يفتح نفس ملف النموذج المسجّل في السجل أدناه — نجد معرّفه الحقيقي
       // ليعمل الربط ببنود الكميات هنا أيضاً، لا فقط عبر زر "3D" داخل السجل
       const registered = (ctx.S.bimModels || []).find(function (mm) { return mm.url === '/vendor/bim/BassirTower.ifc'; });
-      open3d({ title: 'برج بصير التجاري — نموذج BIM ثلاثي الأبعاد', url: '/vendor/bim/BassirTower.ifc', ctx: ctx, modelId: registered ? registered.id : null, canMap: canMapBim });
+      open3d({ title: (I18n.getLang() === 'en' ? 'Bassir Commercial Tower — 3D BIM Model' : 'برج بصير التجاري — نموذج BIM ثلاثي الأبعاد'), url: '/vendor/bim/BassirTower.ifc', ctx: ctx, modelId: registered ? registered.id : null, canMap: canMapBim });
     });
     el.querySelectorAll('[data-bim3d]').forEach(function (b) {
       b.addEventListener('click', function () {
@@ -13078,7 +13187,14 @@ textarea.inp { resize: vertical; min-height: 80px; }
     'سُجِّل التنفيذ — بانتظار اعتماد الاستشاري': 'Execution recorded — awaiting consultant approval',
     'بانتظار اعتماد الاستشاري': 'Awaiting consultant approval',
     'المتاح للمطالبة:': 'Available to claim:',
-    'المُطالَب به': 'Claimed'
+    'المُطالَب به': 'Claimed',
+
+    // ===== تسجيل التنفيذ: كمية أو نسبة أو مبلغ — حقول مترابطة =====
+    'أدخل الكمية المُنفَّذة بأي من الطرق الثلاث التالية — القيم الثلاث مرتبطة تلقائياً وتتحدّث معاً':
+      'Enter the executed amount using any of the three fields below — all three stay in sync automatically',
+    'المبلغ (ر.س)': 'Amount (SAR)',
+    'سعر الوحدة غير محدَّد لهذا البند — استخدم الكمية أو النسبة': "This item's unit price isn't set — use quantity or percentage instead",
+    'لا كمية إجمالية محدَّدة لهذا البند — استخدم الكمية أو المبلغ': "This item has no total quantity set — use quantity or amount instead"
   });
 
   const todayMs = () => Date.now();
@@ -13311,16 +13427,52 @@ textarea.inp { resize: vertical; min-height: 80px; }
         const id = btn.getAttribute('data-report-exec');
         const b = items.find(function (x) { return x.id === id; });
         if (!b) return;
-        const remaining = Math.max(0, (Number(b.qty) || 0) - (Number(b.executedQty) || 0));
+        const totalQty = Number(b.qty) || 0;
+        const unitPrice = Number(b.unitPrice) || 0;
+        const remaining = Math.max(0, totalQty - (Number(b.executedQty) || 0));
+        const remainingPct = totalQty ? Math.round(remaining / totalQty * 1000) / 10 : 0;
+        const remainingAmount = Math.round(remaining * unitPrice * 100) / 100;
         const m = VS.modal(
           '<h3>➕ ' + t('تسجيل تنفيذ') + ' — ' + esc(b.description) + '</h3>' +
-          '<div class="m-sub">' + t('المتبقي من إجمالي كمية البند:') + ' <b class="num">' + remaining + '</b> ' + esc(b.unit) + '</div>' +
-          '<label class="fl">' + t('الكمية المُنفَّذة الآن') + '</label><input class="inp num" id="rx-qty" type="number" min="0" max="' + remaining + '" step="any" dir="ltr">' +
+          '<div class="m-sub">' + t('المتبقي من إجمالي كمية البند:') + ' <b class="num">' + remaining + '</b> ' + esc(b.unit) +
+            (totalQty ? ' (' + remainingPct + '%)' : '') + (unitPrice ? ' · ' + money(remainingAmount) : '') + '</div>' +
+          '<label class="fl">' + t('أدخل الكمية المُنفَّذة بأي من الطرق الثلاث التالية — القيم الثلاث مرتبطة تلقائياً وتتحدّث معاً') + '</label>' +
+          '<div class="grid g3" style="gap:8px">' +
+            '<div><label class="fl small">' + t('الكمية') + ' (' + esc(b.unit || '') + ')</label>' +
+              '<input class="inp num" id="rx-qty" type="number" min="0" max="' + remaining + '" step="any" dir="ltr"></div>' +
+            '<div><label class="fl small">' + t('النسبة %') + '</label>' +
+              '<input class="inp num" id="rx-pct" type="number" min="0" max="' + remainingPct + '" step="any" dir="ltr"' + (totalQty ? '' : ' disabled') + '></div>' +
+            '<div><label class="fl small">' + t('المبلغ (ر.س)') + '</label>' +
+              '<input class="inp num" id="rx-amount" type="number" min="0" max="' + remainingAmount + '" step="any" dir="ltr"' + (unitPrice ? '' : ' disabled') + '></div>' +
+          '</div>' +
+          (!unitPrice ? '<div class="small muted mt">' + t('سعر الوحدة غير محدَّد لهذا البند — استخدم الكمية أو النسبة') + '</div>'
+            : !totalQty ? '<div class="small muted mt">' + t('لا كمية إجمالية محدَّدة لهذا البند — استخدم الكمية أو المبلغ') + '</div>' : '') +
           '<label class="fl">' + t('ملاحظة (اختياري)') + '</label><textarea class="inp" id="rx-note" rows="2"></textarea>' +
           '<label class="fl">' + t('صور الموقع (اختياري)') + '</label><input class="inp" id="rx-photos" type="file" multiple accept="image/*">' +
           '<div class="small muted mt">' + t('هذا تسجيل أولي فقط — لا يظهر في نسبة الإنجاز ولا يُتيح أي مطالبة مالية حتى يعتمده الاستشاري بدليل موثَّق.') + '</div>' +
           '<div class="m-actions"><button class="btn" id="rx-ok">' + t('حفظ') + '</button><button class="btn mutedb" id="rx-cancel">' + t('إلغاء') + '</button></div>'
         );
+
+        // ثلاثة حقول مترابطة لنفس القيمة الفعلية الواحدة (الكمية) — أياً كان الحقل الذي يكتب فيه
+        // المقاول، تُشتق الكمية الفعلية منه فوراً وتُعاد كتابة الحقلين الآخرين منها، فتبقى متوافقة
+        // دائماً دون أي حلقة تحديث ذاتي (كل مستمع يتجنّب الكتابة في حقله هو نفسه)
+        const qtyInp = m.querySelector('#rx-qty'), pctInp = m.querySelector('#rx-pct'), amtInp = m.querySelector('#rx-amount');
+        function round(n, d) { const f = Math.pow(10, d); return Math.round((n + Number.EPSILON) * f) / f; }
+        function syncFromQty(qty, skip) {
+          if (skip !== 'qty') qtyInp.value = qty > 0 ? round(qty, 3) : '';
+          if (skip !== 'pct') pctInp.value = (totalQty && qty > 0) ? round(qty / totalQty * 100, 1) : '';
+          if (skip !== 'amount') amtInp.value = (unitPrice && qty > 0) ? round(qty * unitPrice, 2) : '';
+        }
+        qtyInp.addEventListener('input', function () { syncFromQty(Number(qtyInp.value) || 0, 'qty'); });
+        pctInp.addEventListener('input', function () {
+          const qty = totalQty ? (Number(pctInp.value) || 0) / 100 * totalQty : 0;
+          syncFromQty(qty, 'pct');
+        });
+        amtInp.addEventListener('input', function () {
+          const qty = unitPrice ? (Number(amtInp.value) || 0) / unitPrice : 0;
+          syncFromQty(qty, 'amount');
+        });
+
         m.querySelector('#rx-cancel').addEventListener('click', function () { m.remove(); });
         m.querySelector('#rx-ok').addEventListener('click', async function () {
           const okBtn = m.querySelector('#rx-ok');

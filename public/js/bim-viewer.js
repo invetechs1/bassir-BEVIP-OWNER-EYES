@@ -37,7 +37,13 @@
     'معتمد بالكامل': 'Fully approved',
     'عناصر مربوطة': 'elements linked',
     'انقر أي عنصر في النموذج لعرض تفاصيله أو ربطه ببند كميات.': 'Click any element in the model to see its details or link it to a BOQ item.',
-    'عنصر بلا اسم': 'Unnamed element'
+    'عنصر بلا اسم': 'Unnamed element',
+    'نموذج IFC حقيقي': 'Real IFC model',
+    'عنصر': 'elements',
+    'مثلث': 'triangles',
+    'ملاءمة': 'Fit',
+    'شبكي': 'Wireframe',
+    'جارٍ بناء النموذج ثلاثي الأبعاد...': 'Building the 3D model…'
   });
 
   let webifcPromise = null;

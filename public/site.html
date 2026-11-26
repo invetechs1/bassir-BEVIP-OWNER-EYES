@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بصير — عيون المالك | منصّة مراقبة المشاريع الإنشائية بصرياً</title>
+  <meta name="description" content="بصير منصّة سعودية لمراقبة المشاريع الإنشائية بصرياً: خريطة إنجاز على مخططاتك، نماذج BIM/IFC ثلاثية الأبعاد، مؤشّر صحة، واعتمادات موثّقة — لشركات التطوير العقاري والجهات الحكومية.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁</text></svg>">
+  <style>
+    :root{
+      --bg:#0b0e14; --bg2:#0f131c; --panel:#121724; --border:#1f2635;
+      --text:#e7ecf4; --muted:#8b95a8; --brand:#e0a458; --brand2:#8a6a35;
+      --ok:#3fb27f; --warn:#e0a458; --danger:#e05858; --info:#5aa6e0; --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:"Segoe UI",Tahoma,"Noto Kufi Arabic","Cairo",Arial,sans-serif;line-height:1.75;-webkit-font-smoothing:antialiased}
+    a{color:inherit;text-decoration:none}
+    img{max-width:100%;display:block}
+    .wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+    .num{font-variant-numeric:tabular-nums}
+    /* nav */
+    nav{position:sticky;top:0;z-index:50;background:rgba(11,14,20,.85);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+    nav .wrap{display:flex;align-items:center;justify-content:space-between;height:66px;gap:12px}
+    .logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:20px}
+    .logo .eye{font-size:26px}
+    .logo small{display:block;font-size:9px;letter-spacing:2px;color:var(--muted);font-weight:600}
+    .nav-links{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .nav-links .lnk{padding:8px 12px;color:var(--muted);font-size:14px;font-weight:600;border-radius:8px}
+    .nav-links .lnk:hover{color:var(--text)}
+    @media(max-width:920px){.nav-links .lnk{display:none}}
+    .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);background:var(--bg2);color:var(--text);padding:9px 16px;border-radius:999px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;white-space:nowrap}
+    .btn:hover{border-color:var(--brand)}
+    .btn.primary{background:linear-gradient(135deg,var(--brand),var(--brand2));border-color:var(--brand);color:#1a1206}
+    .btn.primary:hover{filter:brightness(1.07)}
+    .btn.lg{padding:14px 28px;font-size:16px}
+    .btn.ghost{background:transparent}
+    .btn.sm{padding:7px 13px;font-size:13px}
+    /* hero */
+    .hero{position:relative;overflow:hidden;padding:84px 0 56px;background:radial-gradient(900px 440px at 82% -10%,rgba(224,164,88,.18),transparent 60%),var(--bg)}
+    .kicker{color:var(--brand);font-weight:800;letter-spacing:2px;font-size:12.5px;display:block;margin-bottom:12px}
+    .hero h1{font-size:clamp(30px,5.2vw,54px);line-height:1.2;margin:0 0 18px;font-weight:900}
+    .hero h1 .g{background:linear-gradient(135deg,var(--brand),#f2c98a);-webkit-background-clip:text;background-clip:text;color:transparent}
+    .hero p.lead{font-size:clamp(16px,2.3vw,21px);color:var(--muted);max-width:720px;margin:0 0 28px}
+    .cta{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+    .chip{background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:8px 15px;font-size:13px;color:var(--muted)}
+    .chip b{color:var(--text)}
+    /* sections */
+    section{padding:62px 0}
+    .alt{background:var(--bg2);border-block:1px solid var(--border)}
+    .sec-head{text-align:center;max-width:720px;margin:0 auto 40px}
+    .sec-head h2{font-size:clamp(24px,3.6vw,34px);margin:0 0 12px}
+    .sec-head p{color:var(--muted);margin:0;font-size:16px}
+    .grid{display:grid;gap:18px}
+    .g2{grid-template-columns:repeat(2,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+    @media(max-width:900px){.g2,.g3,.g4{grid-template-columns:1fr}}
+    .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+    .card .ico{font-size:30px;margin-bottom:12px;display:block}
+    .card h3{margin:0 0 10px;font-size:19px}
+    .card p{color:var(--muted);margin:0;font-size:14.5px}
+    .card ul{margin:0;padding-inline-start:20px}
+    .card ul li{margin:7px 0;color:var(--muted);font-size:14.5px}
+    .card ul li b{color:var(--text)}
+    .role-tag{display:inline-block;font-size:12px;font-weight:800;color:var(--brand);background:rgba(224,164,88,.12);border:1px solid rgba(224,164,88,.3);border-radius:999px;padding:4px 12px;margin-bottom:12px}
+    /* showcase gallery */
+    .shot{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--bg2)}
+    .shot .cap{padding:14px 18px;border-top:1px solid var(--border)}
+    .shot .cap b{font-size:16px} .shot .cap div{color:var(--muted);font-size:13px;margin-top:3px}
+    .shot.big{grid-column:span 2}
+    @media(max-width:900px){.shot.big{grid-column:span 1}}
+    /* stats */
+    .stat{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:22px;text-align:center}
+    .stat .v{font-size:30px;font-weight:900;color:var(--brand)}
+    .stat .l{color:var(--muted);font-size:13.5px;margin-top:4px}
+    /* roi */
+    .pay-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+    @media(max-width:900px){.pay-grid{grid-template-columns:1fr}}
+    label.fl{display:block;font-size:13px;color:var(--muted);margin:14px 0 6px;font-weight:600}
+    .inp{width:100%;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:11px;padding:12px 14px;font-size:15px;font-family:inherit;outline:none;transition:.15s}
+    .inp:focus{border-color:var(--brand)}
+    .stepper{display:flex;border:1px solid var(--border);border-radius:11px;overflow:hidden;width:max-content}
+    .stepper button{width:44px;height:48px;background:var(--bg2);border:0;color:var(--text);font-size:22px;cursor:pointer}
+    .stepper button:hover{background:var(--panel);color:var(--brand)}
+    .stepper input{width:66px;height:48px;border:0;background:var(--bg);color:var(--text);text-align:center;font-size:20px;font-weight:800;font-family:inherit}
+    .srow{display:flex;justify-content:space-between;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:9px}
+    .note{font-size:12.5px;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-top:14px}
+    /* pricing */
+    .price-card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:18px;padding:28px;position:relative;display:flex;flex-direction:column}
+    .price-card.pop{border-color:var(--brand);box-shadow:0 20px 60px rgba(224,164,88,.12)}
+    .price-card .badge{position:absolute;top:-13px;inset-inline-start:24px;background:var(--brand);color:#1a1206;font-weight:800;font-size:12px;border-radius:999px;padding:5px 14px}
+    .price-card h3{font-size:22px;margin:0 0 4px} .price-card .seg{color:var(--muted);font-size:13px;margin-bottom:14px}
+    .price-card .amt{font-size:34px;font-weight:900} .price-card .amt small{font-size:14px;color:var(--muted);font-weight:600}
+    .price-card ul{list-style:none;padding:0;margin:16px 0 20px} .price-card li{margin:9px 0;font-size:14px;color:var(--text)} .price-card li.off{color:var(--muted)}
+    .price-card li::before{content:"✓ ";color:var(--ok);font-weight:800} .price-card li.off::before{content:"— ";color:var(--muted)}
+    .price-card .btn{margin-top:auto;justify-content:center}
+    /* steps */
+    .step{display:flex;gap:18px;align-items:flex-start;padding:16px 0;border-bottom:1px dashed var(--border)}
+    .step:last-child{border-bottom:0}
+    .step .n{flex:0 0 46px;height:46px;width:46px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:18px;background:rgba(224,164,88,.12);border:1px solid rgba(224,164,88,.35);color:var(--brand)}
+    .step h4{margin:2px 0 4px;font-size:17px} .step p{margin:0;color:var(--muted)}
+    /* faq */
+    details{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:4px 18px;margin-bottom:10px}
+    details summary{cursor:pointer;font-weight:700;padding:12px 0;list-style:none}
+    details summary::-webkit-details-marker{display:none}
+    details summary::before{content:"＋";color:var(--brand);font-weight:800;margin-inline-end:10px}
+    details[open] summary::before{content:"－"}
+    details p{margin:0 0 14px;color:var(--muted)}
+    /* contact */
+    .ok-msg{background:rgba(63,178,127,.1);border:1px solid rgba(63,178,127,.4);color:#8fe3bd;border-radius:12px;padding:14px 16px;margin-top:14px;display:none}
+    .err-msg{background:rgba(224,88,88,.1);border:1px solid rgba(224,88,88,.4);color:#f0a3a3;border-radius:12px;padding:12px 14px;margin-top:14px;display:none}
+    footer{border-top:1px solid var(--border);padding:34px 0;color:var(--muted);font-size:13px}
+    footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:16px;align-items:center}
+    .foot-links{display:flex;gap:18px;flex-wrap:wrap}
+    .foot-links a:hover{color:var(--text)}
+    .owner-link{opacity:.55;font-size:12px}
+    .owner-link:hover{opacity:1;color:var(--brand)}
+    /* modal */
+    .modal-back{position:fixed;inset:0;background:rgba(5,7,11,.74);backdrop-filter:blur(4px);z-index:90;display:none;place-items:center;padding:20px}
+    .modal-back.on{display:grid}
+    .modal{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:18px;max-width:420px;width:100%;padding:30px}
+    .modal h3{margin:0 0 6px}
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="wrap">
+      <a class="logo" href="#top"><span class="eye">👁</span><span>بصير<small>OWNER EYES</small></span></a>
+      <div class="nav-links">
+        <a class="lnk" href="#product">المنصّة</a>
+        <a class="lnk" href="#solutions">الحلول</a>
+        <a class="lnk" href="#why">لماذا بصير</a>
+        <a class="lnk" href="#roi">العائد</a>
+        <a class="lnk" href="#pricing">الأسعار</a>
+        <a class="lnk" href="/en" style="font-weight:800;color:var(--brand)">English</a>
+        <a class="btn ghost sm" href="/app">دخول العملاء</a>
+        <a class="btn primary sm" href="#contact">اطلب عرضاً</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero" id="top">
+    <div class="wrap">
+      <span class="kicker">منصّة سعودية لمراقبة المشاريع الإنشائية</span>
+      <h1>راقب مشاريعك الإنشائية <span class="g">بعينيك أنت</span><br>دون أن تغادر مكتبك.</h1>
+      <p class="lead">بصير يحوّل مخططاتك ونماذجك إلى خريطة إنجاز حيّة تضيء مع كل كمية تُنفَّذ، مع مؤشّر صحة مالي وزمني، واعتمادات موثّقة — لصاحب المشروع وممثّله والاستشاري والمقاول في منصّةٍ واحدة.</p>
+      <div class="cta">
+        <a class="btn primary lg" href="#contact">اطلب عرضاً تجريبياً</a>
+        <a class="btn ghost lg" href="#product">شاهد المنصّة</a>
+      </div>
+      <div class="chips">
+        <span class="chip">🗺️ خريطة إنجاز على مخططاتك الحقيقية</span>
+        <span class="chip">🧊 نماذج BIM / IFC ثلاثية الأبعاد</span>
+        <span class="chip">🚦 مؤشّر صحة الكلفة والزمن</span>
+        <span class="chip">🔏 اعتمادات موثّقة بالاسم والوقت</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- STATS / VALUE BAR -->
+  <section style="padding:34px 0">
+    <div class="wrap grid g4">
+      <div class="stat"><div class="v">٥ أبعاد</div><div class="l">مؤشّر صحة مركّب للمشروع</div></div>
+      <div class="stat"><div class="v num">٠.١–٠.٢٥٪</div><div class="l">من قيمة المشروع فقط سنوياً</div></div>
+      <div class="stat"><div class="v">رؤية بصرية</div><div class="l">ترى التنفيذ لا تقرأ عنه</div></div>
+      <div class="stat"><div class="v">كل الأطراف</div><div class="l">مالك · استشاري · مقاول</div></div>
+    </div>
+  </section>
+
+  <!-- PRODUCT SHOWCASE -->
+  <section id="product" class="alt">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">المنصّة</span><h2>شاهد كيف ترى مشروعك في بصير</h2><p>لقطات حقيقية من النظام — ليست رسومات تخيّلية.</p></div>
+      <div class="grid g2">
+        <div class="shot big"><img src="/vendor/site/map.png" alt="خريطة مواقع المشاريع"><div class="cap"><b>🗺️ كل مشاريعك على خريطة المملكة</b><div>نقطة لكل مشروع بلونٍ يكشف حالته — اضغطها لتنتقل إليه.</div></div></div>
+        <div class="shot"><img src="/vendor/site/progress.png" alt="خريطة الإنجاز"><div class="cap"><b>🧭 خريطة الإنجاز</b><div>كل منطقة تضيء حسب نسبة الإنجاز الفعلية المرتبطة بالكميات.</div></div></div>
+        <div class="shot"><img src="/vendor/site/bim.png" alt="نموذج BIM ثلاثي الأبعاد"><div class="cap"><b>🧊 نماذج BIM / IFC</b><div>قراءة نماذجك الهندسية الحقيقية وعرضها ثلاثية الأبعاد.</div></div></div>
+        <div class="shot"><img src="/vendor/site/health.png" alt="مؤشر صحة المشروع"><div class="cap"><b>👁 عين المالك — مؤشّر الصحة</b><div>رقم واحد يخبرك بحال مشروعك: الزمن والكلفة والجودة والسلامة.</div></div></div>
+        <div class="shot"><img src="/vendor/site/dashboard.png" alt="لوحة القيادة"><div class="cap"><b>📊 لوحة القيادة</b><div>كل مؤشّرات المشروع في شاشة واحدة محدّثة لحظياً.</div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOLUTIONS BY SEGMENT -->
+  <section id="solutions">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">الحلول</span><h2>لكل جهة فائدة ملموسة</h2><p>صُمّم بصير ليخدم دورة المشروع كاملة.</p></div>
+      <div class="grid g2">
+        <div class="card"><span class="ico">🏢</span><span class="role-tag">شركات التطوير العقاري</span><h3>تطمئن على محفظتك وأموالك</h3><ul><li>رؤية بصرية لكل مشاريعك دون زيارة الموقع</li><li>مؤشّر صحة يكشف تجاوز الميزانية والتأخير مبكراً</li><li>خريطة السعودية تُظهر حالة كل مشروع بلونه</li><li>قرارات واعتمادات موثّقة تحمي استثمارك</li></ul></div>
+        <div class="card"><span class="ico">🏛️</span><span class="role-tag">الجهات الحكومية</span><h3>شفافية وحوكمة لمشاريع الجهة</h3><ul><li>متابعة كل مشاريع الجهة بلوحة واحدة</li><li>كل اعتماد موثّق بالاسم والوقت — سجلّ لا يُنكَر</li><li>تقارير حوكمة جاهزة وقابلة للتدقيق</li><li>خيارات استضافة وسيادة بيانات ودعم مخصّص</li></ul></div>
+        <div class="card"><span class="ico">🧭</span><span class="role-tag">الاستشاري</span><h3>مكتب فنّي منظّم بلا أوراق</h3><ul><li>اعتماد المستخلصات والطلبات في مكان واحد</li><li>سجلّ RFI / WIR / المخالفات كامل</li><li>ربط الكميات بالمخططات والنماذج</li></ul></div>
+        <div class="card"><span class="ico">👷</span><span class="role-tag">المقاول</span><h3>توثّق عملك وتُحصّل أسرع</h3><ul><li>رفع الكميات والبرنامج والمستخلصات بسهولة</li><li>متابعة المنجز والمتبقّي والتأخير لكل بند</li><li>تحصيل أسرع بعد الاعتماد الموثّق</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WHY BASSIR -->
+  <section id="why" class="alt">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">الخيار التقني الصحيح</span><h2>لماذا بصير هو المنصّة المناسبة؟</h2><p>ليس مجرّد تقارير — نظام رؤية بصرية متكامل صُمّم لواقع المشاريع في السعودية.</p></div>
+      <div class="grid g3">
+        <div class="card"><span class="ico">🗺️</span><h3>رؤية بصرية حقيقية</h3><p>خريطة إنجاز على مخططاتك ونماذج BIM/IFC — ترى التنفيذ لا تقرأ عنه.</p></div>
+        <div class="card"><span class="ico">🇸🇦</span><h3>صُمّم للسوق السعودي</h3><p>عربي بالكامل، مصطلحات ومستخلصات ومكتب فنّي كما تعمل به شركاتنا.</p></div>
+        <div class="card"><span class="ico">🤝</span><h3>كل الأطراف معاً</h3><p>المالك وممثّله والاستشاري والمقاول على منصّة واحدة بلا تشتّت.</p></div>
+        <div class="card"><span class="ico">🔏</span><h3>حوكمة ونزاهة</h3><p>كل قرار موثّق بالاسم والوقت — سجلّ يحمي حقوقك ويحسم النزاع.</p></div>
+        <div class="card"><span class="ico">📱</span><h3>بلا تركيب</h3><p>يعمل من المتصفّح على الجوال والحاسب. تسجّل وتبدأ خلال دقائق.</p></div>
+        <div class="card"><span class="ico">🔒</span><h3>بياناتك آمنة ومعزولة</h3><p>عزل كامل لكل مشروع وصلاحيات دقيقة لكل دور.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROI -->
+  <section id="roi">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">العائد على الاستثمار</span><h2>مشروعك يخسر الملايين بصمت — بصير يوقف النزيف</h2><p>تجاوز الميزانية والتأخير والهدر تلتهم ٥٪–٢٠٪ من قيمة أي مشروع. الرؤية المبكرة توفّر أضعاف تكلفة النظام.</p></div>
+      <div class="card" style="background:radial-gradient(500px 220px at 50% 0,rgba(224,164,88,.12),transparent 70%)">
+        <div class="sec-head" style="margin-bottom:20px"><h2 style="font-size:26px;margin:0">احسب كم يوفّر عليك بصير 👇</h2></div>
+        <div class="pay-grid" style="align-items:center">
+          <div>
+            <label class="fl">قيمة المشروع التقديرية (ر.س)</label>
+            <input class="inp num" id="roi-value" dir="ltr" inputmode="numeric" value="50,000,000">
+            <label class="fl">عدد المشاريع</label>
+            <div class="stepper"><button type="button" id="roi-minus">−</button><input id="roi-count" class="num" value="1" inputmode="numeric"><button type="button" id="roi-plus">＋</button></div>
+            <div class="note">💡 تقديرات تحفّظية مبنية على متوسطات القطاع — النتائج الفعلية تختلف حسب المشروع.</div>
+          </div>
+          <div>
+            <div class="srow"><span>🛑 منع تجاوز الميزانية (~٣٪)</span><b class="num" id="roi-s1">—</b></div>
+            <div class="srow"><span>🔁 تقليل الهدر وإعادة العمل (~١٫٥٪)</span><b class="num" id="roi-s2">—</b></div>
+            <div class="srow"><span>⚡ تسريع الاعتماد والتحصيل (~٠٫٥٪)</span><b class="num" id="roi-s3">—</b></div>
+            <div class="srow" style="background:linear-gradient(135deg,rgba(63,178,127,.16),rgba(63,178,127,.05));border-color:rgba(63,178,127,.5)"><span style="font-weight:800;font-size:17px">💰 التوفير التقديري السنوي</span><b class="num" id="roi-total" style="color:#8fe3bd;font-size:24px">—</b></div>
+            <div style="text-align:center;background:rgba(224,164,88,.1);border:1px solid rgba(224,164,88,.4);border-radius:14px;padding:14px;font-size:18px;font-weight:800;margin-top:10px">لكل ريال تدفعه لبصير، يوفّر عليك ~ <span id="roi-x" style="color:var(--brand);font-size:24px">—</span> ريال</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section id="pricing" class="alt">
+    <div class="wrap">
+      <div class="sec-head"><span class="kicker">الأسعار</span><h2>تسعير بالقيمة — عادل وشفّاف</h2><p>اشتراك لكل مشروع نشِط حسب حجمه، أو رخصة سنوية للمحافظ الكبيرة والجهات الحكومية.</p></div>
+      <div class="grid g3">
+        <div class="price-card"><h3>Standard</h3><div class="seg">للمطوّر الصغير · لكل مشروع</div><div class="amt"><span class="num">٣,٠٠٠</span> <small>ر.س / مشروع / شهر</small></div>
+          <ul><li>عين المالك وخريطة الإنجاز</li><li>الكميات والمستخلصات والتقارير</li><li>BIM/IFC والمستندات</li><li class="off">الرصد البصري بالذكاء الاصطناعي</li><li class="off">SLA ودعم مخصّص</li></ul>
+          <a class="btn ghost" href="#contact">اطلب عرضاً</a></div>
+        <div class="price-card pop"><div class="badge">الأكثر اختياراً</div><h3>Professional</h3><div class="seg">للمطوّر المتوسط/الكبير · لكل مشروع</div><div class="amt"><span class="num">من ٦,٠٠٠</span> <small>ر.س / مشروع / شهر</small></div>
+          <ul><li>كل مزايا Standard</li><li>الرصد البصري بالذكاء الاصطناعي</li><li>تكامل وعلامة بيضاء (اختياري)</li><li>أولوية الدعم</li><li>خصم على الفوترة السنوية</li></ul>
+          <a class="btn primary" href="#contact">اطلب عرضاً</a></div>
+        <div class="price-card"><h3>Enterprise / حكومي</h3><div class="seg">محفظة كبيرة أو جهة · رخصة سنوية</div><div class="amt">تفاوضي</div>
+          <ul><li>مشاريع غير محدودة</li><li>SLA ودعم مخصّص + تنفيذ وتدريب</li><li>استضافة وسيادة بيانات</li><li>تكامل API وعلامة بيضاء</li><li>تقارير حوكمة</li></ul>
+          <a class="btn ghost" href="#contact">تواصل معنا</a></div>
+      </div>
+      <p class="sec-head" style="margin:26px auto 0;font-size:13px;color:var(--muted)">💡 السعر يبقى ٠.١٪–٠.٢٥٪ من قيمة المشروع سنوياً — جزء بسيط أمام ملايين التوفير. فوترة سنوية = شهران مجاناً.</p>
+    </div>
+  </section>
+
+  <!-- HOW IT WORKS -->
+  <section id="how">
+    <div class="wrap" style="max-width:820px">
+      <div class="sec-head"><span class="kicker">كيف يعمل</span><h2>من الاشتراك إلى أوّل تقرير — بخطوات بسيطة</h2></div>
+      <div class="step"><div class="n">1</div><div><h4>اطلب عرضاً وابدأ تجربة</h4><p>نفعّل مشروعاً واحداً لتجربة القيمة على أرض الواقع.</p></div></div>
+      <div class="step"><div class="n">2</div><div><h4>ارفع مخططاتك وكمياتك ونماذجك</h4><p>PDF ونماذج IFC/BIM وجداول كميات موزّعة على الأدوار.</p></div></div>
+      <div class="step"><div class="n">3</div><div><h4>راقب الإنجاز بصرياً</h4><p>خريطة إنجاز تضيء مع التنفيذ، ومؤشّر صحة، وتقارير دورية.</p></div></div>
+      <div class="step"><div class="n">4</div><div><h4>وسّع لبقيّة محفظتك</h4><p>أضِف مشاريعك وانتقل لرخصة محفظة بخصم كمية.</p></div></div>
+    </div>
+  </section>
+
+  <!-- CONTACT / REQUEST DEMO -->
+  <section id="contact" class="alt">
+    <div class="wrap" style="max-width:760px">
+      <div class="sec-head"><span class="kicker">ابدأ الآن</span><h2>اطلب عرضاً تجريبياً</h2><p>اترك بياناتك وسنتواصل معك لعرض المنصّة على أحد مشاريعك.</p></div>
+      <div class="card">
+        <form id="demo-form" autocomplete="off">
+          <div class="pay-grid">
+            <div><label class="fl">اسم الشركة / الجهة *</label><input class="inp" id="d-company" placeholder="مثال: شركة الإعمار القابضة" required></div>
+            <div><label class="fl">اسم المسؤول</label><input class="inp" id="d-contact" placeholder="الاسم الكامل"></div>
+          </div>
+          <div class="pay-grid">
+            <div><label class="fl">البريد الإلكتروني *</label><input class="inp" id="d-email" type="email" dir="ltr" placeholder="you@company.com" required></div>
+            <div><label class="fl">الجوال</label><input class="inp num" id="d-phone" dir="ltr" placeholder="05xxxxxxxx"></div>
+          </div>
+          <label class="fl">عدد مشاريعك الحالية</label>
+          <div class="stepper"><button type="button" id="d-minus">−</button><input id="d-proj" class="num" value="1" inputmode="numeric"><button type="button" id="d-plus">＋</button></div>
+          <button class="btn primary lg" type="submit" id="d-send" style="width:100%;justify-content:center;margin-top:18px">أرسل الطلب</button>
+          <div class="ok-msg" id="d-ok">✓ تم استلام طلبك — سنتواصل معك قريباً. يمكنك أيضاً الاشتراك والدفع مباشرةً من صفحة الاشتراك.</div>
+          <div class="err-msg" id="d-err"></div>
+          <div class="note">أو اشترك وادفع مباشرةً الآن من <a href="/landing.html" style="color:var(--brand)">صفحة الاشتراك</a>.</div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section>
+    <div class="wrap" style="max-width:820px">
+      <div class="sec-head"><span class="kicker">أسئلة شائعة</span><h2>قبل أن تبدأ</h2></div>
+      <details open><summary>كيف يُحسب السعر؟</summary><p>لكل مشروع نشِط حسب حجمه (يبدأ من ٣,٠٠٠ ر.س/شهر)، أو رخصة سنوية ثابتة للمحافظ الكبيرة والجهات. السعر يبقى جزءاً بسيطاً من قيمة المشروع.</p></details>
+      <details><summary>هل أحتاج تركيب برامج؟</summary><p>لا. بصير يعمل من المتصفّح على الجوال والحاسب مباشرةً.</p></details>
+      <details><summary>هل يدعم نماذج BIM وجداول الكميات؟</summary><p>نعم — يقرأ نماذج IFC/BIM ويعرضها ثلاثية الأبعاد، ويتيح إدخال الكميات وتوزيعها على الأدوار.</p></details>
+      <details><summary>هل يناسب الجهات الحكومية؟</summary><p>نعم — نوفّر رخصة مؤسسية مع SLA واستضافة وسيادة بيانات وتقارير حوكمة وتنفيذ وتدريب.</p></details>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <div><div class="logo">👁 <span>بصير — عيون المالك</span></div><div style="margin-top:8px">© <span class="num">2026</span> بصير بزنس — جميع الحقوق محفوظة.</div></div>
+      <div class="foot-links">
+        <a href="#product">المنصّة</a><a href="#pricing">الأسعار</a><a href="#contact">تواصل</a>
+        <a href="/app">دخول العملاء</a>
+        <a href="#" id="owner-login" class="owner-link">🔐 دخول مالك النظام</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- OWNER LOGIN MODAL -->
+  <div class="modal-back" id="owner-modal">
+    <div class="modal">
+      <h3>🔐 دخول مالك النظام</h3>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 14px">لوحة تحكّم المنصّة: عدد العملاء، الدخل، النمو ونسبة التحويل.</p>
+      <label class="fl">اسم المستخدم</label><input class="inp" id="o-user" dir="ltr" value="biz">
+      <label class="fl">كلمة المرور</label><input class="inp" id="o-pass" type="password" dir="ltr">
+      <button class="btn primary lg" id="o-go" style="width:100%;justify-content:center;margin-top:16px">دخول</button>
+      <div class="err-msg" id="o-err"></div>
+      <button class="btn ghost" id="o-cancel" style="width:100%;justify-content:center;margin-top:10px">إلغاء</button>
+    </div>
+  </div>
+
+  <script src="/shared/seed-data.js"></script>
+  <script src="/shared/api-core.js"></script>
+  <script src="/js/site.js"></script>
+</body>
+</html>

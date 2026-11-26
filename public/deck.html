@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بصير — عيون المالك | عرض المبيعات</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>👁</text></svg>">
+  <style>
+    :root{
+      --bg:#0b0e14; --bg2:#0f131c; --panel:#121724; --border:#1f2635;
+      --text:#e7ecf4; --muted:#9aa4b5; --brand:#e0a458; --brand2:#8a6a35;
+      --ok:#3fb27f; --danger:#e05858; --info:#5aa6e0;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%;background:#05070b;color:var(--text);
+      font-family:"Segoe UI",Tahoma,"Noto Kufi Arabic","Cairo",Arial,sans-serif;overflow:hidden}
+    .num{font-variant-numeric:tabular-nums}
+    /* deck */
+    .deck{position:fixed;inset:0}
+    .slide{position:absolute;inset:0;display:none;flex-direction:column;justify-content:center;
+      padding:7vh 8vw;opacity:0;transition:opacity .35s ease;
+      background:
+        radial-gradient(1100px 620px at 82% -10%, rgba(224,164,88,.16), transparent 60%),
+        radial-gradient(800px 560px at 6% 112%, rgba(224,164,88,.08), transparent 60%),
+        linear-gradient(180deg,#0d1119,#0b0e14)}
+    .slide.on{display:flex;opacity:1}
+    .kick{color:var(--brand);font-weight:800;letter-spacing:3px;font-size:clamp(13px,1.5vw,18px);margin-bottom:2.2vh}
+    h1{font-size:clamp(34px,6vw,76px);font-weight:900;line-height:1.12}
+    h1 .g{background:linear-gradient(135deg,var(--brand),#f2c98a);-webkit-background-clip:text;background-clip:text;color:transparent}
+    h2{font-size:clamp(26px,4.2vw,52px);font-weight:900;line-height:1.2;margin-bottom:2.5vh}
+    .lead{font-size:clamp(16px,2.1vw,27px);color:var(--muted);max-width:60ch;line-height:1.7;margin-top:2vh}
+    .chips{display:flex;gap:1.2vw;flex-wrap:wrap;margin-top:4vh}
+    .chip{background:var(--bg2);border:1px solid var(--border);border-radius:999px;padding:1.3vh 1.6vw;font-size:clamp(13px,1.5vw,19px);color:var(--text)}
+    .chip b{color:var(--brand)}
+    ul{list-style:none;margin-top:2vh}
+    li{display:flex;gap:1vw;align-items:flex-start;margin:1.7vh 0;font-size:clamp(15px,1.9vw,25px);line-height:1.5}
+    li .mk{color:var(--ok);font-size:1.1em;flex:0 0 auto}
+    li.bad .mk{color:var(--danger)}
+    .big-stat{font-size:clamp(30px,5vw,60px);font-weight:900;color:var(--brand);margin-top:3vh}
+    .big-stat small{display:block;font-size:.34em;color:var(--muted);font-weight:600;margin-top:1vh}
+    /* two-column (screenshot slides) */
+    .cols{display:grid;grid-template-columns:42% 58%;gap:3vw;align-items:center;height:100%}
+    .cols .txt h2{font-size:clamp(24px,3.4vw,42px)}
+    .frame{border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 30px 70px rgba(0,0,0,.5);background:#0b0e14}
+    .frame .bar{height:34px;background:#121724;display:flex;align-items:center;gap:7px;padding:0 14px;border-bottom:1px solid var(--border)}
+    .frame .bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
+    .frame .bar .r{background:#e05858}.frame .bar .y{background:#e0a458}.frame .bar .g{background:#3fb27f}
+    .frame img{width:100%;display:block;max-height:74vh;object-fit:cover;object-position:top}
+    /* grids */
+    .grid{display:grid;gap:1.8vw;margin-top:3vh}
+    .g4{grid-template-columns:repeat(4,1fr)} .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+    .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:16px;padding:2.4vh 1.6vw}
+    .card .ic{font-size:clamp(26px,3vw,40px);display:block;margin-bottom:1.2vh}
+    .card b{font-size:clamp(15px,1.7vw,22px)}
+    .card p{color:var(--muted);font-size:clamp(12px,1.3vw,17px);margin-top:.8vh;line-height:1.5}
+    .tag{display:inline-block;color:var(--brand);background:rgba(224,164,88,.12);border:1px solid rgba(224,164,88,.35);border-radius:999px;padding:.5vh 1vw;font-size:clamp(12px,1.3vw,16px);font-weight:800;margin-bottom:1vh}
+    /* ROI slide */
+    .roi{display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;margin-top:4vh}
+    .roi .box{background:var(--bg2);border:1px solid var(--border);border-radius:18px;padding:4vh 2vw;text-align:center}
+    .roi .box .v{font-size:clamp(28px,4.4vw,56px);font-weight:900}
+    .roi .box.save .v{color:var(--ok)} .roi .box.cost .v{color:var(--text)} .roi .box.x .v{color:var(--brand)}
+    .roi .box .l{color:var(--muted);font-size:clamp(13px,1.5vw,19px);margin-top:1vh}
+    /* pricing */
+    .tiers{display:grid;grid-template-columns:repeat(3,1fr);gap:1.8vw;margin-top:3.5vh}
+    .tier{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--border);border-radius:16px;padding:3vh 1.6vw}
+    .tier.pop{border-color:var(--brand);box-shadow:0 18px 50px rgba(224,164,88,.14)}
+    .tier h3{font-size:clamp(18px,2.2vw,28px)} .tier .seg{color:var(--muted);font-size:clamp(12px,1.3vw,16px);margin:.6vh 0 1.4vh}
+    .tier .amt{font-size:clamp(20px,2.6vw,34px);font-weight:900} .tier .amt small{font-size:.44em;color:var(--muted);font-weight:600}
+    .tier ul{margin-top:1.6vh} .tier li{font-size:clamp(12px,1.4vw,18px);margin:1vh 0}
+    /* cover + close */
+    .center{align-items:center;text-align:center}
+    .eye{font-size:clamp(70px,11vw,150px);line-height:1}
+    .sub{color:var(--muted);letter-spacing:6px;font-size:clamp(13px,1.6vw,20px);margin-top:1vh}
+    .cta-pill{display:inline-block;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#1a1206;font-weight:900;border-radius:999px;padding:1.6vh 3vw;font-size:clamp(16px,2vw,26px);margin-top:4vh}
+    /* chrome */
+    .wm{position:fixed;bottom:2.4vh;right:3vw;display:flex;align-items:center;gap:10px;opacity:.8;z-index:5}
+    .wm .e{font-size:clamp(20px,2vw,28px)} .wm b{font-size:clamp(14px,1.4vw,19px)} .wm small{display:block;color:var(--muted);font-size:10px;letter-spacing:2px}
+    .brandbar{position:fixed;bottom:0;inset-inline:0;height:6px;background:linear-gradient(90deg,var(--brand),var(--brand2));z-index:6}
+    .dots{position:fixed;bottom:2.4vh;left:3vw;display:flex;gap:8px;z-index:7}
+    .dots i{width:9px;height:9px;border-radius:50%;background:#2a3346;cursor:pointer;transition:.2s}
+    .dots i.on{background:var(--brand);width:22px;border-radius:5px}
+    .nav{position:fixed;top:2.4vh;left:3vw;display:flex;gap:8px;z-index:7}
+    .nav button{background:var(--bg2);border:1px solid var(--border);color:var(--text);width:40px;height:40px;border-radius:10px;font-size:20px;cursor:pointer}
+    .nav button:hover{border-color:var(--brand);color:var(--brand)}
+    .pageno{position:fixed;top:2.9vh;right:3vw;color:var(--muted);font-size:14px;z-index:7}
+    .hint{position:fixed;top:3vh;left:50%;transform:translateX(-50%);color:#4a5568;font-size:12px;z-index:7}
+    /* print: one slide per page */
+    @media print{
+      @page{size:1280px 720px;margin:0}
+      html,body{overflow:visible;height:auto}
+      .nav,.dots,.pageno,.hint{display:none !important}
+      .slide{position:relative;display:flex !important;opacity:1 !important;inset:auto;width:1280px;height:720px;page-break-after:always;overflow:hidden}
+      .frame img{max-height:560px}
+    }
+    body.print .slide{position:relative;display:flex;opacity:1;inset:auto;width:1280px;height:720px;page-break-after:always;overflow:hidden}
+    body.print{overflow:visible;height:auto}
+    body.print .nav,body.print .dots,body.print .pageno,body.print .hint{display:none}
+  </style>
+</head>
+<body>
+  <div class="deck" id="deck">
+
+    <!-- 1 cover -->
+    <section class="slide center">
+      <div class="eye">👁</div>
+      <h1>بصير <span class="g">— عيون المالك</span></h1>
+      <div class="sub">BASSIR · OWNER EYES</div>
+      <p class="lead" style="margin-top:3vh">راقب مشاريعك الإنشائية <b style="color:var(--brand)">بعينيك أنت</b> — دون أن تغادر مكتبك.</p>
+      <div class="chips" style="justify-content:center"><span class="chip">منصّة الرؤية البصرية لمراقبة المشاريع</span></div>
+    </section>
+
+    <!-- 2 problem -->
+    <section class="slide">
+      <div class="kick">التحدّي</div>
+      <h2>كم مرّة اكتشفت حقيقة مشروعك <span style="color:var(--danger)">متأخرًا</span>؟</h2>
+      <ul>
+        <li class="bad"><span class="mk">⚠️</span> زيارات ميدانية مكلفة لا تكشف الصورة كاملة</li>
+        <li class="bad"><span class="mk">⚠️</span> تقارير ورقية متأخّرة وأحيانًا متضاربة</li>
+        <li class="bad"><span class="mk">⚠️</span> قرارات صرف واعتماد بلا دليل موثّق</li>
+        <li class="bad"><span class="mk">⚠️</span> تكتشف التأخّر أو تجاوز الميزانية بعد فوات الأوان</li>
+      </ul>
+      <div class="big-stat"><span class="num">٥٪ – ٢٠٪</span><small>من قيمة أي مشروع إنشائي تضيع بسبب التجاوز والتأخير والهدر</small></div>
+    </section>
+
+    <!-- 3 solution -->
+    <section class="slide center">
+      <div class="kick">الحـلّ</div>
+      <h2>بصير يجعلك ترى مشروعك <span class="g">كأنك في الموقع</span></h2>
+      <p class="lead" style="margin:0 auto">بياناتٌ حيّة، مؤشّرات، ومخططاتٌ تضيء مع التنفيذ — في منصّةٍ واحدة بالعربي، صُمّمت للسوق السعودي.</p>
+      <div class="chips" style="justify-content:center">
+        <span class="chip">🗺️ خريطة إنجاز على مخططاتك</span>
+        <span class="chip">🧊 نماذج BIM / IFC ثلاثية الأبعاد</span>
+        <span class="chip">🚦 مؤشّر صحة الكلفة والزمن</span>
+        <span class="chip">🔏 اعتمادات موثّقة بالاسم والوقت</span>
+      </div>
+    </section>
+
+    <!-- 4 owner eye -->
+    <section class="slide">
+      <div class="cols">
+        <div class="txt"><div class="kick">نظرة عامة</div>
+          <h2>👁 عين المالك — مؤشّر صحّة المشروع</h2>
+          <ul>
+            <li><span class="mk">✓</span> رقم واحد يخبرك بحال مشروعك فورًا</li>
+            <li><span class="mk">✓</span> مركّب من ٥ أبعاد: الزمن، الكلفة، الجودة، السلامة، المقاولون</li>
+            <li><span class="mk">✓</span> اتجاه شهري يكشف التراجع مبكرًا</li>
+          </ul>
+        </div>
+        <div class="frame"><div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i></div><img src="/vendor/site/health.png" alt="عين المالك"></div>
+      </div>
+    </section>
+
+    <!-- 5 saudi map -->
+    <section class="slide">
+      <div class="cols">
+        <div class="txt"><div class="kick">الرؤية البصرية</div>
+          <h2>🗺️ كل مشاريعك على خريطة المملكة</h2>
+          <ul>
+            <li><span class="mk">✓</span> نقطة لكل مشروع بلونٍ يكشف حالته</li>
+            <li><span class="mk">✓</span> أخضر سليم · أصفر يحتاج إجراء · أحمر متأخّر</li>
+            <li><span class="mk">✓</span> اضغط النقطة لتنتقل إلى المشروع</li>
+          </ul>
+        </div>
+        <div class="frame"><div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i></div><img src="/vendor/site/map.png" alt="خريطة المشاريع"></div>
+      </div>
+    </section>
+
+    <!-- 6 progress map -->
+    <section class="slide">
+      <div class="cols">
+        <div class="txt"><div class="kick">الرؤية البصرية</div>
+          <h2>🧭 خريطة الإنجاز — ترى العمل يتحقّق</h2>
+          <ul>
+            <li><span class="mk">✓</span> كل دور ومنطقة يضيء حسب الإنجاز الفعلي</li>
+            <li><span class="mk">✓</span> مرتبط بجداول الكميات المعتمدة — لا تخمين</li>
+            <li><span class="mk">✓</span> إنجاز كل تخصّص في كل دور</li>
+          </ul>
+        </div>
+        <div class="frame"><div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i></div><img src="/vendor/site/progress.png" alt="خريطة الإنجاز"></div>
+      </div>
+    </section>
+
+    <!-- 7 bim -->
+    <section class="slide">
+      <div class="cols">
+        <div class="txt"><div class="kick">الرؤية البصرية</div>
+          <h2>🧊 نماذج BIM / IFC ثلاثية الأبعاد</h2>
+          <ul>
+            <li><span class="mk">✓</span> يقرأ نماذجك الهندسية الحقيقية (IFC)</li>
+            <li><span class="mk">✓</span> يعرضها ثلاثية الأبعاد داخل المنصّة</li>
+            <li><span class="mk">✓</span> تُربط عناصرها ببنود الكميات والإنجاز</li>
+          </ul>
+        </div>
+        <div class="frame"><div class="bar"><i class="r"></i><i class="y"></i><i class="g"></i></div><img src="/vendor/site/bim.png" alt="نموذج ثلاثي الأبعاد"></div>
+      </div>
+    </section>
+
+    <!-- 8 governance -->
+    <section class="slide center">
+      <div class="kick">الحوكمة والنزاهة</div>
+      <h2>كل قرار موثّق <span class="g">بالاسم والوقت</span></h2>
+      <p class="lead" style="margin:0 auto">المستخلصات، أوامر التغيير، طلبات الاستلام، والاعتمادات — سجلٌّ لا يُنكَر يحمي حقوقك ويحسم أي نزاع. <b style="color:var(--text)">قيمة كبرى للقطاع الحكومي.</b></p>
+      <div class="chips" style="justify-content:center"><span class="chip">🔏 سجلّ تدقيق كامل</span><span class="chip">🔒 عزل بيانات لكل مشروع</span><span class="chip">👥 صلاحيات دقيقة لكل دور</span></div>
+    </section>
+
+    <!-- 9 value per role -->
+    <section class="slide">
+      <div class="kick">القيمة لكل طرف</div>
+      <h2>لماذا يشترك كل طرف في المشروع؟</h2>
+      <div class="grid g4">
+        <div class="card"><span class="ic">👁</span><span class="tag">المالك</span><b>تطمئن على أموالك</b><p>رؤية دون زيارة، كشف مبكر للخطر، قرارات موثّقة.</p></div>
+        <div class="card"><span class="ic">🧭</span><span class="tag">ممثّل المالك</span><b>تدير محفظة بثقة</b><p>كل المشاريع بلوحة واحدة وتقارير جاهزة.</p></div>
+        <div class="card"><span class="ic">🏛️</span><span class="tag">الاستشاري</span><b>مكتب فنّي منظّم</b><p>اعتماد المستخلصات وسجلّ RFI/WIR وربط الكميات.</p></div>
+        <div class="card"><span class="ic">👷</span><span class="tag">المقاول</span><b>توثيق وتحصيل أسرع</b><p>رفع الكميات والمستخلصات ومتابعة المنجز.</p></div>
+      </div>
+    </section>
+
+    <!-- 10 ROI -->
+    <section class="slide center">
+      <div class="kick">العائد على الاستثمار</div>
+      <h2>مشروعك يخسر الملايين بصمت — بصير يوقف النزيف</h2>
+      <p class="lead" style="margin:1vh auto 0">مثال: مشروع بقيمة <b style="color:var(--text)">١٠٠ مليون ر.س</b></p>
+      <div class="roi">
+        <div class="box save"><div class="v num">~٥ مليون</div><div class="l">توفير تقديري سنوي</div></div>
+        <div class="box cost"><div class="v num">١٢٠ ألف</div><div class="l">تكلفة اشتراك بصير سنويًا</div></div>
+        <div class="box x"><div class="v num">~٤٢×</div><div class="l">عائد على كل ريال</div></div>
+      </div>
+      <p class="lead" style="margin:3vh auto 0;font-size:clamp(14px,1.6vw,20px)">السعر دائمًا ٠.١٪–٠.٢٥٪ من قيمة المشروع — جزء بسيط أمام ملايين التوفير.</p>
+    </section>
+
+    <!-- 11 why bassir -->
+    <section class="slide">
+      <div class="kick">الخيار التقني الصحيح</div>
+      <h2>لماذا بصير؟</h2>
+      <div class="grid g3">
+        <div class="card"><span class="ic">🗺️</span><b>رؤية بصرية حقيقية</b><p>ترى التنفيذ لا تقرأ عنه.</p></div>
+        <div class="card"><span class="ic">🇸🇦</span><b>صُمّم للسوق السعودي</b><p>بمصطلحاتنا ومستخلصاتنا.</p></div>
+        <div class="card"><span class="ic">🤝</span><b>كل الأطراف معًا</b><p>منصّة واحدة بلا تشتّت.</p></div>
+        <div class="card"><span class="ic">🔏</span><b>حوكمة موثّقة</b><p>سجلّ يحسم النزاع.</p></div>
+        <div class="card"><span class="ic">📱</span><b>بلا تركيب</b><p>من المتصفّح والجوال.</p></div>
+        <div class="card"><span class="ic">🔒</span><b>بيانات آمنة معزولة</b><p>صلاحيات دقيقة لكل دور.</p></div>
+      </div>
+    </section>
+
+    <!-- 12 pricing -->
+    <section class="slide">
+      <div class="kick">الأسعار</div>
+      <h2>تسعير بالقيمة — عادل وشفّاف</h2>
+      <div class="tiers">
+        <div class="tier"><h3>Standard</h3><div class="seg">مطوّر صغير · لكل مشروع</div><div class="amt"><span class="num">من ٣,٠٠٠</span> <small>ر.س/شهر</small></div><ul><li>✓ عين المالك وخريطة الإنجاز</li><li>✓ الكميات والتقارير</li><li>✓ BIM/IFC والمستندات</li></ul></div>
+        <div class="tier pop"><h3>Professional</h3><div class="seg">مطوّر متوسط/كبير</div><div class="amt"><span class="num">من ٦,٠٠٠</span> <small>ر.س/شهر</small></div><ul><li>✓ كل مزايا القياسية</li><li>✓ الرصد البصري الذكي</li><li>✓ علامة بيضاء وتكامل</li></ul></div>
+        <div class="tier"><h3>Enterprise / حكومي</h3><div class="seg">محفظة كبيرة أو جهة</div><div class="amt">رخصة سنوية</div><ul><li>✓ مشاريع غير محدودة</li><li>✓ SLA + استضافة + تنفيذ</li><li>✓ تقارير حوكمة</li></ul></div>
+      </div>
+    </section>
+
+    <!-- 13 how to start -->
+    <section class="slide center">
+      <div class="kick">كيف نبدأ</div>
+      <h2>ابدأ بمشروع واحد — وتوسّع بالأرقام</h2>
+      <div class="chips" style="justify-content:center;gap:2vw;margin-top:4vh">
+        <span class="chip" style="font-size:clamp(14px,1.7vw,22px)">1 · تجربة مدفوعة على مشروع واحد</span>
+        <span class="chip" style="font-size:clamp(14px,1.7vw,22px)">2 · أثبِت العائد على أرض الواقع</span>
+        <span class="chip" style="font-size:clamp(14px,1.7vw,22px)">3 · وسّع لبقيّة محفظتك</span>
+      </div>
+      <p class="lead" style="margin:4vh auto 0">تبدأ خلال أيام — بلا تركيب، ونحن ننفّذ وندرّب فريقك.</p>
+    </section>
+
+    <!-- 14 close -->
+    <section class="slide center">
+      <div class="eye">👁</div>
+      <h2 style="margin-top:1vh">ابدأ برؤية مشروعك <span class="g">كما لم ترَه من قبل</span></h2>
+      <p class="lead" style="margin:1vh auto 0">رؤية بصرية · مؤشّرات حيّة · قرارات موثّقة · توفير بالملايين.</p>
+      <div class="cta-pill">اطلب عرضًا تجريبيًا على مشروعك</div>
+    </section>
+
+  </div>
+
+  <div class="nav"><button id="prev" title="السابق">›</button><button id="next" title="التالي">‹</button></div>
+  <div class="pageno" id="pageno" dir="ltr">1 / 14</div>
+  <div class="hint">استخدم ← → للتنقّل · F11 لملء الشاشة</div>
+  <div class="dots" id="dots"></div>
+  <div class="wm"><span class="e">👁</span><div><b>بصير</b><small>OWNER EYES</small></div></div>
+  <div class="brandbar"></div>
+
+  <script src="/js/deck.js"></script>
+</body>
+</html>
