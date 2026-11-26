@@ -325,9 +325,13 @@
       if (role === 'admin' || role === 'owner_rep') s.auditLog = db.auditLog || [];
 
       // تقييد النطاق بالمشاريع المسندة: المالك يرى مشروعه فقط
-      // (وينطبق كذلك على استشاري أُسندت له مشاريع محددة، ومدير المشروع دائماً بمشروعه الوحيد)
-      if (user.projectIds && (role === 'owner' || role === 'consultant' || role === 'project_manager')) {
-        const pids = user.projectIds;
+      // (وينطبق كذلك على استشاري أُسندت له مشاريع محددة، ومدير المشروع دائماً بمشروعه الوحيد).
+      // ملاحظة أمان مهمة: هذا التقييد يجب أن يُطبَّق دائماً لهذه الأدوار الثلاثة، حتى لو كان
+      // projectIds فارغاً/غير معرَّف — فارغ يعني "بلا أي مشروع مسنَد" فلا يرى شيئاً (رفض افتراضي)،
+      // لا "كل المشاريع" كما كان سابقاً (قبول افتراضي خطير كان يُسرّب كل بيانات كل المشاريع لأي
+      // حساب استشاري/مالك/مدير مشروع لم يُسنَد له projectIds لأي سبب)
+      if (role === 'owner' || role === 'consultant' || role === 'project_manager') {
+        const pids = user.projectIds || [];
         const inScope = function (x) { return !x.projectId || pids.indexOf(x.projectId) !== -1; };
         s.projects = s.projects.filter(function (p) { return pids.indexOf(p.id) !== -1; });
         Object.keys(s).forEach(function (k) {
@@ -369,6 +373,26 @@
       if (allowed.indexOf(user.role) === -1) throw err('لا تملك صلاحية الإضافة هنا', 403);
     }
 
+    /** نطاق المشاريع الفعلي للمستخدم: null = غير مقيَّد (الأدمن وممثل المالك يريان كل المشاريع
+     *  بتصميم الدورين)، وإلا مصفوفة معرّفات المشاريع المسموح له بالقراءة/الكتابة فيها فقط */
+    function userProjectScope(user) {
+      if (user.role === 'admin' || user.role === 'owner_rep') return null;
+      if (user.role === 'contractor') {
+        const c = db.contractors.find(function (x) { return x.id === user.contractorId; });
+        return c && c.projectId ? [c.projectId] : [];
+      }
+      return user.projectIds || [];
+    }
+    /** يرفض أي عملية إنشاء/تعديل/حذف/اعتماد على سجل مشروعه خارج نطاق المستخدم — يمنع استشاري/مالك/
+     *  مدير مشروع مُسنَد لمشروع من التأثير على بيانات مشروع آخر عبر تمرير/استهداف معرّف مختلف مباشرة
+     *  (العزل بين المشاريع لا يكفي أن يكون في شاشة العرض فقط، بل في كل مسار كتابة فعلياً) */
+    function assertProjectInScope(user, projectId) {
+      if (!projectId) return;
+      const scope = userProjectScope(user);
+      if (scope === null) return;
+      if (scope.indexOf(projectId) === -1) throw err('هذا السجل/المشروع خارج نطاق صلاحياتك', 403);
+    }
+
     /** يجد العنصر الأصل الذي يخص هذا التعليق، ويتحقق من صلاحية المستخدم للتعليق عليه */
     function resolveCommentParent(user, data) {
       const col = data.collection;
@@ -376,6 +400,7 @@
       if (!list) throw err('مجموعة غير معروفة للتعليق: ' + col, 400);
       const parent = list.find(function (x) { return x.id === data.itemId; });
       if (!parent) throw err('العنصر المطلوب التعليق عليه غير موجود', 404);
+      assertProjectInScope(user, parent.projectId);
       if (user.role === 'contractor' && parent.contractorId !== user.contractorId) {
         throw err('لا تملك صلاحية التعليق على هذا الطلب', 403);
       }
@@ -464,9 +489,14 @@
     function createItem(user, collection, data) {
       assertCanCreate(user, collection);
       // مدير المشروع دور مقصور دائماً على مشروع واحد بالتصميم — يُرفَض إنشاؤه بلا مشروع محدَّد
-      // (وإلا فسيصبح بلا نطاق ويرى كل المشاريع، عكس الغرض من الدور تماماً)
+      // (وإلا فسيبقى بلا نطاق ولا يرى أي مشروع إطلاقاً بعد تقييد getState الافتراضي — رفض واضح
+      // عند الإنشاء أفضل من حساب صامت لا يعمل)
       if (collection === 'users' && data.role === 'project_manager' && (!data.projectIds || data.projectIds.length !== 1)) {
         throw err('مدير المشروع يجب أن يُسنَد إلى مشروع واحد بالضبط', 400);
+      }
+      // استشاري/مالك بلا أي مشروع مسنَد يبقى بلا نطاق تماماً (لا يرى شيئاً) — نفس المبدأ أعلاه
+      if (collection === 'users' && (data.role === 'consultant' || data.role === 'owner') && (!data.projectIds || !data.projectIds.length)) {
+        throw err('يجب إسناد مشروع واحد على الأقل لهذا الحساب', 400);
       }
       const item = Object.assign({}, data);
       item.id = nextId(collection.substring(0, 2).toUpperCase());
@@ -517,9 +547,13 @@
         // projectIds (مالك/استشاري) أو contractorId (مقاول)، فلا معنى لِوَسم كل حساب جديد بمشروع افتراضي P1
         // المشروع من العميل (المشروع المعروض) أولاً، وإلا مشروع المستخدم الحالي، وإلا أول مشروع في النظام —
         // يمنع تسرّب المستندات لمشروع P1 افتراضياً حين يعمل المستخدم فعلياً على مشروع آخر
-        item.projectId = item.projectId ||
+        const requestedPid = item.projectId ||
           (user.projectIds && user.projectIds[0]) ||
           (db.projects[0] && db.projects[0].id) || 'P1';
+        // لا يكفي افتراض مشروع المستخدم عند غياب الإرسال — يجب أيضاً رفض أي مشروع مُرسَل صراحة
+        // يقع خارج نطاق المستخدم (استشاري مشروع A لا يُنشئ سجلاً بمعرّف مشروع B مهما أرسل العميل)
+        assertProjectInScope(user, requestedPid);
+        item.projectId = requestedPid;
       }
       if (REF_PREFIX[collection]) item.ref = nextRef(collection); // يتجاهل أي ref مُرسَل من العميل عمداً
       if (!item.date) item.date = todayStr();
@@ -582,6 +616,11 @@
       if (!list) throw err('مجموعة غير معروفة', 404);
       const item = list.find(function (x) { return x.id === id; });
       if (!item) throw err('العنصر غير موجود', 404);
+      // لا يكفي التحقق من الصلاحية على مستوى نوع المجموعة — يجب أيضاً أن يقع هذا السجل تحديداً
+      // ضمن نطاق مشاريع المستخدم، وإلا أمكن لاستشاري/مدير مشروع تعديل سجل يخص مشروعاً آخر تماماً
+      // بمجرد معرفة معرّفه (projects: المعرّف نفسه هو المشروع؛ users: غير مقيَّد بمشروع واحد)
+      if (collection === 'projects') assertProjectInScope(user, item.id);
+      else if (collection !== 'users') assertProjectInScope(user, item.projectId);
       if (user.role === 'contractor') {
         if (item.contractorId !== user.contractorId) throw err('لا تملك صلاحية التعديل', 403);
         if (item.status && item.status !== 'pending' && item.status !== 'open') {
@@ -663,6 +702,10 @@
       if (!list) throw err('مجموعة غير معروفة', 404);
       const i = list.findIndex(function (x) { return x.id === id; });
       if (i === -1) throw err('العنصر غير موجود', 404);
+      // صلاحية الحذف على مستوى المجموعة لا تكفي وحدها — يجب أن يقع هذا السجل تحديداً ضمن نطاق
+      // مشاريع المستخدم (استشاري مشروع A لا يحذف سجلاً يخص مشروع B مهما كان نوع المجموعة)
+      if (collection === 'projects') assertProjectInScope(user, list[i].id);
+      else if (collection !== 'users') assertProjectInScope(user, list[i].projectId);
       audit(user, 'delete', labelOf(collection, list[i]));
       list.splice(i, 1);
       persist();
@@ -686,6 +729,9 @@
       if (['approved', 'approved_notes', 'rejected'].indexOf(status) === -1) throw err('حالة غير صالحة', 400);
       const item = db[collection].find(function (x) { return x.id === id; });
       if (!item) throw err('الطلب غير موجود', 404);
+      // صلاحية "استشاري/مدير مشروع" وحدها لا تكفي — يجب أن يقع هذا الطلب تحديداً ضمن نطاق
+      // مشاريعه، وإلا أمكن لاستشاري مشروع A اعتماد/رفض مستخلص أو طلب يخص مشروع B تماماً
+      assertProjectInScope(user, item.projectId);
       if (!item.history) item.history = [];
       if (!item.reviewStartDate) item.reviewStartDate = item.date;
 
@@ -830,6 +876,7 @@
       if (!item) throw err('المستند غير موجود', 404);
       if (user.role === 'contractor' && item.contractorId !== user.contractorId) throw err('غير مصرح', 403);
       if (['contractor', 'consultant', 'project_manager', 'admin'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      assertProjectInScope(user, item.projectId);
       if (item.status === 'pending') throw err('المستند قيد المراجعة بالفعل', 400);
 
       if (!item.revisions) item.revisions = [];
@@ -864,6 +911,9 @@
       if (!payload.projectId || !db.projects.some(function (p) { return p.id === payload.projectId; })) {
         throw err('اختر المشروع الصحيح للمقاول', 400);
       }
+      // لا يكفي أن يكون المشروع موجوداً في النظام — يجب أن يقع فعلياً ضمن نطاق هذا الاستشاري/مدير
+      // المشروع، وإلا أمكن لاستشاري مشروع A إضافة مقاول لمشروع B لا يملك أي صلاحية عليه
+      assertProjectInScope(user, payload.projectId);
       const c = {
         id: nextId('C'), projectId: payload.projectId,
         name: payload.name, type: payload.type,
@@ -894,15 +944,30 @@
     }
 
     /**
-     * حذف مقاول نهائياً (صلاحية الأدمن فقط — كبقية عمليات الحذف في النظام).
-     * يحذف معه: حساب دخوله، بنود جدول كمياته، وأي ربط مناطق مخططات/عناصر BIM ببنود كمياته
-     * (لتفادي بيانات يتيمة تُسبب أخطاء عرض). طلبات الاعتماد والمستخلصات السابقة تبقى كسجل تاريخي
-     * ولا تُحذف — يظهر اسم المقاول فيها كمعرّف فقط بعد الحذف.
+     * حذف مقاول نهائياً — صلاحية الأدمن أو الاستشاري أو مدير المشروع (نفس من يملك صلاحية إضافته
+     * أصلاً في renderManageContractors، ليتمكّنوا من التراجع فوراً عن إضافة خاطئة/مكرَّرة دون
+     * انتظار الأدمن). يحذف معه: حساب دخوله، بنود جدول كمياته، وأي ربط مناطق مخططات/عناصر BIM
+     * ببنود كمياته (لتفادي بيانات يتيمة تُسبب أخطاء عرض).
+     * يُرفَض الحذف إن كان للمقاول أي مستخلص/طلب اعتماد سابق (معتمد أو غيره) — فتلك سجلات مالية/
+     * تعاقدية فعلية، وحذف مقاولها يُبقيها بمعرّف مقاول غير موجود (يتيمة)، وهو بالضبط الخلل المرصود
+     * فعلياً في بيانات الإنتاج هذا الأسبوع: مستخلص معتمد بمعرّف مقاول محذوف (C1007) اختفى من
+     * "إجمالي المبالغ المستلمة" في صفحة المقاولين رغم بقائه محسوباً في "التكلفة الفعلية" على مستوى
+     * المشروع، فاختلف الرقمان. لمقاول مكرَّر حقاً لم يُقدَّم عنه شيء بعد، لا وجود لأي سجل من هذه
+     * فيُسمح الحذف فوراً؛ لمقاول له سجل فعلي، يُطلَب نقل/تصحيح تلك السجلات أولاً (أو مراجعة الأدمن).
      */
     function deleteContractor(user, id) {
-      if (user.role !== 'admin') throw err('حذف المقاولين متاح للأدمن فقط', 403);
+      if (['admin', 'consultant', 'project_manager'].indexOf(user.role) === -1) {
+        throw err('حذف المقاولين صلاحية الأدمن أو الاستشاري أو مدير المشروع', 403);
+      }
       const c = db.contractors.find(function (x) { return x.id === id; });
       if (!c) throw err('المقاول غير موجود', 404);
+      assertProjectInScope(user, c.projectId);
+      const hasHistory = CONTRACTOR_OWNED.some(function (col) {
+        return (db[col] || []).some(function (x) { return x.contractorId === id; });
+      });
+      if (hasHistory) {
+        throw err('لا يمكن حذف هذا المقاول — له مستخلصات أو طلبات (معتمدة أو قيد المراجعة) مرتبطة به، وهي سجلات فعلية لا يجوز حذفها أو تركها بلا مقاول صالح. إن كان هذا مقاولاً مكرَّراً فعلاً، انقل تلك السجلات لحساب المقاول الصحيح أولاً، أو راجع الأدمن.', 409);
+      }
       const boqIds = db.boqItems.filter(function (b) { return b.contractorId === id; }).map(function (b) { return b.id; });
       db.boqItems = db.boqItems.filter(function (b) { return b.contractorId !== id; });
       db.drawingMappings = (db.drawingMappings || []).filter(function (m) { return boqIds.indexOf(m.boqItemId) === -1; });
@@ -955,6 +1020,7 @@
     /** إرسال تقرير للمالك (واتساب / إيميل) — محاكاة قناة الإرسال مع سجل موثق */
     function sendReport(user, payload) {
       if (['consultant', 'project_manager', 'admin', 'owner_rep', 'owner'].indexOf(user.role) === -1) throw err('غير مصرح', 403);
+      if (payload.projectId) assertProjectInScope(user, payload.projectId);
       const msg = {
         id: nextId('MSG'), channel: payload.channel === 'whatsapp' ? 'whatsapp' : 'email',
         to: payload.to, title: payload.title || 'تقرير المشروع', projectId: payload.projectId || null,
@@ -1130,6 +1196,7 @@
       const isOwnContractor = user.role === 'contractor' && item.contractorId === user.contractorId;
       const isOversight = ['consultant', 'project_manager', 'admin'].indexOf(user.role) !== -1;
       if (!isOwnContractor && !isOversight) throw err('تسجيل التنفيذ صلاحية المقاول المعني أو الاستشاري/مدير المشروع/الأدمن', 403);
+      assertProjectInScope(user, item.projectId);
       const qty = Number(payload.qty);
       if (!(qty > 0)) throw err('أدخل كمية صحيحة أكبر من صفر', 400);
       const remaining = (Number(item.qty) || 0) - boqExecutedQty(item);
@@ -1152,6 +1219,7 @@
         throw err('اعتماد الكميات المنفَّذة صلاحية الاستشاري/مدير المشروع/الأدمن', 403);
       }
       const item = findBoqItem(payload.boqItemId);
+      assertProjectInScope(user, item.projectId);
       const qty = Number(payload.qty);
       if (!(qty > 0)) throw err('أدخل كمية صحيحة أكبر من صفر', 400);
       const pending = boqExecutedQty(item) - boqApprovedQty(item);
@@ -1226,6 +1294,7 @@
     function recordHealthSnapshot(user, opts) {
       opts = opts || {};
       const projectId = opts.projectId || (db.projects[0] && db.projects[0].id);
+      assertProjectInScope(user, projectId);
       const P = db.projects.find(function (p) { return p.id === projectId; });
       const h = computeProjectHealth(projectId);
       if (!h) return { recorded: false };
@@ -1301,45 +1370,6 @@
       return { recorded: true, dropped: dropped, improved: improved, score: h.score, grade: h.grade };
     }
 
-    /**
-     * فحص سلامة تلقائي عند كل إقلاع: يصحح أي مقاول مربوط بمشروع خاطئ أو غير موجود (ناتج عن
-     * خلل سابق كان يفترض 'P1' صامتاً عند غياب المشروع) — وكل طلباته السابقة (مطالبات، RFI،
-     * أوامر تغيير...) التي تبعته لنفس الخطأ، فتصبح مرئية للاستشاري الصحيح. يُصلح تلقائياً فقط
-     * حين يوجد مشروع حقيقي واحد لا لبس فيه (غير P1/P2 من بيانات العرض التجريبي)؛ غير ذلك يُسجَّل
-     * تحذيراً ليُراجَع يدوياً بدل التخمين.
-     */
-    function repairOrphanedProjectIds() {
-      const DEMO_SEED_IDS = ['P1', 'P2'];
-      const validProjectIds = db.projects.map(function (p) { return p.id; });
-      const realProjects = db.projects.filter(function (p) { return DEMO_SEED_IDS.indexOf(p.id) === -1; });
-      const broken = db.contractors.filter(function (c) {
-        return !c.projectId || validProjectIds.indexOf(c.projectId) === -1 || DEMO_SEED_IDS.indexOf(c.projectId) !== -1;
-      });
-      if (!broken.length) return { repaired: 0 };
-      if (realProjects.length !== 1) {
-        console.warn('⚠️ فحص سلامة البيانات: ' + broken.length + ' مقاول بمشروع غير صحيح، لكن عدد المشاريع الحقيقية ' +
-          realProjects.length + ' (ليس مشروعاً واحداً) — لا يمكن التصحيح التلقائي الآمن. راجع يدوياً: ' +
-          broken.map(function (c) { return c.id + ' (' + c.name + ')'; }).join(', '));
-        return { repaired: 0, needsManualReview: broken.map(function (c) { return c.id; }) };
-      }
-      const correctPid = realProjects[0].id;
-      const linkedCollections = APPROVAL_COLLECTIONS.concat(TECH_FILTERED, ['boqItems', 'punchList', 'warranties']);
-      broken.forEach(function (c) {
-        const oldPid = c.projectId;
-        c.projectId = correctPid;
-        let itemsFixed = 0;
-        linkedCollections.forEach(function (col) {
-          (db[col] || []).forEach(function (item) {
-            if (item.contractorId === c.id && item.projectId !== correctPid) { item.projectId = correctPid; itemsFixed++; }
-          });
-        });
-        console.log('🔧 تصحيح تلقائي: المقاول "' + c.name + '" (' + c.id + ') كان مربوطاً بـ "' +
-          (oldPid || 'بلا مشروع') + '" — صُحح إلى ' + correctPid + '، وصُحح ' + itemsFixed + ' سجلاً مرتبطاً به.');
-      });
-      persist();
-      return { repaired: broken.length, contractorIds: broken.map(function (c) { return c.id; }) };
-    }
-
     function genPassword() {
       const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
       let p = '';
@@ -1377,7 +1407,6 @@
       boqAvailableToClaim: boqAvailableToClaim,
       addContractor: addContractor,
       deleteContractor: deleteContractor,
-      repairOrphanedProjectIds: repairOrphanedProjectIds,
       addProject: addProject,
       sendReport: sendReport,
       contractorSummary: contractorSummary,
